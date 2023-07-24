@@ -1,0 +1,72 @@
+version: '3.7'
+services:
+  mariadb:
+    # image: mariadb:10.4.8
+    image: mariadb:${DB_VERSION:-latest}
+    healthcheck:
+      test: /usr/local/bin/healthcheck.sh --su=mysql --connect
+      interval: 3s
+      retries: 200
+    volumes:
+      - vol-mariadb-data:/var/lib/mysql
+      - ./mariadb/conf/custom.cnf:/etc/mysql/conf.d/custom.cnf
+    environment:
+      - TZ=Asia/Tokyo
+      - MARIADB_ROOT_PASSWORD=${DB_ADMIN_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${DB_ADMIN_PASSWORD}
+    ports:
+      - "0.0.0.0:3306:3306"
+    networks:
+      - exastro
+      - default
+
+  gitlab:
+    image: 'gitlab/gitlab-ce:${GITLAB_VERSION:-latest}'
+    healthcheck:
+      test: curl -f $${GITLAB_PROTOCOL}://$${GITLAB_HOST}:$${GITLAB_PORT} || exit 1
+      interval: 10s
+      retries: 200
+    restart: always
+    hostname: ${GITLAB_HOST}
+    environment:
+      GITLAB_PROTOCOL: ${GITLAB_PROTOCOL}
+      GITLAB_HOST: ${GITLAB_HOST}
+      GITLAB_PORT: ${GITLAB_PORT}
+      # Running GitLab in a memory-constrained environment
+      # https://docs.gitlab.com/omnibus/settings/memory_constrained_envs.html
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url '${GITLAB_PROTOCOL}://${GITLAB_HOST}:${GITLAB_PORT}'
+        nginx['listen_port'] = ${GITLAB_PORT}
+        gitlab_rails['initial_root_password'] = "${GITLAB_ROOT_PASSWORD}"
+        gitlab_rails['registry_enabled'] = false;
+        gitlab_rails['db_prepared_statements'] = false;
+        gitlab_rails['env'] = {'MALLOC_CONF' => 'dirty_decay_ms:1000,muzzy_decay_ms:1000'}
+        puma['worker_processes'] = 0
+        prometheus_monitoring['enable'] = false
+        sidekiq['max_concurrency'] = 10
+        gitaly['env'] = {'MALLOC_CONF' => 'dirty_decay_ms:1000,muzzy_decay_ms:1000', 'GITALY_COMMAND_SPAWN_MAX_PARALLEL' => '2'}
+      GITLAB_POST_RECONFIGURE_SCRIPT: |
+        curl -Ssf -H "PRIVATE-TOKEN: ${GITLAB_ROOT_TOKEN}" "${GITLAB_PROTOCOL}://${GITLAB_HOST}:${GITLAB_PORT}/api/v4/version" || (
+          gitlab-rails runner "token = User.find_by_username('root').personal_access_tokens.create(scopes: [:api, :write_repository, :sudo], name: 'exastro system token', expires_at: 365.days.from_now); token.set_token('${GITLAB_ROOT_TOKEN}'); token.save!"
+        )
+    ports:
+      - "0.0.0.0:${GITLAB_PORT}:${GITLAB_PORT}"
+    volumes:
+      - vol-gitlab-config:/etc/gitlab
+      - vol-gitlab-logs:/var/log/gitlab
+      - vol-gitlab-data:/var/opt/gitlab
+    shm_size: '256m'
+    networks:
+      - exastro
+      - default
+
+volumes:
+  vol-mariadb-data:
+  vol-gitlab-config:
+  vol-gitlab-logs:
+  vol-gitlab-data:
+
+networks:
+  exastro:
+    name: "exastro_${NETWORK_ID}"
+

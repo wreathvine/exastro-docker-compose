@@ -1,0 +1,574 @@
+version: '3.7'
+services:
+  ita-api-organization:
+    user: 1000:1000
+    image: exastro/exastro-it-automation-api-organization:${ITA_VERSION:-latest}
+    environment:
+      - TZ=Asia/Tokyo
+      - LISTEN_PORT=8000
+      - ENCRYPT_KEY=${ENCRYPT_KEY}
+      - DEFAULT_LANGUAGE=ja
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_ADMIN_USER=${DB_ADMIN_USER}
+      - DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}
+      - PLATFORM_API_HOST=platform-api
+      - PLATFORM_API_PORT=8000
+    volumes:
+      - vol-ita-storage:/storage
+    networks:
+      - exastro
+      - default
+
+  ita-api-admin:
+    user: 1000:1000
+    image: exastro/exastro-it-automation-api-admin:${ITA_VERSION:-latest}
+    environment:
+      - TZ=Asia/Tokyo
+      - LISTEN_PORT=8079
+      - ENCRYPT_KEY=${ENCRYPT_KEY}
+      - DEFAULT_LANGUAGE=ja
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_ADMIN_USER=${DB_ADMIN_USER}
+      - DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}
+      - GITLAB_PROTOCOL=${GITLAB_PROTOCOL:-http}
+      - GITLAB_HOST=${GITLAB_HOST}
+      - GITLAB_PORT=${GITLAB_PORT}
+      - GITLAB_ROOT_TOKEN=${GITLAB_ROOT_TOKEN}
+      - PLATFORM_API_HOST=platform-api
+      - PLATFORM_API_PORT=8000
+    volumes:
+      - vol-ita-storage:/storage
+    networks:
+      - exastro
+      - default
+
+  ita-web-server:
+    user: 1000:1000
+    image: exastro/exastro-it-automation-web-server:${ITA_VERSION:-latest}
+    environment:
+      - TZ=Asia/Tokyo
+      - LISTEN_PORT=80
+    networks:
+      - exastro
+      - default
+
+  ita-by-ansible-execute:
+    user: 1000:1000
+    image: exastro/exastro-it-automation-by-ansible-execute:${ITA_VERSION:-latest}
+    environment:
+      - TZ=Asia/Tokyo
+      - ENCRYPT_KEY=${ENCRYPT_KEY}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_ADMIN_USER=${DB_ADMIN_USER}
+      - DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}
+      - HOST_STORAGEPATH=${HOST_STORAGEPATH}
+      - CONTAINER_BASE=${CONTAINER_BASE}
+      - GITLAB_PROTOCOL=${GITLAB_PROTOCOL:-http}
+      - GITLAB_HOST=${GITLAB_HOST}
+      - GITLAB_PORT=${GITLAB_PORT}
+      - GITLAB_ROOT_TOKEN=${GITLAB_ROOT_TOKEN}
+      - ANSIBLE_AGENT_IMAGE=${ANSIBLE_AGENT_IMAGE}
+      - ANSIBLE_AGENT_IMAGE_TAG=${ANSIBLE_AGENT_IMAGE_TAG}
+      - PLATFORM_API_HOST=platform-api
+      - PLATFORM_API_PORT=8000
+    volumes:
+      - vol-ita-storage:/storage
+    networks:
+      - exastro
+      - devcontainer_default
+      - default
+    # init: true
+    profiles:
+      - exastro-it-automation-backyard
+      - ita-by-ansible-execute
+
+  ita-by-ansible-legacy-role-vars-listup:
+    user: 1000:1000
+    image: exastro/exastro-it-automation-by-ansible-legacy-role-vars-listup:${ITA_VERSION:-latest}
+    environment:
+      - TZ=Asia/Tokyo
+      - ENCRYPT_KEY=${ENCRYPT_KEY}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_ADMIN_USER=${DB_ADMIN_USER}
+      - DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}
+      - PLATFORM_API_HOST=platform-api
+      - PLATFORM_API_PORT=8000
+    volumes:
+      - vol-ita-storage:/storage
+    networks:
+      - exastro
+      - default
+    profiles:
+      - exastro-it-automation-backyard
+      - ita-by-ansible-legacy-role-vars-listup
+
+  ita-by-ansible-legacy-vars-listup:
+    user: 1000:1000
+    image: exastro/exastro-it-automation-by-ansible-legacy-vars-listup:${ITA_VERSION:-latest}
+    environment:
+      - TZ=Asia/Tokyo
+      - ENCRYPT_KEY=${ENCRYPT_KEY}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_ADMIN_USER=${DB_ADMIN_USER}
+      - DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}
+      - PLATFORM_API_HOST=platform-api
+      - PLATFORM_API_PORT=8000
+    volumes:
+      - vol-ita-storage:/storage
+    networks:
+      - exastro
+      - default
+    profiles:
+      - exastro-it-automation-backyard
+      - ita-by-ansible-legacy-vars-listup
+
+  ita-by-ansible-pioneer-vars-listup:
+    user: 1000:1000
+    image: exastro/exastro-it-automation-by-ansible-pioneer-vars-listup:${ITA_VERSION:-latest}
+    environment:
+      - TZ=Asia/Tokyo
+      - ENCRYPT_KEY=${ENCRYPT_KEY}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_ADMIN_USER=${DB_ADMIN_USER}
+      - DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}
+      - PLATFORM_API_HOST=platform-api
+      - PLATFORM_API_PORT=8000
+    volumes:
+      - vol-ita-storage:/storage
+    networks:
+      - exastro
+      - default
+    profiles:
+      - exastro-it-automation-backyard
+      - ita-by-ansible-pioneer-vars-listup
+
+  ita-by-ansible-towermaster-sync:
+    user: 1000:1000
+    image: exastro/exastro-it-automation-by-ansible-towermaster-sync:${ITA_VERSION:-latest}
+    environment:
+      - TZ=Asia/Tokyo
+      - ENCRYPT_KEY=${ENCRYPT_KEY}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_ADMIN_USER=${DB_ADMIN_USER}
+      - DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}
+      - PLATFORM_API_HOST=platform-api
+      - PLATFORM_API_PORT=8000
+    volumes:
+      - vol-ita-storage:/storage
+    networks:
+      - exastro
+      - default
+    profiles:
+      - exastro-it-automation-backyard
+      - ita-by-ansible-towermaster-sync
+
+  ita-by-collector:
+    user: 1000:1000
+    image: exastro/exastro-it-automation-by-collector:${ITA_VERSION:-latest}
+    environment:
+      - TZ=Asia/Tokyo
+      - ENCRYPT_KEY=${ENCRYPT_KEY}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_ADMIN_USER=${DB_ADMIN_USER}
+      - DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}
+      - PLATFORM_API_HOST=platform-api
+      - PLATFORM_API_PORT=8000
+    volumes:
+      - vol-ita-storage:/storage
+    networks:
+      - exastro
+      - default
+    profiles:
+      - exastro-it-automation-backyard
+      - ita-by-collector
+
+  ita-by-conductor-synchronize:
+    user: 1000:1000
+    image: exastro/exastro-it-automation-by-conductor-synchronize:${ITA_VERSION:-latest}
+    environment:
+      - TZ=Asia/Tokyo
+      - ENCRYPT_KEY=${ENCRYPT_KEY}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_ADMIN_USER=${DB_ADMIN_USER}
+      - DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}
+      - PLATFORM_API_HOST=platform-api
+      - PLATFORM_API_PORT=8000
+    volumes:
+      - vol-ita-storage:/storage
+    networks:
+      - exastro
+      - default
+    profiles:
+      - exastro-it-automation-backyard
+      - ita-by-conductor-synchronize
+
+  ita-by-conductor-regularly:
+    user: 1000:1000
+    image: exastro/exastro-it-automation-by-conductor-regularly:${ITA_VERSION:-latest}
+    environment:
+      - TZ=Asia/Tokyo
+      - ENCRYPT_KEY=${ENCRYPT_KEY}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_ADMIN_USER=${DB_ADMIN_USER}
+      - DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}
+      - PLATFORM_API_HOST=platform-api
+      - PLATFORM_API_PORT=8000
+    volumes:
+      - vol-ita-storage:/storage
+    networks:
+      - exastro
+      - default
+    profiles:
+      - exastro-it-automation-backyard
+      - ita-by-conductor-regularly
+
+  ita-by-menu-create:
+    user: 1000:1000
+    image: exastro/exastro-it-automation-by-menu-create:${ITA_VERSION:-latest}
+    environment:
+      - TZ=Asia/Tokyo
+      - ENCRYPT_KEY=${ENCRYPT_KEY}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_ADMIN_USER=${DB_ADMIN_USER}
+      - DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}
+      - PLATFORM_API_HOST=platform-api
+      - PLATFORM_API_PORT=8000
+    volumes:
+      - vol-ita-storage:/storage
+    networks:
+      - exastro
+      - default
+    profiles:
+      - exastro-it-automation-backyard
+      - ita-by-menu-create
+
+  ita-by-menu-export-import:
+    user: 1000:1000
+    image: exastro/exastro-it-automation-by-menu-export-import:${ITA_VERSION:-latest}
+    environment:
+      - TZ=Asia/Tokyo
+      - ENCRYPT_KEY=${ENCRYPT_KEY}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_ADMIN_USER=${DB_ADMIN_USER}
+      - DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}
+      - PLATFORM_API_HOST=platform-api
+      - PLATFORM_API_PORT=8000
+    volumes:
+      - vol-ita-storage:/storage
+    networks:
+      - exastro
+      - default
+    profiles:
+      - exastro-it-automation-backyard
+      - ita-by-menu-export-import
+
+  ita-by-excel-export-import:
+    user: 1000:1000
+    image: exastro/exastro-it-automation-by-excel-export-import:${ITA_VERSION:-latest}
+    environment:
+      - TZ=Asia/Tokyo
+      - ENCRYPT_KEY=${ENCRYPT_KEY}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_ADMIN_USER=${DB_ADMIN_USER}
+      - DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}
+      - PLATFORM_API_HOST=platform-api
+      - PLATFORM_API_PORT=8000
+    volumes:
+      - vol-ita-storage:/storage
+    networks:
+      - exastro
+      - default
+    profiles:
+      - exastro-it-automation-backyard
+      - ita-by-excel-export-import
+
+  ita-by-terraform-cloud-ep-execute:
+    user: 1000:1000
+    image: exastro/exastro-it-automation-by-terraform-cloud-ep-execute:${ITA_VERSION:-latest}
+    environment:
+      - TZ=Asia/Tokyo
+      - ENCRYPT_KEY=${ENCRYPT_KEY}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_ADMIN_USER=${DB_ADMIN_USER}
+      - DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}
+      - PLATFORM_API_HOST=platform-api
+      - PLATFORM_API_PORT=8000
+    volumes:
+      - vol-ita-storage:/storage
+    networks:
+      - exastro
+      - default
+    profiles:
+      - exastro-it-automation-backyard
+      - ita-by-terraform-cloud-ep-execute
+
+  ita-by-terraform-cloud-ep-vars-listup:
+    user: 1000:1000
+    image: exastro/exastro-it-automation-by-terraform-cloud-ep-vars-listup:${ITA_VERSION:-latest}
+    environment:
+      - TZ=Asia/Tokyo
+      - ENCRYPT_KEY=${ENCRYPT_KEY}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_ADMIN_USER=${DB_ADMIN_USER}
+      - DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}
+      - PLATFORM_API_HOST=platform-api
+      - PLATFORM_API_PORT=8000
+    volumes:
+      - vol-ita-storage:/storage
+    networks:
+      - exastro
+      - default
+    profiles:
+      - exastro-it-automation-backyard
+      - ita-by-terraform-cloud-ep-vars-listup
+
+  ita-by-terraform-cli-execute:
+    user: 1000:1000
+    image: exastro/exastro-it-automation-by-terraform-cli-execute:${ITA_VERSION:-latest}
+    environment:
+      - TZ=Asia/Tokyo
+      - ENCRYPT_KEY=${ENCRYPT_KEY}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_ADMIN_USER=${DB_ADMIN_USER}
+      - DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}
+      - PLATFORM_API_HOST=platform-api
+      - PLATFORM_API_PORT=8000
+    volumes:
+      - vol-ita-storage:/storage
+    networks:
+      - exastro
+      - default
+    profiles:
+      - exastro-it-automation-backyard
+      - ita-by-terraform-cli-execute
+
+  ita-by-terraform-cli-vars-listup:
+    user: 1000:1000
+    image: exastro/exastro-it-automation-by-terraform-cli-vars-listup:${ITA_VERSION:-latest}
+    environment:
+      - TZ=Asia/Tokyo
+      - ENCRYPT_KEY=${ENCRYPT_KEY}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_ADMIN_USER=${DB_ADMIN_USER}
+      - DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}
+      - PLATFORM_API_HOST=platform-api
+      - PLATFORM_API_PORT=8000
+    volumes:
+      - vol-ita-storage:/storage
+    networks:
+      - exastro
+      - default
+    profiles:
+      - exastro-it-automation-backyard
+      - ita-by-terraform-cli-vars-listup
+
+  ita-by-hostgroup-split:
+    user: 1000:1000
+    image: exastro/exastro-it-automation-by-hostgroup-split:${ITA_VERSION:-latest}
+    environment:
+      - TZ=Asia/Tokyo
+      - ENCRYPT_KEY=${ENCRYPT_KEY}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_ADMIN_USER=${DB_ADMIN_USER}
+      - DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}
+      - PLATFORM_API_HOST=platform-api
+      - PLATFORM_API_PORT=8000
+    volumes:
+      - vol-ita-storage:/storage
+    networks:
+      - exastro
+      - default
+    profiles:
+      - exastro-it-automation-backyard
+      - ita-by-hostgroup-split
+
+  ita-by-cicd-for-iac:
+    user: 1000:1000
+    image: exastro/exastro-it-automation-by-cicd-for-iac:${ITA_VERSION:-latest}
+    environment:
+      - TZ=Asia/Tokyo
+      - ENCRYPT_KEY=${ENCRYPT_KEY}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_ADMIN_USER=${DB_ADMIN_USER}
+      - DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}
+      - PLATFORM_API_HOST=platform-api
+      - PLATFORM_API_PORT=8000
+    volumes:
+      - vol-ita-storage:/storage
+    networks:
+      - exastro
+      - default
+    profiles:
+      - exastro-it-automation-backyard
+      - ita-by-cicd-for-iac
+
+  ita-by-execinstance-dataautoclean:
+    user: 1000:1000
+    image: exastro/exastro-it-automation-by-execinstance-dataautoclean:${ITA_VERSION:-latest}
+    environment:
+      - TZ=Asia/Tokyo
+      - ENCRYPT_KEY=${ENCRYPT_KEY}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_ADMIN_USER=${DB_ADMIN_USER}
+      - DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}
+      - PLATFORM_API_HOST=platform-api
+      - PLATFORM_API_PORT=8000
+    volumes:
+      - vol-ita-storage:/storage
+    networks:
+      - exastro
+      - default
+    profiles:
+      - exastro-it-automation-backyard
+      - ita-by-execinstance-dataautoclean
+
+  ita-by-file-autoclean:
+    user: 1000:1000
+    image: exastro/exastro-it-automation-by-file-autoclean:${ITA_VERSION:-latest}
+    environment:
+      - TZ=Asia/Tokyo
+      - ENCRYPT_KEY=${ENCRYPT_KEY}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_ADMIN_USER=${DB_ADMIN_USER}
+      - DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}
+      - PLATFORM_API_HOST=platform-api
+      - PLATFORM_API_PORT=8000
+    volumes:
+      - vol-ita-storage:/storage
+    networks:
+      - exastro
+      - default
+    profiles:
+      - exastro-it-automation-backyard
+      - ita-by-file-autoclean
+
+  ita-migration:
+    user: 1000:1000
+    image: exastro/exastro-it-automation-migration:${ITA_VERSION:-latest}
+    command: python3 /exastro/migration_main.py
+    environment:
+      - TZ=Asia/Tokyo
+      - ENCRYPT_KEY=${ENCRYPT_KEY}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_DATABASE=${DB_DATABASE}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_ADMIN_USER=${DB_ADMIN_USER}
+      - DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}
+      - PLATFORM_API_HOST=platform-api
+      - PLATFORM_API_PORT=8000
+      - SYSTEM_ANSIBLE_EXECUTION_LIMIT=${SYSTEM_ANSIBLE_EXECUTION_LIMIT}
+      - SYSTEM_ANSIBLE_EXECUTION_LIMIT_DESCRIPTION=${SYSTEM_ANSIBLE_EXECUTION_LIMIT_DESCRIPTION}
+      - ORG_ANSIBLE_EXECUTION_LIMIT_DEFAULT=${ORG_ANSIBLE_EXECUTION_LIMIT_DEFAULT}
+      - ORG_ANSIBLE_EXECUTION_LIMIT_MAX=${ORG_ANSIBLE_EXECUTION_LIMIT_MAX}
+      - ORG_ANSIBLE_EXECUTION_LIMIT_DESCRIPTION=${ORG_ANSIBLE_EXECUTION_LIMIT_DESCRIPTION}
+    volumes:
+      - vol-ita-storage:/storage:rw
+    networks:
+      - exastro
+      - default
+#    depends_on:
+#      ita-mariadb:
+#        condition: service_healthy
+#      platform-migration-2:
+#        condition: service_completed_successfully
+
+volumes:
+  vol-ita-storage:
+    driver: local
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: ${PWD}/../.volumes/storage
+
+networks:
+  exastro:
+    external: true
+    name: "exastro_${NETWORK_ID}"
+  devcontainer_default:
+    name: devcontainer_default
