@@ -61,7 +61,7 @@ services:
       - default
 
   ita-by-ansible-execute:
-    user: 1000:1000
+    user: 1000:${HOST_DOCKER_GID:-1000}
     image: exastro/exastro-it-automation-by-ansible-execute:${ITA_VERSION:-latest}
     environment:
       - TZ=Asia/Tokyo
@@ -89,7 +89,6 @@ services:
       - exastro
       - devcontainer_default
       - default
-    # init: true
     profiles:
       - exastro-it-automation-backyard
       - ita-by-ansible-execute
