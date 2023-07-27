@@ -1,7 +1,6 @@
 version: '3.7'
 services:
   mariadb:
-    # image: mariadb:10.4.8
     image: mariadb:${DB_VERSION:-latest}
     healthcheck:
       test: /usr/local/bin/healthcheck.sh --su=mysql --connect
