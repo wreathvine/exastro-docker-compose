@@ -17,7 +17,6 @@ services:
       - "0.0.0.0:3306:3306"
     networks:
       - exastro
-      - default
 
   gitlab:
     image: 'gitlab/gitlab-ce:${GITLAB_VERSION:-latest}'
@@ -57,7 +56,6 @@ services:
     shm_size: '256m'
     networks:
       - exastro
-      - default
 
 volumes:
   vol-mariadb-data:
@@ -68,4 +66,3 @@ volumes:
 networks:
   exastro:
     name: "exastro_${NETWORK_ID}"
-
