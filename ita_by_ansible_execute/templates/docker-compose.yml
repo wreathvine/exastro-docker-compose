@@ -30,5 +30,5 @@ services:
 
 networks:
   exastro:
-    name: exastro
+    name: exastro_{{ network_id }}
     external: true

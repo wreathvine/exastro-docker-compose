@@ -5,52 +5,32 @@
   
 
 ## 使用法  
-Exastro IT Automation の実行には、  
-common-services、exastro-platform、exastro-it-automation の3つのDocker環境を開始していきます。  
+Exastro IT Automation の起動には、**profile** によって起動するコンテナを指定することで、環境ごとに起動するコンテナを選択することが可能です。  
   
 
 ### common-services の docker-compose up  
-はじめに、common-services ディレクトリのDocker 環境を開始します。  
-Exastro IT Automationで利用するGitlabと、Exastro IT AutomationとExastro Platformで利用するDBが起動します。  
-  
+はじめに、各種構成ファイルを取得します。
+
+```
+git clone https://github.com/exastro-suite/exastro-docker-compose.git
+```
+
+exastro-docker-compose ディレクトリでコンテナを起動します。  
+この例では、**all** プロファイルを指定することで、すべてのコンテナを一度に起動します。
+
 ```shell
-cd common-services
+cd exastro-docker-compose
+
+# 以下のコマンドの出力結果を .envファイルのENCRYPT_KEYに設定してください。
+head -c 32 /dev/urandom | base64
+
 cp .env.sample .env  # 値を変更することなく起動が可能ですが、変更を行いたい場合は .envファイルを編集してください。  
 
 # --waitオプションを指定し Gitlabの起動を待ちます。 Gitlabの起動には、10分程掛かる場合があります。  
-docker-compose up -d --wait  
+docker-compose --profile all up -d  
 ```  
-  
-  
-### exastro-platform の docker-compose up  
-つぎに、exastro-platform ディレクトリのDocker 環境を開始します。  
-  
-```shell
-cd ../exastro-platform
-cp .env.sample .env  
-# 以下のコマンドの出力結果を .envファイルのENCRYPT_KEYに設定してください。
-head -c 32 /dev/urandom | base64
-# 他設定値の変更を行いたい場合は、.envファイルを編集してください。
 
-docker-compose up -d
-```  
-  
-  
-### exastro-it-automation の docker-compose up  
-最後に、exastro-it-automation ディレクトリのDocker 環境を開始します。  
-  
-```shell
-cd ../exastro-it-automation
-cp .env.sample .env  
-# 以下のコマンドの出力結果を .envファイルのENCRYPT_KEYに設定してください。
-head -c 32 /dev/urandom | base64
-# HOST_STORAGEPATH に、exastro-it-automation-docker/.volumes/storage のパスを絶対パスで指定してください。
-# 他設定値の変更を行いたい場合は、.envファイルを編集してください。
 
-docker-compose up -d
-```
-  
-  
 ### Organization作成  
 exastro-platform/toolsディレクトリに、Organization作成用のスクリプトがあります。  
 このスクリプトを使用し、Organization作成が実行できます。  
@@ -65,14 +45,14 @@ cd ../exastro-platform/tools
   
 
 ### 各サイトURL  
-Keycloak管理コンソール  
-http://localhost:38001/auth/  
+システム管理者用コンソール  
+http://EXTERNAL_URL:38001/auth/  
   
-Organization用サイト  
-http://localhost:38000/{オーガナイゼーションID}/platform/  
+作成したOrganizationの管理ページ  
+http://EXTERNAL_URL:38000/{オーガナイゼーションID}/platform/  
   
 Gitlab  
-http://localhost:40080/  
+http://EXTERNAL_URL:40080/  
   
 ※docker-composeで、各ポートの設定を変更した場合は、変更後のポートで各サイトにアクセスしてください。  
   
