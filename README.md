@@ -1,26 +1,8 @@
 # Exastro IT Automation in Docker Compose  
-このdocker-composeは、Dockerを使用し Exastro IT Automation を起動して実行できるようにします。  
+## 概要   
+Docker Compose を利用することで、Exastro IT Automation を簡単に起動することが可能です。  
   - (based on [exastro-it-automation](https://github.com/exastro-suite/exastro-it-automation))  
   - (based on [exastro-platform](https://github.com/exastro-suite/exastro-platform))  
-  
-
-## 概要   
-Exastro IT Automation の起動には、プロファイル (*--profile*) によって対象を指定することで、環境ごとに起動するコンテナを選択することが可能です。  
-
-
-| プロファイル名 | 対象となるコンテナ                                 | スケーリング                  |
-| -------------- | -------------------------------------------------- | ----------------------------- |
-| all            | すべてのコンテナ                                   |                               |
-| common         | MariaDB、GitLab、Keycloak コンテナ                 | 不可 (対応予定)               |
-| mariadb        | MariaDB コンテナ                                   | 不可 (対応予定)               |
-| gitlab         | GitLab コンテナ                                    | 不可 (対応予定)               |
-| keycloak       | Keycloak コンテナ                                  | 不可 (対応予定)               |
-| platform       | Exastro Platform 関連のコンテナ                    | 可能                          |
-| ita            | Exastro IT Automation 関連のコンテナ               | 一部可能                      |
-| web            | Web 系のコンテナ                                   | 可能                          |
-| migration      | インストール・アップグレード用コンテナ             | 不可 (必ず同時に1つのみ起動)  |
-| backyard       | Backyard 関連のコンテナ                            | 不可 (対応予定)               |
-| batch          | バッチ処理関連のコンテナ(Crontabに登録が必要)      | 不可 (不要)                   |
 
 
 ## 起動準備
@@ -43,7 +25,7 @@ cd exastro-docker-compose
 cp .env.sample .env  # 値を変更することなく起動が可能ですが、変更を行いたい場合は .envファイルを編集してください。  
 ```
 
-末尾のパラメータ一覧を参考に、起動に必要な環境情報を登録します。
+末尾の[パラメータ一覧](#パラメータ一覧)を参考に、起動に必要な環境情報を登録します。
 
 ```
 # ENCRYPT_KEY の作成は以下のコマンドを参考にしてください。
@@ -54,6 +36,22 @@ head -c 32 /dev/urandom | base64
 ## コンテナ起動
 
 *docker* もしくは *docker-compose* コマンドを使いコンテナを起動します。
+Exastro IT Automation の起動には、プロファイル (*--profile*) によって対象を指定することで、環境ごとに起動するコンテナを選択することが可能です。  
+
+| プロファイル名 | 対象となるコンテナ                                 | スケーリング                  |
+| -------------- | -------------------------------------------------- | ----------------------------- |
+| all            | すべてのコンテナ                                   |                               |
+| common         | MariaDB、GitLab、Keycloak コンテナ                 | 不可 (対応予定)               |
+| mariadb        | MariaDB コンテナ                                   | 不可 (対応予定)               |
+| gitlab         | GitLab コンテナ                                    | 不可 (対応予定)               |
+| keycloak       | Keycloak コンテナ                                  | 不可 (対応予定)               |
+| platform       | Exastro Platform 関連のコンテナ                    | 可能                          |
+| ita            | Exastro IT Automation 関連のコンテナ               | 一部可能                      |
+| web            | Web 系のコンテナ                                   | 可能                          |
+| migration      | インストール・アップグレード用コンテナ             | 不可 (必ず同時に1つのみ起動)  |
+| backyard       | Backyard 関連のコンテナ                            | 不可 (対応予定)               |
+| batch          | バッチ処理関連のコンテナ(Crontabに登録が必要)      | 不可 (不要)                   |
+
 この例では、**all** プロファイルを指定することで、すべてのコンテナを一度に起動します。
 
 ```shell
