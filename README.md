@@ -4,7 +4,7 @@
   - (based on [exastro-platform](https://github.com/exastro-suite/exastro-platform))  
   
 
-## 使用法  
+## 概要   
 Exastro IT Automation の起動には、プロファイル (*--profile*) によって対象を指定することで、環境ごとに起動するコンテナを選択することが可能です。  
 
 
@@ -23,7 +23,7 @@ Exastro IT Automation の起動には、プロファイル (*--profile*) によ�
 | batch          | バッチ処理関連のコンテナ(Crontabに登録が必要)      | 不可 (不要)                   |
 
 
-### 起動準備
+## 起動準備
 はじめに、各種構成ファイルを取得します。
 docker-compose.yml などの起動に必要なファイル群を取得します。
 
@@ -43,12 +43,99 @@ cd exastro-docker-compose
 cp .env.sample .env  # 値を変更することなく起動が可能ですが、変更を行いたい場合は .envファイルを編集してください。  
 ```
 
-下記のパラメータ一覧を参考に、起動に必要な環境情報を登録します。
+末尾のパラメータ一覧を参考に、起動に必要な環境情報を登録します。
 
 ```
 # ENCRYPT_KEY の作成は以下のコマンドを参考にしてください。
 head -c 32 /dev/urandom | base64
 ```
+
+
+## コンテナ起動
+
+*docker* もしくは *docker-compose* コマンドを使いコンテナを起動します。
+この例では、**all** プロファイルを指定することで、すべてのコンテナを一度に起動します。
+
+```shell
+# docker コマンドを利用する場合(Docker環境)
+docker compose --profile all up -d  
+
+# docker-compose コマンドを利用する場合(Podman環境)
+docker-compose --profile all up -d  
+```  
+
+## Organization作成とアクセス
+
+### 設定例
+
+| 設定項目                      | 設定値                  |
+| ----------------------------- | ----------------------- |
+| システム管理者                | admin                   |
+| システム管理者パスワード      | password                |
+| Organization ID               | sample-org              |
+| Organization 管理者           | admin                   |
+| Organization 管理者パスワード | password                |
+| EXTERNAL_URL_PROTOCOL         | http                    |
+| EXTERNAL_URL_HOST             | exastro.example.com     |
+| EXTERNAL_URL_PORT             | 81                      |
+| EXTERNAL_URL_MNG_PROTOCOL     | http                    |
+| EXTERNAL_URL_MNG_HOST         | exastro-mng.example.com |
+| EXTERNAL_URL_MNG_PORT         | 80                      |
+| GITLAB_PROTOCOL               | http                    |
+| GITLAB_HOST                   | gitlab.example.com      |
+| GITLAB_PORT                   | 40080                   |
+
+
+### Organization 作成
+
+```shell
+BASE64_BASIC=$(echo -n "admin:password" | base64)
+BASE_URL=http://exastro-mng.example.com:81
+
+
+curl -X 'POST' "${BASE_URL}/api/platform/organizations" -H 'accept: application/json' -H "Authorization: Basic ${BASE64_BASIC}" -H 'Content-Type: application/json' -d '{
+  "id": "sample-org",
+  "name": "Sample organization",
+  "organization_managers": [
+    {
+      "username": "admin",
+      "email": "admin@example.com",
+      "firstName": "admin",
+      "lastName": "admin",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": true
+        }
+      ],
+      "requiredActions": [
+        "UPDATE_PROFILE"
+      ],
+      "enabled": true
+    }
+  ],
+  "plan": {},
+  "options": {
+    "sslRequired": "None"
+  },
+  "optionsIta": {}
+}'
+```
+  
+
+### 各ページのURL  
+#### システム管理者用コンソール  
+http://exastro-mng.example.com:81/auth/  
+  
+#### Organization ページ  
+http://exastro.example.com:80/sample-org/platform/  
+  
+#### Gitlab  
+http://gitlab.example.com:40080  
+  
+
+## パラメータ一覧
 
 | パラメータ                              | 説明                                                                        | 変更                          | デフォルト値・選択可能な設定値                                                                          |
 | --------------------------------------- | --------------------------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------- |
@@ -121,89 +208,3 @@ head -c 32 /dev/urandom | base64
 | ORG_ANSIBLE_EXECUTION_LIMIT_DEFAULT     | Exastro システム全体の Movement デフォルト実行数                            | 可                            | 25                                                                                                      |
 | ORG_ANSIBLE_EXECUTION_LIMIT_MAX         | オーガナイゼーションごとの Movement 最大実行数                              | 可                            | 1000                                                                                                    |
 | ORG_ANSIBLE_EXECUTION_LIMIT_DESCRIPTION | Movement 最大実行数の説明文表記                                             | 不要                          | Maximum number of movement executions for organization default                                          |
-
-
-### コンテナ起動
-
-*docker* もしくは *docker-compose* コマンドを使いコンテナを起動します。
-この例では、**all** プロファイルを指定することで、すべてのコンテナを一度に起動します。
-
-```shell
-# docker コマンドを利用する場合(Docker環境)
-docker compose --profile all up -d  
-
-# docker-compose コマンドを利用する場合(Podman環境)
-docker-compose --profile all up -d  
-```  
-
-### Organization作成とアクセス
-
-#### 設定例
-
-| 設定項目                      | 設定値                  |
-| ----------------------------- | ----------------------- |
-| システム管理者                | admin                   |
-| システム管理者パスワード      | password                |
-| Organization ID               | sample-org                     |
-| Organization 管理者           | admin                     |
-| Organization 管理者パスワード | password                     |
-| EXTERNAL_URL_PROTOCOL         | http                    |
-| EXTERNAL_URL_HOST             | exastro.example.com     |
-| EXTERNAL_URL_PORT             | 81                      |
-| EXTERNAL_URL_MNG_PROTOCOL     | http                    |
-| EXTERNAL_URL_MNG_HOST         | exastro-mng.example.com |
-| EXTERNAL_URL_MNG_PORT         | 80                      |
-| GITLAB_PROTOCOL               | http                    |
-| GITLAB_HOST                   | gitlab.example.com      |
-| GITLAB_PORT                   | 40080                   |
-
-
-#### Organization 作成
-
-```shell
-BASE64_BASIC=$(echo -n "admin:password" | base64)
-BASE_URL=http://exastro-mng.example.com:81
-
-
-curl -X 'POST' "${BASE_URL}/api/platform/organizations" -H 'accept: application/json' -H "Authorization: Basic ${BASE64_BASIC}" -H 'Content-Type: application/json' -d '{
-  "id": "sample-org",
-  "name": "Sample organization",
-  "organization_managers": [
-    {
-      "username": "admin",
-      "email": "admin@example.com",
-      "firstName": "admin",
-      "lastName": "admin",
-      "credentials": [
-        {
-          "type": "password",
-          "value": "password",
-          "temporary": true
-        }
-      ],
-      "requiredActions": [
-        "UPDATE_PROFILE"
-      ],
-      "enabled": true
-    }
-  ],
-  "plan": {},
-  "options": {
-    "sslRequired": "None"
-  },
-  "optionsIta": {}
-}'
-```
-  
-
-#### 各サイトURL  
-##### システム管理者用コンソール  
-http://exastro-mng.example.com:81/auth/  
-  
-##### Organization ページ  
-http://exastro.example.com:80/org-name/platform/  
-  
-##### Gitlab  
-http://gitlab.example.com:40080  
-  
-  
