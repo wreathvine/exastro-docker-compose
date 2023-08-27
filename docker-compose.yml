@@ -27,10 +27,11 @@ services:
       - vol-mariadb-data:/var/lib/mysql
       - ./mariadb/conf/custom.cnf:/etc/mysql/conf.d/custom.cnf
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
-      - MARIADB_ROOT_PASSWORD=${DB_ADMIN_PASSWORD}
-    ports:
-      - "0.0.0.0:${DB_PORT:-3306}:3306"
+      TZ: ${TZ:-Asia/Tokyo}
+      MARIADB_ROOT_PASSWORD: ${DB_ADMIN_PASSWORD:-}
+      MYSQL_ROOT_PASSWORD: ${DB_ADMIN_PASSWORD:-}
+    # ports:
+    #   - "0.0.0.0:${DB_PORT:-3306}:3306"
     networks:
       - exastro
     profiles:
@@ -68,7 +69,7 @@ services:
         postgresql['checkpoint_timeout'] = "10min"
         external_url '${GITLAB_PROTOCOL:-http}://${GITLAB_HOST:-localhost}:${GITLAB_PORT:-40080}'
         nginx['listen_port'] = 40080
-        gitlab_rails['initial_root_password'] = "${GITLAB_ROOT_PASSWORD}"
+        gitlab_rails['initial_root_password'] = "${GITLAB_ROOT_PASSWORD:-}"
         gitlab_rails['registry_enabled'] = false;
         gitlab_rails['db_prepared_statements'] = false;
         # gitlab_rails['env'] = {'MALLOC_CONF' => 'dirty_decay_ms:1000,muzzy_decay_ms:1000'}
@@ -77,8 +78,8 @@ services:
         # sidekiq['max_concurrency'] = 10
         # gitaly['env'] = {'MALLOC_CONF' => 'dirty_decay_ms:1000,muzzy_decay_ms:1000', 'GITALY_COMMAND_SPAWN_MAX_PARALLEL' => '2'}
       GITLAB_POST_RECONFIGURE_SCRIPT: |
-        curl -Ssf -H "PRIVATE-TOKEN: ${GITLAB_ROOT_TOKEN}" "${GITLAB_PROTOCOL:-http}://${GITLAB_HOST:-localhost}:${GITLAB_PORT:-40080}/api/v4/version" || (
-          gitlab-rails runner "token = User.find_by_username('root').personal_access_tokens.create(scopes: [:api, :write_repository, :sudo], name: 'exastro system token', expires_at: 365.days.from_now); token.set_token('${GITLAB_ROOT_TOKEN}'); token.save!"
+        curl -Ssf -H "PRIVATE-TOKEN: ${GITLAB_ROOT_TOKEN:-}" "${GITLAB_PROTOCOL:-http}://${GITLAB_HOST:-localhost}:${GITLAB_PORT:-40080}/api/v4/version" || (
+          gitlab-rails runner "token = User.find_by_username('root').personal_access_tokens.create(scopes: [:api, :write_repository, :sudo], name: 'exastro system token', expires_at: 3650.days.from_now); token.set_token('${GITLAB_ROOT_TOKEN:-}'); token.save!"
         )
     ports:
       - "0.0.0.0:${GITLAB_PORT:-40080}:40080"
@@ -109,17 +110,17 @@ services:
       interval: 3s
       retries: 200
     environment:
-      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN:-admin}
-      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-password}
-      - TZ=${TZ:-Asia/Tokyo}
-      - KC_PROXY=passthrough
-      - KC_HTTP_RELATIVE_PATH=/auth
-      - KC_DB=${KEYCLOAK_DB_VENDOR:-mariadb}
-      - KC_DB_URL_HOST=${KEYCLOAK_DB_HOST:-mariadb}
-      - KC_DB_URL_PORT=${KEYCLOAK_DB_PORT:-3306}
-      - KC_DB_URL_DATABASE=${KEYCLOAK_DB_DATABASE:-keycloak}
-      - KC_DB_USERNAME=${KEYCLOAK_DB_USER:-keycloak}
-      - KC_DB_PASSWORD=${KEYCLOAK_DB_PASSWORD:-password}
+      KEYCLOAK_ADMIN: ${SYSTEM_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${SYSTEM_ADMIN_PASSWORD:-}
+      TZ: ${TZ:-Asia/Tokyo}
+      KC_PROXY: passthrough
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_DB: ${KEYCLOAK_DB_VENDOR:-mariadb}
+      KC_DB_URL_HOST: ${KEYCLOAK_DB_HOST:-mariadb}
+      KC_DB_URL_PORT: ${KEYCLOAK_DB_PORT:-3306}
+      KC_DB_URL_DATABASE: ${KEYCLOAK_DB_DATABASE:-keycloak}
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER:-keycloak}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-}
     command:
       # 開発モードで起動
       - start-dev --spi-theme-static-max-age=-1 --spi-theme-cache-themes=false --spi-theme-cache-templates=false
@@ -144,51 +145,51 @@ services:
     hostname: platform-auth
     restart: always
     environment:
-      - EXTERNAL_URL=${EXTERNAL_URL_PROTOCOL:-http}://${EXTERNAL_URL_HOST:-localhost}:${EXTERNAL_URL_PORT:-80}
-      - EXTERNAL_URL_MNG=${EXTERNAL_URL_MNG_PROTOCOL:-http}://${EXTERNAL_URL_MNG_HOST:-localhost}:${EXTERNAL_URL_MNG_PORT:-81}
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - ENCRYPT_KEY=${ENCRYPT_KEY:-Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=}
-      - PYTHONIOENCODING=utf-8
-      - LISTEN_PORT=8000
-      - LISTEN_PORT_PF_MNG=8001
-      - ITA_API_ADMIN_PROTOCOL=${ITA_API_ADMIN_PROTOCOL:-http}
-      - ITA_API_ADMIN_HOST=${ITA_API_ADMIN_HOST:-ita-api-admin}
-      - ITA_API_ADMIN_PORT=${ITA_API_ADMIN_PORT:-8080}
-      - ITA_API_PROTOCOL=${ITA_API_PROTOCOL:-http}
-      - ITA_API_HOST=${ITA_API_HOST:-ita-api-organization}
-      - ITA_API_PORT=${ITA_API_PORT:-8080}
-      - ITA_WEB_PROTOCOL=${ITA_WEB_PROTOCOL:-http}
-      - ITA_WEB_HOST=${ITA_WEB_HOST:-ita-web-server}
-      - ITA_WEB_PORT=${ITA_WEB_PORT:-8000}
-      - API_KEYCLOAK_PROTOCOL=${API_KEYCLOAK_PROTOCOL:-http}
-      - API_KEYCLOAK_HOST=${API_KEYCLOAK_HOST:-keycloak}
-      - API_KEYCLOAK_PORT=${API_KEYCLOAK_PORT:-8080}
-      - KEYCLOAK_PROTOCOL=${KEYCLOAK_PROTOCOL:-http}
-      - KEYCLOAK_HOST=${KEYCLOAK_HOST:-keycloak}
-      - KEYCLOAK_PORT=${KEYCLOAK_PORT:-8080}
-      - KEYCLOAK_MASTER_REALM=master
-      - PLATFORM_API_PROTOCOL=${PLATFORM_API_PROTOCOL:-http}
-      - PLATFORM_API_HOST=${PLATFORM_API_HOST:-platform-api}
-      - PLATFORM_API_PORT=${PLATFORM_API_PORT:-8000}
-      - PLATFORM_WEB_PROTOCOL=${PLATFORM_WEB_PROTOCOL:-http}
-      - PLATFORM_WEB_HOST=${PLATFORM_WEB_HOST:-platform-web}
-      - PLATFORM_WEB_PORT=${PLATFORM_WEB_PORT:-8000}
-      - PLATFORM_AUTH_PROTOCOL=${PLATFORM_AUTH_PROTOCOL:-http}
-      - PLATFORM_AUTH_HOST=${PLATFORM_AUTH_HOST:-platform-auth}
-      - PLATFORM_AUTH_PORT=${PLATFORM_AUTH_PORT:-8000}
-      - DB_VENDOR=${PLATFORM_DB_VENDOR:-mariadb}
-      - DB_HOST=${PLATFORM_DB_HOST:-mariadb}
-      - DB_PORT=${PLATFORM_DB_PORT:-3306}
-      - DB_DATABASE=${PLATFORM_DB_DATABASE:-platform}
-      - DB_ADMIN_USER=${PLATFORM_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${PLATFORM_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${PLATFORM_DB_USER:-app_user}
-      - DB_PASSWORD=${PLATFORM_DB_PASSWORD:-password}
+      EXTERNAL_URL: ${EXTERNAL_URL_PROTOCOL:-http}://${EXTERNAL_URL_HOST:-localhost}:${EXTERNAL_URL_PORT:-80}
+      EXTERNAL_URL_MNG: ${EXTERNAL_URL_MNG_PROTOCOL:-http}://${EXTERNAL_URL_MNG_HOST:-127.0.0.1}:${EXTERNAL_URL_MNG_PORT:-81}
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      PYTHONIOENCODING: utf-8
+      LISTEN_PORT: 8000
+      LISTEN_PORT_PF_MNG: 8001
+      ITA_API_ADMIN_PROTOCOL: ${ITA_API_ADMIN_PROTOCOL:-http}
+      ITA_API_ADMIN_HOST: ${ITA_API_ADMIN_HOST:-ita-api-admin}
+      ITA_API_ADMIN_PORT: ${ITA_API_ADMIN_PORT:-8080}
+      ITA_API_PROTOCOL: ${ITA_API_PROTOCOL:-http}
+      ITA_API_HOST: ${ITA_API_HOST:-ita-api-organization}
+      ITA_API_PORT: ${ITA_API_PORT:-8080}
+      ITA_WEB_PROTOCOL: ${ITA_WEB_PROTOCOL:-http}
+      ITA_WEB_HOST: ${ITA_WEB_HOST:-ita-web-server}
+      ITA_WEB_PORT: ${ITA_WEB_PORT:-8000}
+      API_KEYCLOAK_PROTOCOL: ${API_KEYCLOAK_PROTOCOL:-http}
+      API_KEYCLOAK_HOST: ${API_KEYCLOAK_HOST:-keycloak}
+      API_KEYCLOAK_PORT: ${API_KEYCLOAK_PORT:-8080}
+      KEYCLOAK_PROTOCOL: ${KEYCLOAK_PROTOCOL:-http}
+      KEYCLOAK_HOST: ${KEYCLOAK_HOST:-keycloak}
+      KEYCLOAK_PORT: ${KEYCLOAK_PORT:-8080}
+      KEYCLOAK_MASTER_REALM: ${KEYCLOAK_MASTER_REALM:-Master}
+      PLATFORM_API_PROTOCOL: ${PLATFORM_API_PROTOCOL:-http}
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      PLATFORM_WEB_PROTOCOL: ${PLATFORM_WEB_PROTOCOL:-http}
+      PLATFORM_WEB_HOST: ${PLATFORM_WEB_HOST:-platform-web}
+      PLATFORM_WEB_PORT: ${PLATFORM_WEB_PORT:-8000}
+      PLATFORM_AUTH_PROTOCOL: ${PLATFORM_AUTH_PROTOCOL:-http}
+      PLATFORM_AUTH_HOST: ${PLATFORM_AUTH_HOST:-platform-auth}
+      PLATFORM_AUTH_PORT: ${PLATFORM_AUTH_PORT:-8000}
+      DB_VENDOR: ${PLATFORM_DB_VENDOR:-mariadb}
+      DB_HOST: ${PLATFORM_DB_HOST:-mariadb}
+      DB_PORT: ${PLATFORM_DB_PORT:-3306}
+      DB_DATABASE: ${PLATFORM_DB_DATABASE:-platform}
+      DB_ADMIN_USER: ${PLATFORM_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${PLATFORM_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${PLATFORM_DB_USER:-app_user}
+      DB_PASSWORD: ${PLATFORM_DB_PASSWORD:-}
     ports:
-      - "0.0.0.0:${EXTERNAL_URL_PORT}:8000"
-      - "0.0.0.0:${EXTERNAL_URL_MNG_PORT}:8001"
+      - "0.0.0.0:${EXTERNAL_URL_PORT:-80}:8000"
+      - "0.0.0.0:${EXTERNAL_URL_MNG_PORT:-81}:8001"
     networks:
       - exastro
     depends_on:
@@ -210,41 +211,41 @@ services:
     hostname: platform-web
     restart: always
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - PYTHONIOENCODING=utf-8
-      - LISTEN_PORT=8000
-      - ITA_API_ADMIN_PROTOCOL=${ITA_API_ADMIN_PROTOCOL:-http}
-      - ITA_API_ADMIN_HOST=${ITA_API_ADMIN_HOST:-ita-api-admin}
-      - ITA_API_ADMIN_PORT=${ITA_API_ADMIN_PORT:-8080}
-      - ITA_API_PROTOCOL=${ITA_API_PROTOCOL:-http}
-      - ITA_API_HOST=${ITA_API_HOST:-ita-api-organization}
-      - ITA_API_PORT=${ITA_API_PORT:-8080}
-      - ITA_WEB_PROTOCOL=${ITA_WEB_PROTOCOL:-http}
-      - ITA_WEB_HOST=${ITA_WEB_HOST:-ita-web-server}
-      - ITA_WEB_PORT=${ITA_WEB_PORT:-8000}
-      - API_KEYCLOAK_PROTOCOL=${API_KEYCLOAK_PROTOCOL:-http}
-      - API_KEYCLOAK_HOST=${API_KEYCLOAK_HOST:-keycloak}
-      - API_KEYCLOAK_PORT=${API_KEYCLOAK_PORT:-8080}
-      - KEYCLOAK_PROTOCOL=${KEYCLOAK_PROTOCOL:-http}
-      - KEYCLOAK_HOST=${KEYCLOAK_HOST:-keycloak}
-      - KEYCLOAK_PORT=${KEYCLOAK_PORT:-8080}
-      - KEYCLOAK_MASTER_REALM=master
-      - PLATFORM_API_PROTOCOL=${PLATFORM_API_PROTOCOL:-http}
-      - PLATFORM_API_HOST=${PLATFORM_API_HOST:-platform-api}
-      - PLATFORM_API_PORT=${PLATFORM_API_PORT:-8000}
-      - PLATFORM_WEB_PROTOCOL=${PLATFORM_WEB_PROTOCOL:-http}
-      - PLATFORM_WEB_HOST=${PLATFORM_WEB_HOST:-platform-web}
-      - PLATFORM_WEB_PORT=${PLATFORM_WEB_PORT:-8000}
-      - DB_VENDOR=${PLATFORM_DB_VENDOR:-mariadb}
-      - DB_HOST=${PLATFORM_DB_HOST:-mariadb}
-      - DB_PORT=${PLATFORM_DB_PORT:-3306}
-      - DB_DATABASE=${PLATFORM_DB_DATABASE:-platform}
-      - DB_ADMIN_USER=${PLATFORM_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${PLATFORM_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${PLATFORM_DB_USER:-app_user}
-      - DB_PASSWORD=${PLATFORM_DB_PASSWORD:-password}
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      PYTHONIOENCODING: utf-8
+      LISTEN_PORT: 8000
+      ITA_API_ADMIN_PROTOCOL: ${ITA_API_ADMIN_PROTOCOL:-http}
+      ITA_API_ADMIN_HOST: ${ITA_API_ADMIN_HOST:-ita-api-admin}
+      ITA_API_ADMIN_PORT: ${ITA_API_ADMIN_PORT:-8080}
+      ITA_API_PROTOCOL: ${ITA_API_PROTOCOL:-http}
+      ITA_API_HOST: ${ITA_API_HOST:-ita-api-organization}
+      ITA_API_PORT: ${ITA_API_PORT:-8080}
+      ITA_WEB_PROTOCOL: ${ITA_WEB_PROTOCOL:-http}
+      ITA_WEB_HOST: ${ITA_WEB_HOST:-ita-web-server}
+      ITA_WEB_PORT: ${ITA_WEB_PORT:-8000}
+      API_KEYCLOAK_PROTOCOL: ${API_KEYCLOAK_PROTOCOL:-http}
+      API_KEYCLOAK_HOST: ${API_KEYCLOAK_HOST:-keycloak}
+      API_KEYCLOAK_PORT: ${API_KEYCLOAK_PORT:-8080}
+      KEYCLOAK_PROTOCOL: ${KEYCLOAK_PROTOCOL:-http}
+      KEYCLOAK_HOST: ${KEYCLOAK_HOST:-keycloak}
+      KEYCLOAK_PORT: ${KEYCLOAK_PORT:-8080}
+      KEYCLOAK_MASTER_REALM: ${KEYCLOAK_MASTER_REALM:-Master}
+      PLATFORM_API_PROTOCOL: ${PLATFORM_API_PROTOCOL:-http}
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      PLATFORM_WEB_PROTOCOL: ${PLATFORM_WEB_PROTOCOL:-http}
+      PLATFORM_WEB_HOST: ${PLATFORM_WEB_HOST:-platform-web}
+      PLATFORM_WEB_PORT: ${PLATFORM_WEB_PORT:-8000}
+      DB_VENDOR: ${PLATFORM_DB_VENDOR:-mariadb}
+      DB_HOST: ${PLATFORM_DB_HOST:-mariadb}
+      DB_PORT: ${PLATFORM_DB_PORT:-3306}
+      DB_DATABASE: ${PLATFORM_DB_DATABASE:-platform}
+      DB_ADMIN_USER: ${PLATFORM_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${PLATFORM_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${PLATFORM_DB_USER:-app_user}
+      DB_PASSWORD: ${PLATFORM_DB_PASSWORD:-}
     networks:
       - exastro
     profiles:
@@ -267,42 +268,42 @@ services:
       interval: 3s
       retries: 200
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - ENCRYPT_KEY=${ENCRYPT_KEY:-Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=}
-      - PYTHONIOENCODING=utf-8
-      - LISTEN_PORT=8000
-      - ITA_API_ADMIN_PROTOCOL=${ITA_API_ADMIN_PROTOCOL:-http}
-      - ITA_API_ADMIN_HOST=${ITA_API_ADMIN_HOST:-ita-api-admin}
-      - ITA_API_ADMIN_PORT=${ITA_API_ADMIN_PORT:-8080}
-      - ITA_API_PROTOCOL=${ITA_API_PROTOCOL:-http}
-      - ITA_API_HOST=${ITA_API_HOST:-ita-api-organization}
-      - ITA_API_PORT=${ITA_API_PORT:-8080}
-      - ITA_WEB_PROTOCOL=${ITA_WEB_PROTOCOL:-http}
-      - ITA_WEB_HOST=${ITA_WEB_HOST:-ita-web-server}
-      - ITA_WEB_PORT=${ITA_WEB_PORT:-8000}
-      - API_KEYCLOAK_PROTOCOL=${API_KEYCLOAK_PROTOCOL:-http}
-      - API_KEYCLOAK_HOST=${API_KEYCLOAK_HOST:-keycloak}
-      - API_KEYCLOAK_PORT=${API_KEYCLOAK_PORT:-8080}
-      - KEYCLOAK_PROTOCOL=${KEYCLOAK_PROTOCOL:-http}
-      - KEYCLOAK_HOST=${KEYCLOAK_HOST:-keycloak}
-      - KEYCLOAK_PORT=${KEYCLOAK_PORT:-8080}
-      - KEYCLOAK_MASTER_REALM=master
-      - PLATFORM_API_PROTOCOL=${PLATFORM_API_PROTOCOL:-http}
-      - PLATFORM_API_HOST=${PLATFORM_API_HOST:-platform-api}
-      - PLATFORM_API_PORT=${PLATFORM_API_PORT:-8000}
-      - PLATFORM_WEB_PROTOCOL=${PLATFORM_WEB_PROTOCOL:-http}
-      - PLATFORM_WEB_HOST=${PLATFORM_WEB_HOST:-platform-web}
-      - PLATFORM_WEB_PORT=${PLATFORM_WEB_PORT:-8000}
-      - DB_VENDOR=${PLATFORM_DB_VENDOR:-mariadb}
-      - DB_HOST=${PLATFORM_DB_HOST:-mariadb}
-      - DB_PORT=${PLATFORM_DB_PORT:-3306}
-      - DB_DATABASE=${PLATFORM_DB_DATABASE:-platform}
-      - DB_ADMIN_USER=${PLATFORM_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${PLATFORM_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${PLATFORM_DB_USER:-app_user}
-      - DB_PASSWORD=${PLATFORM_DB_PASSWORD:-password}
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      PYTHONIOENCODING: utf-8
+      LISTEN_PORT: 8000
+      ITA_API_ADMIN_PROTOCOL: ${ITA_API_ADMIN_PROTOCOL:-http}
+      ITA_API_ADMIN_HOST: ${ITA_API_ADMIN_HOST:-ita-api-admin}
+      ITA_API_ADMIN_PORT: ${ITA_API_ADMIN_PORT:-8080}
+      ITA_API_PROTOCOL: ${ITA_API_PROTOCOL:-http}
+      ITA_API_HOST: ${ITA_API_HOST:-ita-api-organization}
+      ITA_API_PORT: ${ITA_API_PORT:-8080}
+      ITA_WEB_PROTOCOL: ${ITA_WEB_PROTOCOL:-http}
+      ITA_WEB_HOST: ${ITA_WEB_HOST:-ita-web-server}
+      ITA_WEB_PORT: ${ITA_WEB_PORT:-8000}
+      API_KEYCLOAK_PROTOCOL: ${API_KEYCLOAK_PROTOCOL:-http}
+      API_KEYCLOAK_HOST: ${API_KEYCLOAK_HOST:-keycloak}
+      API_KEYCLOAK_PORT: ${API_KEYCLOAK_PORT:-8080}
+      KEYCLOAK_PROTOCOL: ${KEYCLOAK_PROTOCOL:-http}
+      KEYCLOAK_HOST: ${KEYCLOAK_HOST:-keycloak}
+      KEYCLOAK_PORT: ${KEYCLOAK_PORT:-8080}
+      KEYCLOAK_MASTER_REALM: ${KEYCLOAK_MASTER_REALM:-Master}
+      PLATFORM_API_PROTOCOL: ${PLATFORM_API_PROTOCOL:-http}
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      PLATFORM_WEB_PROTOCOL: ${PLATFORM_WEB_PROTOCOL:-http}
+      PLATFORM_WEB_HOST: ${PLATFORM_WEB_HOST:-platform-web}
+      PLATFORM_WEB_PORT: ${PLATFORM_WEB_PORT:-8000}
+      DB_VENDOR: ${PLATFORM_DB_VENDOR:-mariadb}
+      DB_HOST: ${PLATFORM_DB_HOST:-mariadb}
+      DB_PORT: ${PLATFORM_DB_PORT:-3306}
+      DB_DATABASE: ${PLATFORM_DB_DATABASE:-platform}
+      DB_ADMIN_USER: ${PLATFORM_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${PLATFORM_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${PLATFORM_DB_USER:-app_user}
+      DB_PASSWORD: ${PLATFORM_DB_PASSWORD:-}
     networks:
       - exastro
     profiles:
@@ -322,43 +323,43 @@ services:
     restart: on-failure
     command: python3 /app/initialize_db_main.py
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - ENCRYPT_KEY=${ENCRYPT_KEY:-Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=}
-      - PYTHONIOENCODING=utf-8
-      - ITA_API_ADMIN_PROTOCOL=${ITA_API_ADMIN_PROTOCOL:-http}
-      - ITA_API_ADMIN_HOST=${ITA_API_ADMIN_HOST:-ita-api-admin}
-      - ITA_API_ADMIN_PORT=${ITA_API_ADMIN_PORT:-8080}
-      - ITA_API_PROTOCOL=${ITA_API_PROTOCOL:-http}
-      - ITA_API_HOST=${ITA_API_HOST:-ita-api-organization}
-      - ITA_API_PORT=${ITA_API_PORT:-8080}
-      - ITA_WEB_PROTOCOL=${ITA_WEB_PROTOCOL:-http}
-      - ITA_WEB_HOST=${ITA_WEB_HOST:-ita-web-server}
-      - ITA_WEB_PORT=${ITA_WEB_PORT:-8000}
-      - KEYCLOAK_DB_DATABASE=${KEYCLOAK_DB_DATABASE:-keycloak}
-      - KEYCLOAK_DB_PASSWORD=${KEYCLOAK_DB_PASSWORD:-password}
-      - KEYCLOAK_DB_USER=${KEYCLOAK_DB_USER:-keycloak}
-      - KEYCLOAK_HOST=${KEYCLOAK_HOST:-keycloak}
-      - KEYCLOAK_MASTER_REALM=Master
-      - KEYCLOAK_PORT=${KEYCLOAK_PORT:-8080}
-      - KEYCLOAK_PROTOCOL=${KEYCLOAK_PROTOCOL:-http}
-      - KEYCLOAK_USER=${KEYCLOAK_ADMIN:-admin}
-      - KEYCLOAK_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-password}
-      - PLATFORM_API_PROTOCOL=${PLATFORM_API_PROTOCOL:-http}
-      - PLATFORM_API_HOST=${PLATFORM_API_HOST:-platform-api}
-      - PLATFORM_API_PORT=${PLATFORM_API_PORT:-8000}
-      - PLATFORM_WEB_PROTOCOL=${PLATFORM_WEB_PROTOCOL:-http}
-      - PLATFORM_WEB_HOST=${PLATFORM_WEB_HOST:-platform-web}
-      - PLATFORM_WEB_PORT=${PLATFORM_WEB_PORT:-8000}
-      - DB_VENDOR=${PLATFORM_DB_VENDOR:-mariadb}
-      - DB_HOST=${PLATFORM_DB_HOST:-mariadb}
-      - DB_PORT=${PLATFORM_DB_PORT:-3306}
-      - DB_DATABASE=${PLATFORM_DB_DATABASE:-platform}
-      - DB_ADMIN_USER=${PLATFORM_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${PLATFORM_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${PLATFORM_DB_USER:-app_user}
-      - DB_PASSWORD=${PLATFORM_DB_PASSWORD:-password}
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      PYTHONIOENCODING: utf-8
+      ITA_API_ADMIN_PROTOCOL: ${ITA_API_ADMIN_PROTOCOL:-http}
+      ITA_API_ADMIN_HOST: ${ITA_API_ADMIN_HOST:-ita-api-admin}
+      ITA_API_ADMIN_PORT: ${ITA_API_ADMIN_PORT:-8080}
+      ITA_API_PROTOCOL: ${ITA_API_PROTOCOL:-http}
+      ITA_API_HOST: ${ITA_API_HOST:-ita-api-organization}
+      ITA_API_PORT: ${ITA_API_PORT:-8080}
+      ITA_WEB_PROTOCOL: ${ITA_WEB_PROTOCOL:-http}
+      ITA_WEB_HOST: ${ITA_WEB_HOST:-ita-web-server}
+      ITA_WEB_PORT: ${ITA_WEB_PORT:-8000}
+      KEYCLOAK_DB_DATABASE: ${KEYCLOAK_DB_DATABASE:-keycloak}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-}
+      KEYCLOAK_DB_USER: ${KEYCLOAK_DB_USER:-keycloak}
+      KEYCLOAK_PROTOCOL: ${KEYCLOAK_PROTOCOL:-http}
+      KEYCLOAK_HOST: ${KEYCLOAK_HOST:-keycloak}
+      KEYCLOAK_PORT: ${KEYCLOAK_PORT:-8080}
+      KEYCLOAK_MASTER_REALM: ${KEYCLOAK_MASTER_REALM:-Master}
+      KEYCLOAK_USER: ${SYSTEM_ADMIN:-admin}
+      KEYCLOAK_PASSWORD: ${SYSTEM_ADMIN_PASSWORD:-}
+      PLATFORM_API_PROTOCOL: ${PLATFORM_API_PROTOCOL:-http}
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      PLATFORM_WEB_PROTOCOL: ${PLATFORM_WEB_PROTOCOL:-http}
+      PLATFORM_WEB_HOST: ${PLATFORM_WEB_HOST:-platform-web}
+      PLATFORM_WEB_PORT: ${PLATFORM_WEB_PORT:-8000}
+      DB_VENDOR: ${PLATFORM_DB_VENDOR:-mariadb}
+      DB_HOST: ${PLATFORM_DB_HOST:-mariadb}
+      DB_PORT: ${PLATFORM_DB_PORT:-3306}
+      DB_DATABASE: ${PLATFORM_DB_DATABASE:-platform}
+      DB_ADMIN_USER: ${PLATFORM_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${PLATFORM_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${PLATFORM_DB_USER:-app_user}
+      DB_PASSWORD: ${PLATFORM_DB_PASSWORD:-}
     networks:
       - exastro
     profiles:
@@ -378,46 +379,46 @@ services:
     restart: on-failure
     command: python3 /app/migration_main.py
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - ENCRYPT_KEY=${ENCRYPT_KEY:-Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=}
-      - PYTHONIOENCODING=utf-8
-      - ITA_API_ADMIN_PROTOCOL=${ITA_API_ADMIN_PROTOCOL:-http}
-      - ITA_API_ADMIN_HOST=${ITA_API_ADMIN_HOST:-ita-api-admin}
-      - ITA_API_ADMIN_PORT=${ITA_API_ADMIN_PORT:-8080}
-      - ITA_API_PROTOCOL=${ITA_API_PROTOCOL:-http}
-      - ITA_API_HOST=${ITA_API_HOST:-ita-api-organization}
-      - ITA_API_PORT=${ITA_API_PORT:-8080}
-      - ITA_WEB_PROTOCOL=${ITA_WEB_PROTOCOL:-http}
-      - ITA_WEB_HOST=${ITA_WEB_HOST:-ita-web-server}
-      - ITA_WEB_PORT=${ITA_WEB_PORT:-8000}
-      - API_KEYCLOAK_PROTOCOL=${API_KEYCLOAK_PROTOCOL:-http}
-      - API_KEYCLOAK_HOST=${API_KEYCLOAK_HOST:-keycloak}
-      - API_KEYCLOAK_PORT=${API_KEYCLOAK_PORT:-8080}
-      - KEYCLOAK_DB_DATABASE=${KEYCLOAK_DB_DATABASE:-keycloak}
-      - KEYCLOAK_DB_PASSWORD=${KEYCLOAK_DB_PASSWORD:-password}
-      - KEYCLOAK_DB_USER=${KEYCLOAK_DB_USER:-keycloak}
-      - KEYCLOAK_HOST=${KEYCLOAK_HOST:-keycloak}
-      - KEYCLOAK_MASTER_REALM=Master
-      - KEYCLOAK_PORT=${KEYCLOAK_PORT:-8080}
-      - KEYCLOAK_PROTOCOL=${KEYCLOAK_PROTOCOL:-http}
-      - KEYCLOAK_USER=${KEYCLOAK_ADMIN:-admin}
-      - KEYCLOAK_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-password}
-      - PLATFORM_API_PROTOCOL=${PLATFORM_API_PROTOCOL:-http}
-      - PLATFORM_API_HOST=${PLATFORM_API_HOST:-platform-api}
-      - PLATFORM_API_PORT=${PLATFORM_API_PORT:-8000}
-      - PLATFORM_WEB_PROTOCOL=${PLATFORM_WEB_PROTOCOL:-http}
-      - PLATFORM_WEB_HOST=${PLATFORM_WEB_HOST:-platform-web}
-      - PLATFORM_WEB_PORT=${PLATFORM_WEB_PORT:-8000}
-      - DB_VENDOR=${PLATFORM_DB_VENDOR:-mariadb}
-      - DB_HOST=${PLATFORM_DB_HOST:-mariadb}
-      - DB_PORT=${PLATFORM_DB_PORT:-3306}
-      - DB_DATABASE=${PLATFORM_DB_DATABASE:-platform}
-      - DB_ADMIN_USER=${PLATFORM_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${PLATFORM_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${PLATFORM_DB_USER:-app_user}
-      - DB_PASSWORD=${PLATFORM_DB_PASSWORD:-password}
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      PYTHONIOENCODING: utf-8
+      ITA_API_ADMIN_PROTOCOL: ${ITA_API_ADMIN_PROTOCOL:-http}
+      ITA_API_ADMIN_HOST: ${ITA_API_ADMIN_HOST:-ita-api-admin}
+      ITA_API_ADMIN_PORT: ${ITA_API_ADMIN_PORT:-8080}
+      ITA_API_PROTOCOL: ${ITA_API_PROTOCOL:-http}
+      ITA_API_HOST: ${ITA_API_HOST:-ita-api-organization}
+      ITA_API_PORT: ${ITA_API_PORT:-8080}
+      ITA_WEB_PROTOCOL: ${ITA_WEB_PROTOCOL:-http}
+      ITA_WEB_HOST: ${ITA_WEB_HOST:-ita-web-server}
+      ITA_WEB_PORT: ${ITA_WEB_PORT:-8000}
+      API_KEYCLOAK_PROTOCOL: ${API_KEYCLOAK_PROTOCOL:-http}
+      API_KEYCLOAK_HOST: ${API_KEYCLOAK_HOST:-keycloak}
+      API_KEYCLOAK_PORT: ${API_KEYCLOAK_PORT:-8080}
+      KEYCLOAK_DB_DATABASE: ${KEYCLOAK_DB_DATABASE:-keycloak}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-}
+      KEYCLOAK_DB_USER: ${KEYCLOAK_DB_USER:-keycloak}
+      KEYCLOAK_HOST: ${KEYCLOAK_HOST:-keycloak}
+      KEYCLOAK_MASTER_REALM: ${KEYCLOAK_MASTER_REALM:-Master}
+      KEYCLOAK_PORT: ${KEYCLOAK_PORT:-8080}
+      KEYCLOAK_PROTOCOL: ${KEYCLOAK_PROTOCOL:-http}
+      KEYCLOAK_USER: ${SYSTEM_ADMIN:-admin}
+      KEYCLOAK_PASSWORD: ${SYSTEM_ADMIN_PASSWORD:-}
+      PLATFORM_API_PROTOCOL: ${PLATFORM_API_PROTOCOL:-http}
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      PLATFORM_WEB_PROTOCOL: ${PLATFORM_WEB_PROTOCOL:-http}
+      PLATFORM_WEB_HOST: ${PLATFORM_WEB_HOST:-platform-web}
+      PLATFORM_WEB_PORT: ${PLATFORM_WEB_PORT:-8000}
+      DB_VENDOR: ${PLATFORM_DB_VENDOR:-mariadb}
+      DB_HOST: ${PLATFORM_DB_HOST:-mariadb}
+      DB_PORT: ${PLATFORM_DB_PORT:-3306}
+      DB_DATABASE: ${PLATFORM_DB_DATABASE:-platform}
+      DB_ADMIN_USER: ${PLATFORM_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${PLATFORM_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${PLATFORM_DB_USER:-app_user}
+      DB_PASSWORD: ${PLATFORM_DB_PASSWORD:-}
     networks:
       - exastro
     depends_on:
@@ -439,23 +440,23 @@ services:
     hostname: ita-api-organization
     restart: always
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - ENCRYPT_KEY=${ENCRYPT_KEY:-Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=}
-      - DB_VENDOR=${ITA_DB_VENDOR:-mariadb}
-      - DB_HOST=${ITA_DB_HOST:-mariadb}
-      - DB_PORT=${ITA_DB_PORT:-3306}
-      - DB_DATABASE=${ITA_DB_DATABASE:-ITA_DB}
-      - DB_ADMIN_USER=${ITA_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${ITA_DB_USER:-ITA_USER}
-      - DB_PASSWORD=${ITA_DB_PASSWORD:-password}
-      - PLATFORM_API_HOST=${PLATFORM_API_HOST:-platform-api}
-      - PLATFORM_API_PORT=${PLATFORM_API_PORT:-8000}
-      - CONTAINER_BASE=docker
-      - STORAGEPATH=/storage/
-      - LISTEN_PORT=8080
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
+      DB_HOST: ${ITA_DB_HOST:-mariadb}
+      DB_PORT: ${ITA_DB_PORT:-3306}
+      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
+      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${ITA_DB_USER:-ITA_USER}
+      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      CONTAINER_BASE: docker
+      STORAGEPATH: /storage/
+      LISTEN_PORT: 8080
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -476,27 +477,27 @@ services:
     hostname: ita-api-admin
     restart: always
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - ENCRYPT_KEY=${ENCRYPT_KEY:-Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=}
-      - DB_VENDOR=${ITA_DB_VENDOR:-mariadb}
-      - DB_HOST=${ITA_DB_HOST:-mariadb}
-      - DB_PORT=${ITA_DB_PORT:-3306}
-      - DB_DATABASE=${ITA_DB_DATABASE:-ITA_DB}
-      - DB_ADMIN_USER=${ITA_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${ITA_DB_USER:-ITA_USER}
-      - DB_PASSWORD=${ITA_DB_PASSWORD:-password}
-      - GITLAB_PROTOCOL=${GITLAB_PROTOCOL:-http}
-      - GITLAB_HOST=${GITLAB_HOST:-gitlab}
-      - GITLAB_PORT=${GITLAB_PORT:-40080}
-      - GITLAB_ROOT_TOKEN=${GITLAB_ROOT_TOKEN:-exastro-root-token}
-      - PLATFORM_API_HOST=${PLATFORM_API_HOST:-platform-api}
-      - PLATFORM_API_PORT=${PLATFORM_API_PORT:-8000}
-      - CONTAINER_BASE=docker
-      - STORAGEPATH=/storage/
-      - LISTEN_PORT=8080
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
+      DB_HOST: ${ITA_DB_HOST:-mariadb}
+      DB_PORT: ${ITA_DB_PORT:-3306}
+      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
+      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${ITA_DB_USER:-ITA_USER}
+      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
+      GITLAB_PROTOCOL: ${GITLAB_PROTOCOL:-http}
+      GITLAB_HOST: ${GITLAB_HOST:-gitlab}
+      GITLAB_PORT: ${GITLAB_PORT:-40080}
+      GITLAB_ROOT_TOKEN: ${GITLAB_ROOT_TOKEN:-}
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      CONTAINER_BASE: docker
+      STORAGEPATH: /storage/
+      LISTEN_PORT: 8080
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -517,21 +518,21 @@ services:
     hostname: ita-web-server
     restart: always
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - ENCRYPT_KEY=${ENCRYPT_KEY:-Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=}
-      - DB_VENDOR=${ITA_DB_VENDOR:-mariadb}
-      - DB_HOST=${ITA_DB_HOST:-mariadb}
-      - DB_PORT=${ITA_DB_PORT:-3306}
-      - DB_DATABASE=${ITA_DB_DATABASE:-ITA_DB}
-      - DB_ADMIN_USER=${ITA_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${ITA_DB_USER:-ITA_USER}
-      - DB_PASSWORD=${ITA_DB_PASSWORD:-password}
-      - CONTAINER_BASE=docker
-      - STORAGEPATH=/storage/
-      - LISTEN_PORT=8000
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
+      DB_HOST: ${ITA_DB_HOST:-mariadb}
+      DB_PORT: ${ITA_DB_PORT:-3306}
+      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
+      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${ITA_DB_USER:-ITA_USER}
+      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
+      CONTAINER_BASE: docker
+      STORAGEPATH: /storage/
+      LISTEN_PORT: 8000
     networks:
       - exastro
     profiles:
@@ -551,31 +552,31 @@ services:
     restart: always
     user: 1000:${HOST_DOCKER_GID:-1000}
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - ENCRYPT_KEY=${ENCRYPT_KEY:-Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=}
-      - EXECUTE_INTERVAL=${EXECUTE_INTERVAL:-10}
-      - ANSIBLE_AGENT_IMAGE=${ANSIBLE_AGENT_IMAGE:-exastro/exastro-it-automation-by-ansible-agent}
-      - ANSIBLE_AGENT_IMAGE_TAG=${ANSIBLE_AGENT_IMAGE_TAG:-latest}
-      - DB_VENDOR=${ITA_DB_VENDOR:-mariadb}
-      - DB_HOST=${ITA_DB_HOST:-mariadb}
-      - DB_PORT=${ITA_DB_PORT:-3306}
-      - DB_DATABASE=${ITA_DB_DATABASE:-ITA_DB}
-      - DB_ADMIN_USER=${ITA_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${ITA_DB_USER:-ITA_USER}
-      - DB_PASSWORD=${ITA_DB_PASSWORD:-password}
-      - GITLAB_PROTOCOL=${GITLAB_PROTOCOL:-http}
-      - GITLAB_HOST=${GITLAB_HOST:-gitlab}
-      - GITLAB_PORT=${GITLAB_PORT:-40080}
-      - GITLAB_ROOT_TOKEN=${GITLAB_ROOT_TOKEN:-exastro-root-token}
-      - PLATFORM_API_HOST=${PLATFORM_API_HOST:-platform-api}
-      - PLATFORM_API_PORT=${PLATFORM_API_PORT:-8000}
-      - CONTAINER_BASE=docker
-      - STORAGEPATH=/storage/
-      - HOST_STORAGEPATH=${HOST_STORAGEPATH:-/home/azureuser/exastro-docker-compose/.volumes/storage/}
-      - NETWORK_ID=${NETWORK_ID}
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
+      ANSIBLE_AGENT_IMAGE: ${ANSIBLE_AGENT_IMAGE:-exastro/exastro-it-automation-by-ansible-agent}
+      ANSIBLE_AGENT_IMAGE_TAG: ${ANSIBLE_AGENT_IMAGE_TAG:-latest}
+      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
+      DB_HOST: ${ITA_DB_HOST:-mariadb}
+      DB_PORT: ${ITA_DB_PORT:-3306}
+      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
+      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${ITA_DB_USER:-ITA_USER}
+      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
+      GITLAB_PROTOCOL: ${GITLAB_PROTOCOL:-http}
+      GITLAB_HOST: ${GITLAB_HOST:-gitlab}
+      GITLAB_PORT: ${GITLAB_PORT:-40080}
+      GITLAB_ROOT_TOKEN: ${GITLAB_ROOT_TOKEN:-}
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      CONTAINER_BASE: docker
+      STORAGEPATH: /storage/
+      HOST_STORAGEPATH: ${PWD}/.volumes/storage
+      NETWORK_ID: ${NETWORK_ID}
     volumes:
       - ${HOST_DOCKER_SOCKET_PATH:-/var/run/docker.sock}:/var/run/docker.sock:cached
       - ./ita_by_ansible_execute/templates/docker-compose.yml:/exastro/templates/docker-compose.yml
@@ -602,23 +603,23 @@ services:
     restart: always
     user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - ENCRYPT_KEY=${ENCRYPT_KEY:-Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=}
-      - EXECUTE_INTERVAL=${EXECUTE_INTERVAL:-10}
-      - CONTAINER_BASE=docker
-      - STORAGEPATH=/storage/
-      - PLATFORM_API_HOST=${PLATFORM_API_HOST:-platform-api}
-      - PLATFORM_API_PORT=${PLATFORM_API_PORT:-8000}
-      - DB_VENDOR=${ITA_DB_VENDOR:-mariadb}
-      - DB_HOST=${ITA_DB_HOST:-mariadb}
-      - DB_PORT=${ITA_DB_PORT:-3306}
-      - DB_DATABASE=${ITA_DB_DATABASE:-ITA_DB}
-      - DB_ADMIN_USER=${ITA_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${ITA_DB_USER:-ITA_USER}
-      - DB_PASSWORD=${ITA_DB_PASSWORD:-password}
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
+      CONTAINER_BASE: docker
+      STORAGEPATH: /storage/
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
+      DB_HOST: ${ITA_DB_HOST:-mariadb}
+      DB_PORT: ${ITA_DB_PORT:-3306}
+      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
+      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${ITA_DB_USER:-ITA_USER}
+      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -643,23 +644,23 @@ services:
     restart: always
     user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - ENCRYPT_KEY=${ENCRYPT_KEY:-Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=}
-      - EXECUTE_INTERVAL=${EXECUTE_INTERVAL:-10}
-      - CONTAINER_BASE=docker
-      - STORAGEPATH=/storage/
-      - PLATFORM_API_HOST=${PLATFORM_API_HOST:-platform-api}
-      - PLATFORM_API_PORT=${PLATFORM_API_PORT:-8000}
-      - DB_VENDOR=${ITA_DB_VENDOR:-mariadb}
-      - DB_HOST=${ITA_DB_HOST:-mariadb}
-      - DB_PORT=${ITA_DB_PORT:-3306}
-      - DB_DATABASE=${ITA_DB_DATABASE:-ITA_DB}
-      - DB_ADMIN_USER=${ITA_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${ITA_DB_USER:-ITA_USER}
-      - DB_PASSWORD=${ITA_DB_PASSWORD:-password}
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
+      CONTAINER_BASE: docker
+      STORAGEPATH: /storage/
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
+      DB_HOST: ${ITA_DB_HOST:-mariadb}
+      DB_PORT: ${ITA_DB_PORT:-3306}
+      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
+      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${ITA_DB_USER:-ITA_USER}
+      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -684,23 +685,23 @@ services:
     restart: always
     user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - ENCRYPT_KEY=${ENCRYPT_KEY:-Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=}
-      - EXECUTE_INTERVAL=${EXECUTE_INTERVAL:-10}
-      - CONTAINER_BASE=docker
-      - STORAGEPATH=/storage/
-      - PLATFORM_API_HOST=${PLATFORM_API_HOST:-platform-api}
-      - PLATFORM_API_PORT=${PLATFORM_API_PORT:-8000}
-      - DB_VENDOR=${ITA_DB_VENDOR:-mariadb}
-      - DB_HOST=${ITA_DB_HOST:-mariadb}
-      - DB_PORT=${ITA_DB_PORT:-3306}
-      - DB_DATABASE=${ITA_DB_DATABASE:-ITA_DB}
-      - DB_ADMIN_USER=${ITA_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${ITA_DB_USER:-ITA_USER}
-      - DB_PASSWORD=${ITA_DB_PASSWORD:-password}
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
+      CONTAINER_BASE: docker
+      STORAGEPATH: /storage/
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
+      DB_HOST: ${ITA_DB_HOST:-mariadb}
+      DB_PORT: ${ITA_DB_PORT:-3306}
+      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
+      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${ITA_DB_USER:-ITA_USER}
+      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -725,23 +726,23 @@ services:
     restart: always
     user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - ENCRYPT_KEY=${ENCRYPT_KEY:-Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=}
-      - EXECUTE_INTERVAL=${EXECUTE_INTERVAL:-10}
-      - CONTAINER_BASE=docker
-      - STORAGEPATH=/storage/
-      - PLATFORM_API_HOST=${PLATFORM_API_HOST:-platform-api}
-      - PLATFORM_API_PORT=${PLATFORM_API_PORT:-8000}
-      - DB_VENDOR=${ITA_DB_VENDOR:-mariadb}
-      - DB_HOST=${ITA_DB_HOST:-mariadb}
-      - DB_PORT=${ITA_DB_PORT:-3306}
-      - DB_DATABASE=${ITA_DB_DATABASE:-ITA_DB}
-      - DB_ADMIN_USER=${ITA_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${ITA_DB_USER:-ITA_USER}
-      - DB_PASSWORD=${ITA_DB_PASSWORD:-password}
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
+      CONTAINER_BASE: docker
+      STORAGEPATH: /storage/
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
+      DB_HOST: ${ITA_DB_HOST:-mariadb}
+      DB_PORT: ${ITA_DB_PORT:-3306}
+      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
+      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${ITA_DB_USER:-ITA_USER}
+      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -766,23 +767,23 @@ services:
     restart: always
     user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - ENCRYPT_KEY=${ENCRYPT_KEY:-Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=}
-      - EXECUTE_INTERVAL=${EXECUTE_INTERVAL:-10}
-      - CONTAINER_BASE=docker
-      - STORAGEPATH=/storage/
-      - PLATFORM_API_HOST=${PLATFORM_API_HOST:-platform-api}
-      - PLATFORM_API_PORT=${PLATFORM_API_PORT:-8000}
-      - DB_VENDOR=${ITA_DB_VENDOR:-mariadb}
-      - DB_HOST=${ITA_DB_HOST:-mariadb}
-      - DB_PORT=${ITA_DB_PORT:-3306}
-      - DB_DATABASE=${ITA_DB_DATABASE:-ITA_DB}
-      - DB_ADMIN_USER=${ITA_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${ITA_DB_USER:-ITA_USER}
-      - DB_PASSWORD=${ITA_DB_PASSWORD:-password}
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
+      CONTAINER_BASE: docker
+      STORAGEPATH: /storage/
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
+      DB_HOST: ${ITA_DB_HOST:-mariadb}
+      DB_PORT: ${ITA_DB_PORT:-3306}
+      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
+      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${ITA_DB_USER:-ITA_USER}
+      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -807,23 +808,23 @@ services:
     restart: always
     user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - ENCRYPT_KEY=${ENCRYPT_KEY:-Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=}
-      - EXECUTE_INTERVAL=${EXECUTE_INTERVAL:-10}
-      - CONTAINER_BASE=docker
-      - STORAGEPATH=/storage/
-      - PLATFORM_API_HOST=${PLATFORM_API_HOST:-platform-api}
-      - PLATFORM_API_PORT=${PLATFORM_API_PORT:-8000}
-      - DB_VENDOR=${ITA_DB_VENDOR:-mariadb}
-      - DB_HOST=${ITA_DB_HOST:-mariadb}
-      - DB_PORT=${ITA_DB_PORT:-3306}
-      - DB_DATABASE=${ITA_DB_DATABASE:-ITA_DB}
-      - DB_ADMIN_USER=${ITA_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${ITA_DB_USER:-ITA_USER}
-      - DB_PASSWORD=${ITA_DB_PASSWORD:-password}
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
+      CONTAINER_BASE: docker
+      STORAGEPATH: /storage/
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
+      DB_HOST: ${ITA_DB_HOST:-mariadb}
+      DB_PORT: ${ITA_DB_PORT:-3306}
+      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
+      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${ITA_DB_USER:-ITA_USER}
+      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -848,23 +849,23 @@ services:
     restart: always
     user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - ENCRYPT_KEY=${ENCRYPT_KEY:-Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=}
-      - EXECUTE_INTERVAL=${EXECUTE_INTERVAL:-10}
-      - CONTAINER_BASE=docker
-      - STORAGEPATH=/storage/
-      - PLATFORM_API_HOST=${PLATFORM_API_HOST:-platform-api}
-      - PLATFORM_API_PORT=${PLATFORM_API_PORT:-8000}
-      - DB_VENDOR=${ITA_DB_VENDOR:-mariadb}
-      - DB_HOST=${ITA_DB_HOST:-mariadb}
-      - DB_PORT=${ITA_DB_PORT:-3306}
-      - DB_DATABASE=${ITA_DB_DATABASE:-ITA_DB}
-      - DB_ADMIN_USER=${ITA_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${ITA_DB_USER:-ITA_USER}
-      - DB_PASSWORD=${ITA_DB_PASSWORD:-password}
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
+      CONTAINER_BASE: docker
+      STORAGEPATH: /storage/
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
+      DB_HOST: ${ITA_DB_HOST:-mariadb}
+      DB_PORT: ${ITA_DB_PORT:-3306}
+      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
+      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${ITA_DB_USER:-ITA_USER}
+      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -889,23 +890,23 @@ services:
     restart: always
     user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - ENCRYPT_KEY=${ENCRYPT_KEY:-Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=}
-      - EXECUTE_INTERVAL=${EXECUTE_INTERVAL:-10}
-      - CONTAINER_BASE=docker
-      - STORAGEPATH=/storage/
-      - PLATFORM_API_HOST=${PLATFORM_API_HOST:-platform-api}
-      - PLATFORM_API_PORT=${PLATFORM_API_PORT:-8000}
-      - DB_VENDOR=${ITA_DB_VENDOR:-mariadb}
-      - DB_HOST=${ITA_DB_HOST:-mariadb}
-      - DB_PORT=${ITA_DB_PORT:-3306}
-      - DB_DATABASE=${ITA_DB_DATABASE:-ITA_DB}
-      - DB_ADMIN_USER=${ITA_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${ITA_DB_USER:-ITA_USER}
-      - DB_PASSWORD=${ITA_DB_PASSWORD:-password}
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
+      CONTAINER_BASE: docker
+      STORAGEPATH: /storage/
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
+      DB_HOST: ${ITA_DB_HOST:-mariadb}
+      DB_PORT: ${ITA_DB_PORT:-3306}
+      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
+      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${ITA_DB_USER:-ITA_USER}
+      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -930,23 +931,23 @@ services:
     restart: always
     user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - ENCRYPT_KEY=${ENCRYPT_KEY:-Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=}
-      - EXECUTE_INTERVAL=${EXECUTE_INTERVAL:-10}
-      - CONTAINER_BASE=docker
-      - STORAGEPATH=/storage/
-      - PLATFORM_API_HOST=${PLATFORM_API_HOST:-platform-api}
-      - PLATFORM_API_PORT=${PLATFORM_API_PORT:-8000}
-      - DB_VENDOR=${ITA_DB_VENDOR:-mariadb}
-      - DB_HOST=${ITA_DB_HOST:-mariadb}
-      - DB_PORT=${ITA_DB_PORT:-3306}
-      - DB_DATABASE=${ITA_DB_DATABASE:-ITA_DB}
-      - DB_ADMIN_USER=${ITA_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${ITA_DB_USER:-ITA_USER}
-      - DB_PASSWORD=${ITA_DB_PASSWORD:-password}
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
+      CONTAINER_BASE: docker
+      STORAGEPATH: /storage/
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
+      DB_HOST: ${ITA_DB_HOST:-mariadb}
+      DB_PORT: ${ITA_DB_PORT:-3306}
+      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
+      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${ITA_DB_USER:-ITA_USER}
+      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -971,23 +972,23 @@ services:
     restart: always
     user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - ENCRYPT_KEY=${ENCRYPT_KEY:-Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=}
-      - EXECUTE_INTERVAL=${EXECUTE_INTERVAL:-10}
-      - CONTAINER_BASE=docker
-      - STORAGEPATH=/storage/
-      - PLATFORM_API_HOST=${PLATFORM_API_HOST:-platform-api}
-      - PLATFORM_API_PORT=${PLATFORM_API_PORT:-8000}
-      - DB_VENDOR=${ITA_DB_VENDOR:-mariadb}
-      - DB_HOST=${ITA_DB_HOST:-mariadb}
-      - DB_PORT=${ITA_DB_PORT:-3306}
-      - DB_DATABASE=${ITA_DB_DATABASE:-ITA_DB}
-      - DB_ADMIN_USER=${ITA_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${ITA_DB_USER:-ITA_USER}
-      - DB_PASSWORD=${ITA_DB_PASSWORD:-password}
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
+      CONTAINER_BASE: docker
+      STORAGEPATH: /storage/
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
+      DB_HOST: ${ITA_DB_HOST:-mariadb}
+      DB_PORT: ${ITA_DB_PORT:-3306}
+      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
+      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${ITA_DB_USER:-ITA_USER}
+      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -1012,23 +1013,23 @@ services:
     restart: always
     user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - ENCRYPT_KEY=${ENCRYPT_KEY:-Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=}
-      - EXECUTE_INTERVAL=${EXECUTE_INTERVAL:-10}
-      - CONTAINER_BASE=docker
-      - STORAGEPATH=/storage/
-      - PLATFORM_API_HOST=${PLATFORM_API_HOST:-platform-api}
-      - PLATFORM_API_PORT=${PLATFORM_API_PORT:-8000}
-      - DB_VENDOR=${ITA_DB_VENDOR:-mariadb}
-      - DB_HOST=${ITA_DB_HOST:-mariadb}
-      - DB_PORT=${ITA_DB_PORT:-3306}
-      - DB_DATABASE=${ITA_DB_DATABASE:-ITA_DB}
-      - DB_ADMIN_USER=${ITA_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${ITA_DB_USER:-ITA_USER}
-      - DB_PASSWORD=${ITA_DB_PASSWORD:-password}
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
+      CONTAINER_BASE: docker
+      STORAGEPATH: /storage/
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
+      DB_HOST: ${ITA_DB_HOST:-mariadb}
+      DB_PORT: ${ITA_DB_PORT:-3306}
+      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
+      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${ITA_DB_USER:-ITA_USER}
+      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -1053,23 +1054,23 @@ services:
     restart: always
     user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - ENCRYPT_KEY=${ENCRYPT_KEY:-Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=}
-      - EXECUTE_INTERVAL=${EXECUTE_INTERVAL:-10}
-      - CONTAINER_BASE=docker
-      - STORAGEPATH=/storage/
-      - PLATFORM_API_HOST=${PLATFORM_API_HOST:-platform-api}
-      - PLATFORM_API_PORT=${PLATFORM_API_PORT:-8000}
-      - DB_VENDOR=${ITA_DB_VENDOR:-mariadb}
-      - DB_HOST=${ITA_DB_HOST:-mariadb}
-      - DB_PORT=${ITA_DB_PORT:-3306}
-      - DB_DATABASE=${ITA_DB_DATABASE:-ITA_DB}
-      - DB_ADMIN_USER=${ITA_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${ITA_DB_USER:-ITA_USER}
-      - DB_PASSWORD=${ITA_DB_PASSWORD:-password}
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
+      CONTAINER_BASE: docker
+      STORAGEPATH: /storage/
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
+      DB_HOST: ${ITA_DB_HOST:-mariadb}
+      DB_PORT: ${ITA_DB_PORT:-3306}
+      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
+      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${ITA_DB_USER:-ITA_USER}
+      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -1094,23 +1095,23 @@ services:
     restart: always
     user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - ENCRYPT_KEY=${ENCRYPT_KEY:-Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=}
-      - EXECUTE_INTERVAL=${EXECUTE_INTERVAL:-10}
-      - CONTAINER_BASE=docker
-      - STORAGEPATH=/storage/
-      - PLATFORM_API_HOST=${PLATFORM_API_HOST:-platform-api}
-      - PLATFORM_API_PORT=${PLATFORM_API_PORT:-8000}
-      - DB_VENDOR=${ITA_DB_VENDOR:-mariadb}
-      - DB_HOST=${ITA_DB_HOST:-mariadb}
-      - DB_PORT=${ITA_DB_PORT:-3306}
-      - DB_DATABASE=${ITA_DB_DATABASE:-ITA_DB}
-      - DB_ADMIN_USER=${ITA_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${ITA_DB_USER:-ITA_USER}
-      - DB_PASSWORD=${ITA_DB_PASSWORD:-password}
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
+      CONTAINER_BASE: docker
+      STORAGEPATH: /storage/
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
+      DB_HOST: ${ITA_DB_HOST:-mariadb}
+      DB_PORT: ${ITA_DB_PORT:-3306}
+      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
+      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${ITA_DB_USER:-ITA_USER}
+      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -1135,23 +1136,23 @@ services:
     restart: always
     user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - ENCRYPT_KEY=${ENCRYPT_KEY:-Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=}
-      - EXECUTE_INTERVAL=${EXECUTE_INTERVAL:-10}
-      - CONTAINER_BASE=docker
-      - STORAGEPATH=/storage/
-      - PLATFORM_API_HOST=${PLATFORM_API_HOST:-platform-api}
-      - PLATFORM_API_PORT=${PLATFORM_API_PORT:-8000}
-      - DB_VENDOR=${ITA_DB_VENDOR:-mariadb}
-      - DB_HOST=${ITA_DB_HOST:-mariadb}
-      - DB_PORT=${ITA_DB_PORT:-3306}
-      - DB_DATABASE=${ITA_DB_DATABASE:-ITA_DB}
-      - DB_ADMIN_USER=${ITA_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${ITA_DB_USER:-ITA_USER}
-      - DB_PASSWORD=${ITA_DB_PASSWORD:-password}
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
+      CONTAINER_BASE: docker
+      STORAGEPATH: /storage/
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
+      DB_HOST: ${ITA_DB_HOST:-mariadb}
+      DB_PORT: ${ITA_DB_PORT:-3306}
+      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
+      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${ITA_DB_USER:-ITA_USER}
+      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -1176,23 +1177,23 @@ services:
     restart: always
     user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - ENCRYPT_KEY=${ENCRYPT_KEY:-Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=}
-      - EXECUTE_INTERVAL=${EXECUTE_INTERVAL:-10}
-      - CONTAINER_BASE=docker
-      - STORAGEPATH=/storage/
-      - PLATFORM_API_HOST=${PLATFORM_API_HOST:-platform-api}
-      - PLATFORM_API_PORT=${PLATFORM_API_PORT:-8000}
-      - DB_VENDOR=${ITA_DB_VENDOR:-mariadb}
-      - DB_HOST=${ITA_DB_HOST:-mariadb}
-      - DB_PORT=${ITA_DB_PORT:-3306}
-      - DB_DATABASE=${ITA_DB_DATABASE:-ITA_DB}
-      - DB_ADMIN_USER=${ITA_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${ITA_DB_USER:-ITA_USER}
-      - DB_PASSWORD=${ITA_DB_PASSWORD:-password}
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
+      CONTAINER_BASE: docker
+      STORAGEPATH: /storage/
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
+      DB_HOST: ${ITA_DB_HOST:-mariadb}
+      DB_PORT: ${ITA_DB_PORT:-3306}
+      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
+      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${ITA_DB_USER:-ITA_USER}
+      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -1217,23 +1218,23 @@ services:
     restart: always
     user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - ENCRYPT_KEY=${ENCRYPT_KEY:-Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=}
-      - EXECUTE_INTERVAL=${EXECUTE_INTERVAL:-10}
-      - CONTAINER_BASE=docker
-      - STORAGEPATH=/storage/
-      - PLATFORM_API_HOST=${PLATFORM_API_HOST:-platform-api}
-      - PLATFORM_API_PORT=${PLATFORM_API_PORT:-8000}
-      - DB_VENDOR=${ITA_DB_VENDOR:-mariadb}
-      - DB_HOST=${ITA_DB_HOST:-mariadb}
-      - DB_PORT=${ITA_DB_PORT:-3306}
-      - DB_DATABASE=${ITA_DB_DATABASE:-ITA_DB}
-      - DB_ADMIN_USER=${ITA_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${ITA_DB_USER:-ITA_USER}
-      - DB_PASSWORD=${ITA_DB_PASSWORD:-password}
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
+      CONTAINER_BASE: docker
+      STORAGEPATH: /storage/
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
+      DB_HOST: ${ITA_DB_HOST:-mariadb}
+      DB_PORT: ${ITA_DB_PORT:-3306}
+      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
+      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${ITA_DB_USER:-ITA_USER}
+      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -1258,23 +1259,23 @@ services:
     restart: "no"
     user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - ENCRYPT_KEY=${ENCRYPT_KEY:-Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=}
-      - EXECUTE_INTERVAL=${EXECUTE_INTERVAL:-10}
-      - CONTAINER_BASE=docker
-      - STORAGEPATH=/storage/
-      - PLATFORM_API_HOST=${PLATFORM_API_HOST:-platform-api}
-      - PLATFORM_API_PORT=${PLATFORM_API_PORT:-8000}
-      - DB_VENDOR=${ITA_DB_VENDOR:-mariadb}
-      - DB_HOST=${ITA_DB_HOST:-mariadb}
-      - DB_PORT=${ITA_DB_PORT:-3306}
-      - DB_DATABASE=${ITA_DB_DATABASE:-ITA_DB}
-      - DB_ADMIN_USER=${ITA_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${ITA_DB_USER:-ITA_USER}
-      - DB_PASSWORD=${ITA_DB_PASSWORD:-password}
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
+      CONTAINER_BASE: docker
+      STORAGEPATH: /storage/
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
+      DB_HOST: ${ITA_DB_HOST:-mariadb}
+      DB_PORT: ${ITA_DB_PORT:-3306}
+      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
+      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${ITA_DB_USER:-ITA_USER}
+      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -1296,23 +1297,23 @@ services:
     restart: "no"
     user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - ENCRYPT_KEY=${ENCRYPT_KEY:-Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=}
-      - EXECUTE_INTERVAL=${EXECUTE_INTERVAL:-10}
-      - CONTAINER_BASE=docker
-      - STORAGEPATH=/storage/
-      - PLATFORM_API_HOST=${PLATFORM_API_HOST:-platform-api}
-      - PLATFORM_API_PORT=${PLATFORM_API_PORT:-8000}
-      - DB_VENDOR=${ITA_DB_VENDOR:-mariadb}
-      - DB_HOST=${ITA_DB_HOST:-mariadb}
-      - DB_PORT=${ITA_DB_PORT:-3306}
-      - DB_DATABASE=${ITA_DB_DATABASE:-ITA_DB}
-      - DB_ADMIN_USER=${ITA_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${ITA_DB_USER:-ITA_USER}
-      - DB_PASSWORD=${ITA_DB_PASSWORD:-password}
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
+      CONTAINER_BASE: docker
+      STORAGEPATH: /storage/
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
+      DB_HOST: ${ITA_DB_HOST:-mariadb}
+      DB_PORT: ${ITA_DB_PORT:-3306}
+      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
+      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${ITA_DB_USER:-ITA_USER}
+      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -1335,31 +1336,31 @@ services:
     command: python3 /exastro/migration_main.py
     user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
-      - ORG_ANSIBLE_EXECUTION_LIMIT_DEFAULT=${ORG_ANSIBLE_EXECUTION_LIMIT_DEFAULT:-25}
-      - ORG_ANSIBLE_EXECUTION_LIMIT_MAX=${ORG_ANSIBLE_EXECUTION_LIMIT_MAX:-1000}
-      - ORG_ANSIBLE_EXECUTION_LIMIT_DESCRIPTION='Maximum number of movement executions for organization default'
-      - SYSTEM_ANSIBLE_EXECUTION_LIMIT=${SYSTEM_ANSIBLE_EXECUTION_LIMIT:-25}
-      - SYSTEM_ANSIBLE_EXECUTION_LIMIT_DESCRIPTION='Maximum number of movement executions for whole of IT automation'
-      - CONTAINER_BASE=docker
-      - TZ=${TZ:-Asia/Tokyo}
-      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-ja}
-      - LANGUAGE=${LANGUAGE:-en}
-      - ENCRYPT_KEY=${ENCRYPT_KEY:-Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=}
-      - GITLAB_HOST=${GITLAB_HOST:-gitlab}
-      - GITLAB_PORT=${GITLAB_PORT:-40080}
-      - GITLAB_PROTOCOL=${GITLAB_PROTOCOL:-http}
-      - GITLAB_ROOT_TOKEN=${GITLAB_ROOT_TOKEN:-exastro-root-token}
-      - STORAGEPATH=/storage/
-      - PLATFORM_API_HOST=${PLATFORM_API_HOST:-platform-api}
-      - PLATFORM_API_PORT=${PLATFORM_API_PORT:-8000}
-      - DB_VENDOR=${ITA_DB_VENDOR:-mariadb}
-      - DB_HOST=${ITA_DB_HOST:-mariadb}
-      - DB_PORT=${ITA_DB_PORT:-3306}
-      - DB_DATABASE=${ITA_DB_DATABASE:-ITA_DB}
-      - DB_ADMIN_USER=${ITA_DB_ADMIN_USER:-root}
-      - DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD:-password}
-      - DB_USER=${ITA_DB_USER:-ITA_USER}
-      - DB_PASSWORD=${ITA_DB_PASSWORD:-password}
+      ORG_ANSIBLE_EXECUTION_LIMIT_DEFAULT: ${ORG_ANSIBLE_EXECUTION_LIMIT_DEFAULT:-25}
+      ORG_ANSIBLE_EXECUTION_LIMIT_MAX: ${ORG_ANSIBLE_EXECUTION_LIMIT_MAX:-1000}
+      ORG_ANSIBLE_EXECUTION_LIMIT_DESCRIPTION: "${ORG_ANSIBLE_EXECUTION_LIMIT_DESCRIPTION:-Maximum number of movement executions for organization default}"
+      SYSTEM_ANSIBLE_EXECUTION_LIMIT: ${SYSTEM_ANSIBLE_EXECUTION_LIMIT:-25}
+      SYSTEM_ANSIBLE_EXECUTION_LIMIT_DESCRIPTION: 'Maximum number of movement executions for whole of IT automation'
+      CONTAINER_BASE: docker
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      GITLAB_HOST: ${GITLAB_HOST:-gitlab}
+      GITLAB_PORT: ${GITLAB_PORT:-40080}
+      GITLAB_PROTOCOL: ${GITLAB_PROTOCOL:-http}
+      GITLAB_ROOT_TOKEN: ${GITLAB_ROOT_TOKEN:-}
+      STORAGEPATH: /storage/
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
+      DB_HOST: ${ITA_DB_HOST:-mariadb}
+      DB_PORT: ${ITA_DB_PORT:-3306}
+      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
+      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_USER: ${ITA_DB_USER:-ITA_USER}
+      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
     volumes:
       - vol-ita-storage:/storage:rw
     networks:
