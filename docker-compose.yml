@@ -590,7 +590,7 @@ services:
       PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
-      HOST_STORAGEPATH: ${PWD}/.volumes/storage
+      HOST_STORAGEPATH: ${PWD}/.volumes/storage/
       NETWORK_ID: ${NETWORK_ID}
     volumes:
       - ${HOST_DOCKER_SOCKET_PATH:-/var/run/docker.sock}:/var/run/docker.sock:cached
