@@ -37,6 +37,7 @@ services:
     profiles:
       - mariadb
       - common
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -132,6 +133,7 @@ services:
     profiles:
       - keycloak
       - common
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -198,6 +200,7 @@ services:
     profiles:
       - platform
       - web
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -251,6 +254,7 @@ services:
     profiles:
       - platform
       - web
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -309,6 +313,7 @@ services:
     profiles:
       - platform
       - web
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -365,6 +370,7 @@ services:
     profiles:
       - platform
       - migration
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -427,6 +433,7 @@ services:
     profiles:
       - platform
       - migration
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -464,6 +471,7 @@ services:
     profiles:
       - ita
       - web
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -490,7 +498,7 @@ services:
       DB_USER: ${ITA_DB_USER:-ITA_USER}
       DB_PASSWORD: ${ITA_DB_PASSWORD:-}
       GITLAB_PROTOCOL: ${GITLAB_PROTOCOL:-http}
-      GITLAB_HOST: ${GITLAB_HOST:-gitlab}
+      GITLAB_HOST: ${GITLAB_HOST:-}
       GITLAB_PORT: ${GITLAB_PORT:-40080}
       GITLAB_ROOT_TOKEN: ${GITLAB_ROOT_TOKEN:-}
       PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
@@ -505,6 +513,7 @@ services:
     profiles:
       - ita
       - web
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -538,6 +547,7 @@ services:
     profiles:
       - ita
       - web
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -568,7 +578,7 @@ services:
       DB_USER: ${ITA_DB_USER:-ITA_USER}
       DB_PASSWORD: ${ITA_DB_PASSWORD:-}
       GITLAB_PROTOCOL: ${GITLAB_PROTOCOL:-http}
-      GITLAB_HOST: ${GITLAB_HOST:-gitlab}
+      GITLAB_HOST: ${GITLAB_HOST:-}
       GITLAB_PORT: ${GITLAB_PORT:-40080}
       GITLAB_ROOT_TOKEN: ${GITLAB_ROOT_TOKEN:-}
       PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
@@ -589,6 +599,7 @@ services:
     profiles:
       - ita
       - backyard
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -630,6 +641,7 @@ services:
     profiles:
       - ita
       - backyard
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -671,6 +683,7 @@ services:
     profiles:
       - ita
       - backyard
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -712,6 +725,7 @@ services:
     profiles:
       - ita
       - backyard
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -753,6 +767,7 @@ services:
     profiles:
       - ita
       - backyard
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -794,6 +809,7 @@ services:
     profiles:
       - ita
       - backyard
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -835,6 +851,7 @@ services:
     profiles:
       - ita
       - backyard
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -876,6 +893,7 @@ services:
     profiles:
       - ita
       - backyard
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -917,6 +935,7 @@ services:
     profiles:
       - ita
       - backyard
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -958,6 +977,7 @@ services:
     profiles:
       - ita
       - backyard
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -999,6 +1019,7 @@ services:
     profiles:
       - ita
       - backyard
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -1040,6 +1061,7 @@ services:
     profiles:
       - ita
       - backyard
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -1081,6 +1103,7 @@ services:
     profiles:
       - ita
       - backyard
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -1122,6 +1145,7 @@ services:
     profiles:
       - ita
       - backyard
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -1163,6 +1187,7 @@ services:
     profiles:
       - ita
       - backyard
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -1204,6 +1229,7 @@ services:
     profiles:
       - ita
       - backyard
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -1245,6 +1271,7 @@ services:
     profiles:
       - ita
       - backyard
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -1283,6 +1310,7 @@ services:
     profiles:
       - ita
       - batch
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -1321,6 +1349,7 @@ services:
     profiles:
       - ita
       - batch
+      - except-gitlab
       - all
     logging:
       driver: json-file
@@ -1346,7 +1375,7 @@ services:
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
       ENCRYPT_KEY: ${ENCRYPT_KEY:-}
-      GITLAB_HOST: ${GITLAB_HOST:-gitlab}
+      GITLAB_HOST: ${GITLAB_HOST:-}
       GITLAB_PORT: ${GITLAB_PORT:-40080}
       GITLAB_PROTOCOL: ${GITLAB_PROTOCOL:-http}
       GITLAB_ROOT_TOKEN: ${GITLAB_ROOT_TOKEN:-}
@@ -1375,6 +1404,7 @@ services:
     profiles:
       - ita
       - migration
+      - except-gitlab
       - all
     logging:
       driver: json-file

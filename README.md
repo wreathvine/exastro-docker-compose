@@ -4,6 +4,59 @@ Docker Compose を利用することで、Exastro IT Automation を簡単に起�
   - (based on [exastro-it-automation](https://github.com/exastro-suite/exastro-it-automation))  
   - (based on [exastro-platform](https://github.com/exastro-suite/exastro-platform))  
 
+## 前提条件
+
+### ハードウェア要件(最小構成)
+
+Ansible Automation Platfrom と連携しない場合（GitLabを起動しない場合）のハードウェア要件は下記の通りとなります。
+
+|              |        |
+| ------------ | ------ |
+| CPU          | 2Cores |
+| メモリ       | 8GB    |
+| ディスク容量 | 40GB   |
+
+### ソフトウェア要件 (Docker利用時)
+
+| ソフトウェア  | 動作確認済みバージョン |
+| ------------- | ---------------------- |
+| Docker Engine | 24                     |
+| Git           | 2.31                   |
+
+### ソフトウェア要件 (Podman利用時)
+
+| ソフトウェア   | 動作確認済みバージョン |
+| -------------- | ---------------------- |
+| Podman Engine  | 4.4                    |
+| Docker Compose | 2.20                   |
+| Git            | 2.31                   |
+
+## 環境構築
+
+### Git インストール
+
+[Getting Started - Installing Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) の手順に従ってインストールをしてください。
+
+### （Docker利用時）Docker Engine のインストール
+
+[Install Docker Engine](https://docs.docker.com/engine/install/) に従ってインストールをしてください。
+
+### （Podman利用時）Podman Engine のインストール
+
+
+```
+sudo dnf module enable -y container-tools:rhel8
+
+sudo dnf module install -y container-tools:rhel8
+
+sudo dnf -y install podman-docker
+
+podman version
+```
+
+### （Podman利用時）Docker Compose のインストール 
+
+[Install Compose standalone](https://docs.docker.com/compose/install/standalone/#on-linux) に従ってインストールをしてください。
 
 ## 起動準備
 はじめに、各種構成ファイルを取得します。
@@ -35,24 +88,38 @@ head -c 32 /dev/urandom | base64
 
 ## コンテナ起動
 
+
+### 一般的なコンテナの起動方法
 *docker* もしくは *docker-compose* コマンドを使いコンテナを起動します。
-Exastro IT Automation の起動には、プロファイル (*--profile*) によって対象を指定することで、環境ごとに起動するコンテナを選択することが可能です。  
 
-| プロファイル名 | 対象となるコンテナ                                 | スケーリング                  |
-| -------------- | -------------------------------------------------- | ----------------------------- |
-| all            | すべてのコンテナ                                   |                               |
-| common         | MariaDB、GitLab、Keycloak コンテナ                 | 不可 (対応予定)               |
-| mariadb        | MariaDB コンテナ                                   | 不可 (対応予定)               |
-| gitlab         | GitLab コンテナ                                    | 不可 (対応予定)               |
-| keycloak       | Keycloak コンテナ                                  | 不可 (対応予定)               |
-| platform       | Exastro Platform 関連のコンテナ                    | 可能                          |
-| ita            | Exastro IT Automation 関連のコンテナ               | 一部可能                      |
-| web            | Web 系のコンテナ                                   | 可能                          |
-| migration      | インストール・アップグレード用コンテナ             | 不可 (必ず同時に1つのみ起動)  |
-| backyard       | Backyard 関連のコンテナ                            | 不可 (対応予定)               |
-| batch          | バッチ処理関連のコンテナ(Crontabに登録が必要)      | 不可 (不要)                   |
 
-この例では、**all** プロファイルを指定することで、すべてのコンテナを一度に起動します。
+```shell
+# docker コマンドを利用する場合(Docker環境)
+docker compose up -d  
+
+# docker-compose コマンドを利用する場合(Podman環境)
+docker-compose up -d  
+```  
+
+### （オプション）起動するコンテナを限定する場合の起動方法
+起動するコンテナを限定する場合は、プロファイル (*--profile*) で対象を指定することで、起動するコンテナを選択することが可能です。  
+
+| プロファイル名                 | 対象となるコンテナ                            | スケーリング                 |
+| ------------------------------ | --------------------------------------------- | ---------------------------- |
+| *all*                          | すべてのコンテナ                              |                              |
+| *except-gitlab* （デフォルト） | GitLab 以外のすべてのコンテナ                 |                              |
+| *common*                       | MariaDB、GitLab、Keycloak コンテナ            | 不可 (対応予定)              |
+| *mariadb*                      | MariaDB コンテナ                              | 不可 (対応予定)              |
+| *gitlab*                       | GitLab コンテナ                               | 不可 (対応予定)              |
+| *keycloak*                     | Keycloak コンテナ                             | 不可 (対応予定)              |
+| *platform*                     | Exastro Platform 関連のコンテナ               | 可能                         |
+| *ita*                          | Exastro IT Automation 関連のコンテナ          | 一部可能                     |
+| *web*                          | Web 系のコンテナ                              | 可能                         |
+| *migration*                    | インストール・アップグレード用コンテナ        | 不可 (必ず同時に1つのみ起動) |
+| *backyard*                     | Backyard 関連のコンテナ                       | 不可 (対応予定)              |
+| *batch*                        | バッチ処理関連のコンテナ(Crontabに登録が必要) | 不可 (不要)                  |
+
+以下の例では、**all** プロファイルを指定することで、すべてのコンテナを一度に起動します。
 
 ```shell
 # docker コマンドを利用する場合(Docker環境)
@@ -152,7 +219,7 @@ http://gitlab.example.com:40080
 | DB_ADMIN_PASSWORD                       | 起動するデータベースコンテナの管理ユーザーのパスワード                      | **必須**                      | Ch@ngeMeDBAdm                                                                                           |
 | GITLAB_VERSION                          | 起動する Gitalb コンテナのバージョン                                        | 可                            | latest                                                                                                  |
 | GITLAB_PROTOCOL                         | 起動する Gitalb コンテナの公開時のプロトコル                                | 可                            | http                                                                                                    |
-| GITLAB_HOST                             | 起動する Gitalb コンテナの公開時のURL<br>AAPから接続できる必要がある。      | **必須**                      | gitlab                                                                                                  |
+| GITLAB_HOST                             | 起動する Gitalb コンテナの公開時のURL<br>AAPから接続できる必要がある。      | **必須**                      | **"gitlab"**: デフォルト<br>*"空白"*: Git連携をしない場合                                             |
 | GITLAB_PORT                             | 起動する Gitalb コンテナの公開時のポート番号                                | 可                            | 40080                                                                                                   |
 | GITLAB_ROOT_PASSWORD                    | 起動する Gitalb コンテナの root アカウントの初期パスワード                  | **必須**                      | Ch@ngeMeGL                                                                                              |
 | GITLAB_ROOT_TOKEN                       | 起動する Gitalb コンテナの root トークン                                    | **必須**                      | change-this-token                                                                                       |
