@@ -446,6 +446,7 @@ services:
     container_name: ita-api-organization
     hostname: ita-api-organization
     restart: always
+    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
@@ -484,6 +485,7 @@ services:
     container_name: ita-api-admin
     hostname: ita-api-admin
     restart: always
+    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
@@ -526,6 +528,7 @@ services:
     container_name: ita-web-server
     hostname: ita-web-server
     restart: always
+    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
@@ -560,7 +563,7 @@ services:
     container_name: ita-by-ansible-execute
     hostname: ita-by-ansible-execute
     restart: always
-    user: 1000:${HOST_DOCKER_GID:-1000}
+    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
@@ -569,6 +572,8 @@ services:
       EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
       ANSIBLE_AGENT_IMAGE: ${ANSIBLE_AGENT_IMAGE:-exastro/exastro-it-automation-by-ansible-agent}
       ANSIBLE_AGENT_IMAGE_TAG: ${ANSIBLE_AGENT_IMAGE_TAG:-latest}
+      UID: ${UID:-1000}
+      HOST_DOCKER_GID: ${HOST_DOCKER_GID:-1000}
       DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
       DB_HOST: ${ITA_DB_HOST:-mariadb}
       DB_PORT: ${ITA_DB_PORT:-3306}
@@ -612,7 +617,7 @@ services:
     container_name: ita-by-ansible-legacy-role-vars-listup
     hostname: ita-by-ansible-legacy-role-vars-listup
     restart: always
-    user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
+    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
@@ -654,7 +659,7 @@ services:
     container_name: ita-by-ansible-legacy-vars-listup
     hostname: ita-by-ansible-legacy-vars-listup
     restart: always
-    user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
+    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
@@ -696,7 +701,7 @@ services:
     container_name: ita-by-ansible-pioneer-vars-listup
     hostname: ita-by-ansible-pioneer-vars-listup
     restart: always
-    user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
+    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
@@ -738,7 +743,7 @@ services:
     container_name: ita-by-ansible-towermaster-sync
     hostname: ita-by-ansible-towermaster-sync
     restart: always
-    user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
+    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
@@ -780,7 +785,7 @@ services:
     container_name: ita-by-collector
     hostname: ita-by-collector
     restart: always
-    user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
+    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
@@ -822,7 +827,7 @@ services:
     container_name: ita-by-conductor-synchronize
     hostname: ita-by-conductor-synchronize
     restart: always
-    user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
+    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
@@ -864,7 +869,7 @@ services:
     container_name: ita-by-conductor-regularly
     hostname: ita-by-conductor-regularly
     restart: always
-    user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
+    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
@@ -906,7 +911,7 @@ services:
     container_name: ita-by-menu-create
     hostname: ita-by-menu-create
     restart: always
-    user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
+    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
@@ -948,7 +953,7 @@ services:
     container_name: ita-by-menu-export-import
     hostname: ita-by-menu-export-import
     restart: always
-    user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
+    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
@@ -990,7 +995,7 @@ services:
     container_name: ita-by-excel-export-import
     hostname: ita-by-excel-export-import
     restart: always
-    user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
+    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
@@ -1032,7 +1037,7 @@ services:
     container_name: ita-by-terraform-cloud-ep-execute
     hostname: ita-by-terraform-cloud-ep-execute
     restart: always
-    user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
+    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
@@ -1074,7 +1079,7 @@ services:
     container_name: ita-by-terraform-cloud-ep-vars-listup
     hostname: ita-by-terraform-cloud-ep-vars-listup
     restart: always
-    user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
+    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
@@ -1116,7 +1121,7 @@ services:
     container_name: ita-by-terraform-cli-execute
     hostname: ita-by-terraform-cli-execute
     restart: always
-    user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
+    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
@@ -1158,7 +1163,7 @@ services:
     container_name: ita-by-terraform-cli-vars-listup
     hostname: ita-by-terraform-cli-vars-listup
     restart: always
-    user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
+    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
@@ -1200,7 +1205,7 @@ services:
     container_name: ita-by-hostgroup-split
     hostname: ita-by-hostgroup-split
     restart: always
-    user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
+    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
@@ -1242,7 +1247,7 @@ services:
     container_name: ita-by-cicd-for-iac
     hostname: ita-by-cicd-for-iac
     restart: always
-    user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
+    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
@@ -1284,7 +1289,7 @@ services:
     container_name: ita-by-execinstance-dataautoclean
     hostname: ita-by-execinstance-dataautoclean
     restart: "no"
-    user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
+    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
@@ -1323,7 +1328,7 @@ services:
     container_name: ita-by-file-autoclean
     hostname: ita-by-file-autoclean
     restart: "no"
-    user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
+    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
@@ -1363,7 +1368,7 @@ services:
     hostname: ita-migration
     restart: on-failure
     command: python3 /exastro/migration_main.py
-    user: ${HOST_DOCKER_UID:-1000}:${HOST_DOCKER_GID:-1000}
+    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
       ORG_ANSIBLE_EXECUTION_LIMIT_DEFAULT: ${ORG_ANSIBLE_EXECUTION_LIMIT_DEFAULT:-25}
       ORG_ANSIBLE_EXECUTION_LIMIT_MAX: ${ORG_ANSIBLE_EXECUTION_LIMIT_MAX:-1000}
