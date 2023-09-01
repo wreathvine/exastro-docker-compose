@@ -1,3 +1,6 @@
+!.gitkeep
 .talismanrc
 .env
 /*/.env
+backup/
+*.log

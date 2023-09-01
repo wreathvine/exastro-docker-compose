@@ -6,6 +6,11 @@ services:
       - workspace_id={{ workspace_id }}
       - execution_no={{ execution_no }}
     image: "{{ ansible_agent_image }}"
+    build:
+      context: ./
+      args:
+        ANSIBLE_AGENT_IMAGE: "${ANSIBLE_AGENT_IMAGE}"
+        ANSIBLE_AGENT_IMAGE_TAG: "${ANSIBLE_AGENT_IMAGE_TAG}"
     user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
     entrypoint:
       - "bash"

@@ -75,9 +75,16 @@ services:
         # sidekiq['max_concurrency'] = 10
         # gitaly['env'] = {'MALLOC_CONF' => 'dirty_decay_ms:1000,muzzy_decay_ms:1000', 'GITALY_COMMAND_SPAWN_MAX_PARALLEL' => '2'}
       GITLAB_POST_RECONFIGURE_SCRIPT: |
+        while [ $(curl -s -I -o nul -w "%{http_code}" ${GITLAB_PROTOCOL:-http}://${GITLAB_HOST:-localhost}:${GITLAB_PORT:-40080}/users/sign_in) -ne 200 ]
+        do
+        echo "GitLab service is not ready."
+        sleep 1
+        done
+        echo "GitLab service started normally"
         curl -Ssf -H "PRIVATE-TOKEN: ${GITLAB_ROOT_TOKEN:-}" "${GITLAB_PROTOCOL:-http}://${GITLAB_HOST:-localhost}:${GITLAB_PORT:-40080}/api/v4/version" || (
           gitlab-rails runner "token = User.find_by_username('root').personal_access_tokens.create(scopes: [:api, :write_repository, :sudo], name: 'exastro system token'); token.set_token('${GITLAB_ROOT_TOKEN:-}'); token.save!"
         )
+        echo "GitLab post reconfigure script ended."
     ports:
       - "0.0.0.0:${GITLAB_PORT:-40080}:40080"
     volumes:
@@ -574,6 +581,7 @@ services:
       EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
       ANSIBLE_AGENT_IMAGE: ${ANSIBLE_AGENT_IMAGE:-exastro/exastro-it-automation-by-ansible-agent}
       ANSIBLE_AGENT_IMAGE_TAG: ${ANSIBLE_AGENT_IMAGE_TAG:-latest}
+      DOCKER_BUILDKIT: 0
       UID: ${UID:-1000}
       HOST_DOCKER_GID: ${HOST_DOCKER_GID:-1000}
       DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
@@ -596,7 +604,7 @@ services:
       NETWORK_ID: ${NETWORK_ID}
     volumes:
       - ${HOST_DOCKER_SOCKET_PATH:-/var/run/docker.sock}:/var/run/docker.sock:cached
-      - ./ita_by_ansible_execute/templates/docker-compose.yml:/exastro/templates/docker-compose.yml
+      - ./ita_by_ansible_execute/templates:/exastro/templates
       - vol-ita-storage:/storage
     networks:
       - exastro
