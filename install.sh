@@ -392,7 +392,6 @@ installation_podman_on_rhel8() {
     else
         echo "export DOCKER_HOST=unix:///run/user/${UID}/podman/podman.sock" >> ~/.bashrc
     fi
-
 }
 
 ### Installation Docker on AlmaLinux
@@ -718,7 +717,7 @@ GitLab root token:                ********
 _EOF_
 
         read -p "Deploy under this setting? (y/n) [default: n]: " confirm
-        if [ $(expr "${confirm}" : "\(y\|Y\)") != 0 ] || [ $(expr "${confirm}" : "\(y\|Y\)\(e\|E\)\(s\|S\)") != 0 ]; then
+        if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
             info "Generate settig file [${PWD}/.env]."
             info "System administrator password:    ********"
             info "Database password:                ********"
@@ -755,17 +754,21 @@ prompt() {
     cat<<_EOF_
 
 System manager page:
-  URL:                ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${EXTERNAL_URL_PORT}
+  URL:                ${EXTERNAL_URL_MNG_PROTOCOL}://${EXTERNAL_URL_MNG_HOST}:${EXTERNAL_URL_MNG_PORT}/auth/
   Login user:         admin
   Initial password:   ${SYSTEM_ADMIN_PASSWORD}
 
 Organization page:
-  URL:                ${EXTERNAL_URL_MNG_PROTOCOL}://${EXTERNAL_URL_MNG_HOST}:${EXTERNAL_URL_MNG_PORT}
+  URL:                ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${EXTERNAL_URL_PORT}/ORGANIZATION-ID/platform
 
 GitLab page:
   URL:                ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:40080
   Login user:         root
   Initial password:   ${GITLAB_ROOT_PASSWORD}
+
+
+Run creation organization command:
+   bash ~/exastro-docker-compose/create-organization.sh 
 
 _EOF_
 }
@@ -999,7 +1002,7 @@ _EOF_
             cat <<'_EOF_'
 
 Usage:
-  curl -sfL https://ita.exastro.org/install | sh -s - COMMAND [options]
+  sh <(curl -Ssf https://ita.exastro.org/setup) COMMAND [options]
      or
   exastro COMMAND [options]
 
