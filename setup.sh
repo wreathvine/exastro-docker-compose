@@ -1,27 +1,29 @@
 #!/bin/sh
 
 ### Set enviroment parameters
-LOG_FILE="./installation.log"
 DEPLOY_FLG="a"
 REMOVE_FLG=""
 REQUIRED_MEM_TOTAL=4000000
 REQUIRED_VAR_FREE=25600
 REQUIRED_DOT_FREE=1024
-DOCKER_COMPOSE="docker compose"
-ENV_FILE="/home/$(id -u -n)/exastro-docker-compose/.env"
+DOCKER_COMPOSE_VER="v2.20.3"
+PROJECT_DIR="${HOME}/exastro-docker-compose"
+COMPOSE_FILE="${PROJECT_DIR}/docker-compose.yml"
+LOG_FILE="${PROJECT_DIR}/installation.log"
+ENV_FILE="${PROJECT_DIR}/.env"
 if [ -f ${ENV_FILE} ]; then
     source ${ENV_FILE}
 fi
 
 ### Logger functions
 info() {
-    echo `date`' [INFO]:' "$@" | tee -a ${LOG_FILE}
+    echo `date`' [INFO]:' "$@" | tee -a "${LOG_FILE}"
 }
 warn() {
-    echo `date`' [WARN]:' "$@" >&2 | tee -a ${LOG_FILE}
+    echo `date`' [WARN]:' "$@" >&2 | tee -a "${LOG_FILE}"
 }
 error() {
-    echo `date`' [ERROR]:' "$@" >&2 | tee -a ${LOG_FILE}
+    echo `date`' [ERROR]:' "$@" >&2 | tee -a "${LOG_FILE}"
     exit 1
 }
 
@@ -68,7 +70,8 @@ _EOF_
 
         # Middle banner
         cat <<'_EOF_'
-.        .. .... :O0OOXNNXXNNXXXKO0KXXNX0llXNNWWN0Okdko;lKNXddOXXKNWX0NWWWNNNK0xoloooOXNNNNNNNNNNNNXNNXXXXKKKK0KKKKXXNNNNNNNNNNNWWWWWWWNNNNNNNNNNWWWWWWWNNNNNNNO,...'':kk000KKKOxdO00KK0O000OONNWWWWWWX0KXKNWWWk:oxodKWWWXXXKKKKKKKKKKKKKKKKKKKKKKKKXKKKKKKKKKKKKKXXKKKKXXKKKXXXXXKXXXXXKO0KKNWWWNXNWWWWWWWN
+
+ .        .. .... :O0OOXNNXXNNXXXKO0KXXNX0llXNNWWN0Okdko;lKNXddOXXKNWX0NWWWNNNK0xoloooOXNNNNNNNNNNNNXNNXXXXKKKK0KKKKXXNNNNNNNNNNNWWWWWWWNNNNNNNNNNWWWWWWWNNNNNNNO,...'':kk000KKKOxdO00KK0O000OONNWWWWWWX0KXKNWWWk:oxodKWWWXXXKKKKKKKKKKKKKKKKKKKKKKKKXKKKKKKKKKKKKKXXKKKKXXKKKXXXXXKXXXXXKO0KKNWWWNXNWWWWWWWN
 ..       ..  ... :O0O0XNNNNNNXXX0O0XXXNX0loNNNWWN0OkdddoxXNO;lKNXXNNKKWWWWNWN00xlxXXXXXXXXXXXXXXNXXXXXXXXXXXXXXXXKXXKKXXXXXXXKKXNWWWWWWNNNNNNNNNNNNNNNWWWWWWWWNx......,xccxkOOxkdoO0000OO000OONNWWWNWWX0KXKNWWWOcoxddXWNNXXX000000000000000000000000000O000000000000000KK0OO0KKKK000KKKX0O0KK0XNNWNXNWWWWWWN
 ..       ..  ... :O0OOXNNXXNNXXXK0KXNNNXKkONNNWWNOdx0KK0XNNd,oXNXNNN0XWWWWWWKkOxok00K0000000000000000000000000000OO0OOOOO0000OO0NNWWWNNNNNNNNNNNNNNNNNNNNNNNNWNOoxo,'.;xc;cclooOxxO0000OO000OONNWWWWWWXKKXKNWWWOloddxXNXNNXNOxxxxxxxxxxxxxxxxxxxxxxxxxxddddxxdxxxxxxxxxxxxddxkkkxxdxxkO0000K0lcOX0dONWWWWWNN
 .........''..',,.lO000XNNXXXXXXKKO0XXXXX0kOXXXXNXOOO0000KXKddOXXXXXKOKXXXKKKOxkkOkkkkkkkkkkkkxkkkxxkkkkkkkkkkOOOOOOOOOOOOOOOOOOO000000000000OOOOkkkkkOkOOOOOOOO00OOkkkkOkkkkkkkkkkkkkkkkOOOOOO000OO00OOOOOO000OOkkkOkO0OOOOOOkkOOOOOOOOOOO00OOOOOOOOOOOOOOOOOOOOOOOOkOOOkOkkkkkkOkkkkOOOOOOOOkkOOkkOO00000OO
@@ -178,7 +181,43 @@ cccccccclllllllllccccccccccclllloooddddxxxkkkkOOO0000KKKKKKKKO'.'...''''''......
                .dO00OKNWWNNNNXxcdKXX0Ox.         ....................''',,,,,;;;;;;;;;;;;:d0KKKKKKKKKK0kxk0KXXXXXO, .........................................................                                                                     .;coollllllllllllllll:..    ;kkkkkkkkkkxkxxxxxxxxxxdddddoo
 .               ,k00OOXNWNNNNNKOO000KK0d    .........................'''',,,,;;,;coxkO0KK0KKKXKKK00KKKXXKkoxOKKKKKKl...........................................................                                                                .,clllllllllloolllllllllllc.   lKKKKKKKKKKKXXXKKKKKKKXXXXXXXX
                  dO00kOXNWNNNX0kkxldKK0Ol,,'''cd:''......'''.........''''',,,,lONWWWWWWWK00KKXXNX00KXXXXXNXOdd0KKKKXk..........................................................                                                               ,llllllllllllxKKkolllllllllll'..xKKKKKKKKKKKKKKKKKKKKKKXXXXKKK
-.....            cO00OkKNWWNNXKxdl:dKX0Ol.....',';;,,''',,,,,.'.....'''',,,,,dWWWWWWWWWXOO0KKXXNNN00XXXXXXNXkoxO0KXXXx....................''.........................................                                                        ,oollollllloodKXXKdoolllllllooc..OKKXXXXXKKKKXXXKKKKKKKKKKKXXXX
+                                                                                                                                                                                                                                                                                                            
+                                                                                                                                                                                                                                                                                                            
+                                                                                                                                                                                                                                                                                                            
+                                               .,:ldxk0KKKKKOkxdl:'.                                                   OKKKKKKKKKKKKKKKKKKKKKKK                                                                                  cKKKKKK,                                                                   
+                                          .:d0WMMMMMMMMMMMMMMMMMMMMMNOo,                                               XMMMMMMMMMMMMMMMMMMMMMMM                                                                                  dMMMMMMc                                                                   
+                                       .oKMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMW0c.                                           XMMMMMMMMMMMMMMMMMMMMMMM   .kkkkkkkk        ,kkkkkkkk.   kkkkkkkkkkol;.             ':odkkkkkkkkkkk.   kkkNMMMMMMNkkkkk;   dkkkkkk.   .,cok           ':ookkkoo:,                    
+                                     lKMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM0:                                         XMMMMMMMO                    MMMMMMMW.     cMMMMMMMM     MMMMMMMMMMMMMM0c         dNMMMMMMMMMMMMMMM.   MMMMMMMMMMMMMMMMd   XMMMMMM. c0MMMMM       ,dKMMMMMMMMMMMMMKd,                
+                                  .xWMMMMMMMMMMo       .....       KMMMMMMMMMMNo                                       XMMMMMMMd                     NMMMMMMW:   xMMMMMMMK      MMMMMMMMMMMMMMMMNc     :WMMMMMMMMMMMMMMMMM.   MMMMMMMMMMMMMMMMd   XMMMMMMKNMMMMMMM     oNMMMMMMMMM.MMMMMMMMMNo              
+                                .OMMMMMMMMMW    .:ok0NWMMMMMNX0xl,.   .MMMMMMMMMWo                                     XMMMMMMMd                      WMMMMMMMd KMMMMMMMx                ,MMMMMMMMc   .MMMMMMMK                  OMMMMMMo         XMMMMMMMMMMMMMo    lWMMMMMMMMMM: :MMMMMMMMMMWl            
+                              .OMMMMMMMMMc   ;xNMMMMMMMMMMMMMMMMMMMKd,   OMMMMMMMMX.                                   XMMMMMMMd                       KMMMMMMMWMMMMMMMo                   .MMMMMMM   cMMMMMMk                   dMMMMMMc         XMMMMMMMMMO       kMMMMMMMMMMMK   KMMMMMMMMMMMO           
+                            ;0MMMMMMMMM.  ,xNMMMMMMMMMMMMMMMMMMMMMMMMMNo.  lMMMMMMMWo                                  XMMMMMMMWKKKKKKKKKKKK;           oMMMMMMMMMMMMM.           ,::::::::dMMMMMMM   .MMMMMMWd::::::,.          dMMMMMMc         XMMMMMMMM.       xMMMMMMMMMMMM     MMMMMMMMMMMMx          
+                          :KMMMMMMMMM.  :KMMMMMMMMMMMW.     :MMMMMMMMMMMMk   MMMMMMMMO    .',:cookk0K:                 XMMMMMMMMMMMMMMMMMMMMl            ;MMMMMMMMMMM          :0MMMMMMMMMMMMMMMMMM    ;MMMMMMMMMMMMMMMNx,       dMMMMMMc         XMMMMMMM,        MMMMN                     NMMMM          
+                        :KMMMMMMMMM.  :KMMMMMMMMMx               XMMMMMMMMW:  0MMMMMM;  .OMM   ,xl.   .dl              XMMMMMMMMMMMMMMMMMMMMl             .MMMMMMMMM          OMMMMMMMMMMMMMMMMMMMM      0MMMMMMMMMMMMMMMMK.     dMMMMMMc         XMMMMMMN        .MMMMMNd'               'dNMMMMM.         
+                      cXMMMMMMMMW   cXMMMMMMMMM                    'MMMMMMMMx  kMMM.  ;0MMMM;  .Xk   xWM.              XMMMMMMMk                          0MMMMMMMMMo        ;MMMMMMMMMMMMMMMMMMMMM          dMMMMMMMMMMMMMW'    dMMMMMMc         XMMMMMMo        .MMMMMMMMXd'         'dXMMMMMMMM.         
+                    lNMMMMMMMMW   lNMMMMMMMMM           .W           KMMMMMMMd  M.  :KMMMMMMk:kWMMNo;MMM               XMMMMMMMd                         XMMMMMMMMMMMk       lMMMMMMo       MMMMMMM                  ;MMMMMMW    dMMMMMMc         XMMMMMM,         WMMMMMMMMM,         ,MMMMMMMMMW          
+                  lNMMMMMMMMW   lNMMMMMMMMM             NMd           XMMMMMMM.   :KMMMMMMMMc  ,MM   WMk               XMMMMMMMd                       .NMMMMMMMMMMMMM0      lMMMMMMo       MMMMMMM                   MMMMMMM    dMMMMMMc         XMMMMMM.         .MMMMMMMMk     :     kMMMMMMMM.          
+                oNMMMMMMMMO   oNMMMMMMMM0              dMMM,           MMMMMN   cXMMMMMMMMW   .'Xk.  .M'               XMMMMMMMd                      ;WMMMMMMMoMMMMMMMX.    lMMMMMMo       MMMMMMM                 .OMMMMMMX    dMMMMMMc         XMMMMMM.           MMMMMMM  .c0WMW0c.  MMMMMMM            
+              dWMMMMMMMMO   dWMMMMMMMM0   ll      :MMMMMMMMMMMMM.      XMMN   lNMMMMMMMMW   :KMMMMMMWXM                XMMMMMMMWNNNNNNNNNNNNNNN      :MMMMMMMM  .MMMMMMMW'   .MMMMMMWNNNNNNNMMMMMMMWNN   ;NNNNNNNNNNMMMMMMMM     ,MMMMMMWNNNNNl   XMMMMMM.            xMMMMOc0MMMMMMMMM0:kMMMMk             
+            dWMMMMMMMMO   dWMMMMMMMM0   lNMl         kMMMMMMM:         XN   lNMMMMMMMMW   :KMMMMMMMMM                  XMMMMMMMMMMMMMMMMMMMMMMM     :MMMMMMMX    .MMMMMMMM:   lMMMMMMMMMMMMMMMMMMMMMMM   cMMMMMMMMMMMMMMMMx       dMMMMMMMMMMMd   XMMMMMM.              xMMMMMMMMMMMMMMMMMMMx               
+           cM. .0MMk.   dWMMMMMMMM0   lNMMMX         xMMMMMMM'            lNMMMMMMMMW   :KMMMMMMMMM                    XMMMMMMMMMMMMMMMMMMMMMMM    dMMMMMMM0       MMMMMMMMo    KMMMMMMMMMMMMMMMMMMMMM   cMMMMMMMMMMMMMM;           NMMMMMMMMMd   XMMMMMM.                 oMMMMMMMMMMMMMo                  
+           NM:  .0k   lWMMMMMMMMl   ,NMMMMMM'       .MMo   KMN          oNMMMMMMMMO   cXMMMMMMMMX                                                                                                                                                                                                           
+           MMW,dWMMNo'MMMMMMMMl   ,  MMMMMMMW'      O         O       dWMMMMMMMMO   lNMMMMMMMMX                                                                                                                                                                                                             
+          ,MMx  ,MM.  XMMMMMl   dWM. .MMMMMMMMo                     dWMMMMMMMMO   lNMMMMMMMMX                                                                                                                                                                                                               
+          0M.   'XO.  .MMM'  .xWMMMW.  MMMMMMMMNo.               ,xWMMMMMMMMc   oNMMMMMMMMo                                                                                                                                                                                                                 
+          .  :KMMMMMMXKX.    MMMMMMMW:  oMMMMMMMMMXdc'.     .,lkWMMMMMMMMMc  .dWMMMMMMMMo                              :ccc: .ccccccccccccc.           cccccc                                                                                                 '000:                                         
+                             .MMMMMMMMk   OMMMMMMMMMMMMMNNNMMMMMMMMMMMMMc  .dWMMMMMMMMo                                XMMMW cMMMMMMMMMMMMMl          .MMMMMMO                       .,cd                                                            .,cd     oMMM0                                         
+                               KMMMMMMMWo.   WMMMMMMMMMMMMMMMMMMMMMMM0   'xWMMMMMMMM,                                  XMMMW      XMMMX               NMMKOMMM.                     cMMMM                                                           lMMMM                                                   
+                                ,MMMMMMMMMO:    cMMMMMMMMMMMMMMMMM.    cKMMMMMMMMM,                                    XMMMW      XMMMX              .MMM'.MMMN     0000,   c0000 .0WMMMMK00.   :x0XNK0d,    ;000',d0NX0l .d0NX0o    .lk0KNNKOo.  .0WMMMMK00  x000O    .lk0NNKOl.    O000.ckKNKOc           
+                                  oMMMMMMMMMWkc.                   'l0WMMMMMMMMM,                                      XMMMW      XMMMX              KMMM  NMMM.    MMMMc   dMMMM .ONMMMMKOO. :NMMMl NMMMK.  cMMMMMMMMMMMNMMMMMMMN    NX   :MMMMc .ONMMMM0OO  KMMMW   kMMMM..MMMMk   XMMMMMMMMMMMK          
+                                    .MMMMMMMMMMMN0xo:;,'...,,;cokKWMMMMMMMMMMW                                         XMMMW      XMMMX             .MMM:  ,MMMN    MMMMc   dMMMM   cMMMM    'MMMM.   dMMMW  cMMMM   'MMMM,  .MMMM;      .,:NMMMM   lMMMM     KMMMW  OMMMX    WMMMk  XMMMW   ,MMMM.         
+                                       oMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM;                                           XMMMW      XMMMX             NMMM0oo0MMMM'   MMMMc   dMMMM   cMMMM    kMMMM    'MMMM. cMMMM   .MMMM.   MMMMc  .dXMMMMMMMMM   lMMMM     KMMMW  MMMMo    OMMMM  XMMMX   .MMMM.         
+                                          .MMMMMMMMMMMMMMMMMMMMMMMMMMMMW                                               XMMMW      XMMMX            'MMMMMMMMMMMMN   MMMMl   dMMMM   cMMMM    oMMMM    :MMMM  cMMMM   .MMMM.   MMMMc .WMMM   'MMMM   lMMMM     KMMMW  WMMMK    WMMMX  XMMMX   .MMMM.         
+                                               cMMMMMMMMMMMMMMMMMMM'                                                   XMMMW      XMMMX            NMMM'    .MMMM;  WMMMW,.:WMMMM   .MMMMx..  MMMMk  'WMMMo  cMMMM   .MMMM.   MMMMc :MMMM.  OMMMM   ;MMMMd..  KMMMW  'MMMMc  lMMMM.  XMMMX   .MMMM.         
+                                                                                                                       XMMMW      XMMMX           :MMMK      kMMMW   WMMMMMM:MMMM    cMMMMMM   'MMMWNMMMK    cMMMM   .MMMM.   MMMMc  lMMMWXW0MMMM    oMMMMMM  KMMMW    dMMMNNMMMc    XMMMX   .MMMM.         
+                                                                                                                                                                                                                                                                                                            
+                                                                                                                                                                                                                                                                                                            
+ .....            cO00OkKNWWNNXKxdl:dKX0Ol.....',';;,,''',,,,,.'.....'''',,,,,dWWWWWWWWWXOO0KKXXNNN00XXXXXXNXkoxO0KXXXx....................''.........................................                                                        ,oollollllloodKXXKdoolllllllooc..OKKXXXXXKKKKXXXKKKKKKKKKKKXXXX
 _EOF_
 
     else
@@ -223,121 +262,134 @@ to_lowercase() {
 generate_password() {
     # Specify the length of the password
     length="$1"
-
     # Generate a random password
     password=$(dd if=/dev/urandom bs=1 count=100 2>/dev/null | base64 | tr -dc 'a-zA-Z0-9' | fold -w $length | head -n 1)
-
     # Display the generated password
     echo $password
 }
 
 ### Check System
-check_system() {
-    printf "$(date) [INFO]: Checking Operating System.....................\n" | tee -a ${LOG_FILE}
-    OS_TYPE=$(to_lowercase $(uname))
-    if [ "${OS_TYPE}" != "linux" ]; then
+
+get_system_info() {
+    if [ $(to_lowercase $(uname)) != "linux" ]; then
         error "Not supported OS."
-    else
-        OS_TYPE=$(uname)
-        source /etc/os-release
     fi
 
+    source /etc/os-release
+    ARCH=$(uname -p)
+    OS_TYPE=$(uname)
     OS_NAME=$(awk -F= '$1=="NAME" { print $2; }' /etc/os-release | tr -d '"')
     VERSION_ID=$(awk -F= '$1=="VERSION_ID" { print $2; }' /etc/os-release | tr -d '"')
-    ARCH=$(uname -p)
-
-    info "NAME:         ${OS_NAME}"
-    info "VERSION_ID:   ${VERSION_ID}"
-    info "ARCH:         ${ARCH}"
-
-    if [ "${ARCH}" != "x86_64" ] && [ "${ARCH}" != "amd64" ]; then
-        printf "\r\033[4F\033[K$(date) [INFO]: Checking Operating System......................ng" | tee -a ${LOG_FILE}
-        printf "\r\033[4E\033[K" | tee -a ${LOG_FILE}
-        error "Not supported CPU architecture."
-    fi
-
+    DOCKER_COMPOSE="docker compose"
     if [ "${OS_NAME}" == "Red Hat Enterprise Linux" ]; then
         if [ $(expr "${VERSION_ID}" : "^8\..*") != 0 ]; then
             DEP_PATTERN="RHEL8"
             DOCKER_COMPOSE="docker-compose"
-        else
-            printf "\r\033[4F\033[K$(date) [INFO]: Checking Operating System......................ng" | tee -a ${LOG_FILE}
-            printf "\r\033[4E\033[K" | tee -a ${LOG_FILE}
-            error "Not supported REHL version."
         fi
     elif [ "${OS_NAME}" == "AlmaLinux" ]; then
         if [ $(expr "${VERSION_ID}" : "^8\..*") != 0 ]; then
             DEP_PATTERN="AlmaLinux8"
-        else
-            printf "\r\033[4F\033[K$(date) [INFO]: Checking Operating System......................ng" | tee -a ${LOG_FILE}
-            printf "\r\033[4E\033[K" | tee -a ${LOG_FILE}
-            error "Not supported AlmaLinux version."
         fi
     elif [ "${OS_NAME}" == "Ubuntu" ]; then
         if [ $(expr "${VERSION_ID}" : "^20\..*") != 0 ]; then
             DEP_PATTERN="Ubuntu20"
         elif [ $(expr "${VERSION_ID}" : "^22\..*") != 0 ]; then
             DEP_PATTERN="Ubuntu22"
-        else
-            printf "\r\033[4F\033[K$(date) [INFO]: Checking Operating System......................ng" | tee -a ${LOG_FILE}
-            printf "\r\033[4E\033[K" | tee -a ${LOG_FILE}
-            error "Not supported Ubuntu version."
         fi
-    else
+    fi
+}
+
+### Check system requirements
+check_system() {
+    printf "$(date) [INFO]: Checking Operating System.....................\n" | tee -a "${LOG_FILE}"
+
+    # Check CPU architecture
+    if [ "${ARCH}" != "x86_64" ] && [ "${ARCH}" != "amd64" ]; then
+        printf "\r\033[1F\033[K$(date) [INFO]: Checking Operating System......................ng" | tee -a "${LOG_FILE}"
+        printf "\r\033[1E\033[K" | tee -a "${LOG_FILE}"
+        error "Not supported CPU architecture."
+    fi
+
+    # Check OS type
+    OS_TYPE=$(to_lowercase $(uname))
+    if [ "${OS_TYPE}" != "linux" ]; then
         error "Not supported OS."
     fi
-    info "Deployment pattern is ${DEP_PATTERN}"
+    OS_TYPE=$(uname)
+    source /etc/os-release
+
+    # Check OS
+    info "NAME:         ${OS_NAME}"
+    info "VERSION_ID:   ${VERSION_ID}"
+    info "ARCH:         ${ARCH}"
+
+    case "${DEP_PATTERN}" in
+        RHEL8 )
+            ;;
+        AlmaLinux8 )
+            ;;
+        Ubuntu20 )
+            ;;
+        Ubuntu22 )
+            ;;
+        * )
+            printf "\r\033[4F\033[K$(date) [INFO]: Checking Operating System......................ng" | tee -a "${LOG_FILE}"
+            printf "\r\033[4E\033[K" | tee -a "${LOG_FILE}"
+            error "Unsupported OS."
+            ;;
+    esac
+
     sleep 1
-    printf "\r\033[5F\033[K$(date) [INFO]: Checking Operating System......................ok" | tee -a ${LOG_FILE}
-    printf "\r\033[5E\033[K" | tee -a ${LOG_FILE}
+    printf "\r\033[4F\033[K$(date) [INFO]: Checking Operating System......................ok" | tee -a "${LOG_FILE}"
+    printf "\r\033[4E\033[K" | tee -a "${LOG_FILE}"
     echo ""
 }
 
 ### Check required command
 check_command() {
-    printf "$(date) [INFO]: Checking required commands.....................\n" | tee -a ${LOG_FILE}
+    printf "$(date) [INFO]: Checking required commands.....................\n" | tee -a "${LOG_FILE}"
     if command -v sudo >/dev/null; then
         info "'sudo' command is exist."
     else
-        printf "\r\033[1F\033[K$(date) [INFO]: Checking required commands.....................ng\n" | tee -a ${LOG_FILE}
-        printf "\r\033[1E\033[K" | tee -a ${LOG_FILE}
+        printf "\r\033[1F\033[K$(date) [INFO]: Checking required commands.....................ng\n" | tee -a "${LOG_FILE}"
+        printf "\r\033[1E\033[K" | tee -a "${LOG_FILE}"
         error "Required 'sudo' command and $(id -u -n) is appended to sudoers."
     fi
     sleep 1
-    printf "\r\033[2F\033[K$(date) [INFO]: Checking required commands.....................ok\n" | tee -a ${LOG_FILE}
-    printf "\r\033[2E\033[K" | tee -a ${LOG_FILE}
+    printf "\r\033[2F\033[K$(date) [INFO]: Checking required commands.....................ok\n" | tee -a "${LOG_FILE}"
+    printf "\r\033[2E\033[K" | tee -a "${LOG_FILE}"
     echo ""
 }
 
 ### Check required resources
 check_resource() {
-    printf "$(date) [INFO]: Checking required resource.....................\n" | tee -a ${LOG_FILE}
+    printf "$(date) [INFO]: Checking required resource.....................\n" | tee -a "${LOG_FILE}"
     # Total Memory
-    info "Total memory (MiB):           $(cat /proc/meminfo  | grep MemTotal | awk '{ print $2 }')"
+    info "Total memory (KiB):           $(cat /proc/meminfo  | grep MemTotal | awk '{ print $2 }')"
     if [ $(cat /proc/meminfo  | grep MemTotal | awk '{ print $2 }') -lt ${REQUIRED_MEM_TOTAL} ]; then
         error "Lack of total memory! Required at least ${REQUIRED_MEM_TOTAL} Bytes total memory."
-        printf "\r\033[1F\033[K$(date) [INFO]: Checking required resource.....................ng\n" | tee -a ${LOG_FILE}
-        printf "\r\033[1E\033[K" | tee -a ${LOG_FILE}
+        printf "\r\033[1F\033[K$(date) [INFO]: Checking required resource.....................ng\n" | tee -a "${LOG_FILE}"
+        printf "\r\033[1E\033[K" | tee -a "${LOG_FILE}"
     fi
 
     # Check free space of /var 
     info "'/var' free space (MiB):      $(df -m /var | awk 'NR==2 {print $4}')"
     if [ $(df -m /var | awk 'NR==2 {print $4}') -lt ${REQUIRED_VAR_FREE} ]; then
-        printf "\r\033[3F\033[K$(date) [INFO]: Checking required resource.....................ng\n" | tee -a ${LOG_FILE}
-        printf "\r\033[3E\033[K" | tee -a ${LOG_FILE}
+        printf "\r\033[3F\033[K$(date) [INFO]: Checking required resource.....................ng\n" | tee -a "${LOG_FILE}"
+        printf "\r\033[3E\033[K" | tee -a "${LOG_FILE}"
         error "Lack of free space! Required at least ${REQUIRED_VAR_FREE} Bytes free space on /var directory."
     fi
 
     # Check free space of current directory 
     info "'.' free space (MiB):         $(df -m . | awk 'NR==2 {print $4}')"
     if [ $(df -m . | awk 'NR==2 {print $4}') -lt ${REQUIRED_DOT_FREE} ]; then
-        printf "\r\033[4F\033[K$(date) [INFO]: Checking required resource.....................ng\n" | tee -a ${LOG_FILE}
-        printf "\r\033[4E\033[K" | tee -a ${LOG_FILE}
+        printf "\r\033[4F\033[K$(date) [INFO]: Checking required resource.....................ng\n" | tee -a "${LOG_FILE}"
+        printf "\r\033[4E\033[K" | tee -a "${LOG_FILE}"
         error "Lack of free space! Required at least ${REQUIRED_DOT_FREE} Bytes free space on current directory."
     fi
     sleep 1
-    printf "\r\033[4F\033[K$(date) [INFO]: Checking required resource.....................ok\n" | tee -a ${LOG_FILE}
-    printf "\r\033[4E\033[K" | tee -a ${LOG_FILE}
+    printf "\r\033[4F\033[K$(date) [INFO]: Checking required resource.....................ok\n" | tee -a "${LOG_FILE}"
+    printf "\r\033[4E\033[K" | tee -a "${LOG_FILE}"
     echo ""
 }
 
@@ -371,26 +423,26 @@ installation_podman_on_rhel8() {
     fi
 
     info "Install docker-compose command"
-    sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.3/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VER}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
     sudo chmod a+x /usr/local/bin/docker-compose
 
     info "Show Podman version"
     podman --version
 
     info "Change container netowrk driver"
-    mkdir -p ~/.config/containers/
-    cp /usr/share/containers/containers.conf ~/.config/containers/
-    sed -i.$(date +%Y%m%d-%H%M%S) -e 's|^network_backend = "cni"|network_backend = "netavark"|' ~/.config/containers/containers.conf
+    mkdir -p ${HOME}/.config/containers/
+    cp /usr/share/containers/containers.conf ${HOME}/.config/containers/
+    sed -i.$(date +%Y%m%d-%H%M%S) -e 's|^network_backend = "cni"|network_backend = "netavark"|' ${HOME}/.config/containers/containers.conf
 
     info "Start and enable Podman sockert service"
     systemctl --user enable --now podman.socket
     systemctl --user status podman.socket
     podman unshare chown $(id -u):$(id -g) /run/user/$(id -u)/podman/podman.sock
 
-    if ! grep "^export DOCKER_HOST" ~/.bashrc > /dev/null; then
-        sed -i -e "s|^export DOCKER_HOST.*|export DOCKER_HOST=unix:///run/user/${UID}/podman/podman.sock|" ~/.bashrc
+    if ! grep "^export DOCKER_HOST" ${HOME}/.bashrc > /dev/null; then
+        sed -i -e "s|^export DOCKER_HOST.*|export DOCKER_HOST=unix:///run/user/${UID}/podman/podman.sock|" ${HOME}/.bashrc
     else
-        echo "export DOCKER_HOST=unix:///run/user/${UID}/podman/podman.sock" >> ~/.bashrc
+        echo "export DOCKER_HOST=unix:///run/user/${UID}/podman/podman.sock" >> ${HOME}/.bashrc
     fi
 }
 
@@ -418,8 +470,8 @@ installation_docker_on_alamalinux8() {
 
 ### Installation Docker on Ubuntu
 installation_docker_on_ubuntu() {
-    # info "Update packages"
-    # sudo apt update
+    info "Update packages"
+    sudo apt update
 
     info "Install prerequisites"
     sudo apt install -y apt-transport-https ca-certificates curl software-properties-common gnupg lsb-release git
@@ -463,7 +515,7 @@ installation_container_engine() {
 ### Installation Exastro on RHEL8
 installation_exastro_on_rhel8() {
     info "Installing Exastro service..."
-    cat << _EOF_ >~/.config/systemd/user/exastro.service
+    cat << _EOF_ >${HOME}/.config/systemd/user/exastro.service
 [Unit]
 Description=Exastro System
 After=podman.socket
@@ -472,12 +524,12 @@ Requires=podman.socket
 [Service]
 Type=oneshot
 RemainAfterExit=true
-WorkingDirectory=/home/$(id -u -n)/exastro-docker-compose
+WorkingDirectory=${PROJECT_DIR}
 ExecStartPre=/usr/bin/podman unshare chown $(id -u):$(id -g) /run/user/$(id -u)/podman/podman.sock
 Environment=DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock
-Environment=PWD=/home/$(id -u -n)/exastro-docker-compose
-ExecStart=/usr/local/bin/docker-compose --profile ${COMPOSE_PROFILES} -f /home/$(id -u -n)/exastro-docker-compose/docker-compose.yml --env-file /home/$(id -u -n)/exastro-docker-compose/.env up -d
-ExecStop=/usr/local/bin/docker-compose --profile ${COMPOSE_PROFILES} -f /home/$(id -u -n)/exastro-docker-compose/docker-compose.yml --env-file /home/$(id -u -n)/exastro-docker-compose/.env down
+Environment=PWD=${PROJECT_DIR}
+ExecStart=$(command -v docker-compose) --profile ${COMPOSE_PROFILES} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d
+ExecStop=$(command -v docker-compose) --profile ${COMPOSE_PROFILES} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} down
  
 [Install]
 WantedBy=default.target
@@ -489,9 +541,9 @@ _EOF_
 ### Installation job to Crontab
 installation_cronjob() {
     # Specify the input file name and output file name here
-    cd ~
-    backup_file='exastro-docker-compose/backup/crontab.'$(date +%Y%m%d-%H%M%S)
-    output_file='.tmp.txt'
+    cd 
+    backup_file="${PROJECT_DIR}/backup/crontab."$(date +%Y%m%d-%H%M%S)
+    output_file="${HOME}/.tmp.txt"
 
     # Backup current crontab
     crontab -l > $backup_file
@@ -500,8 +552,8 @@ installation_cronjob() {
         crontab -l 2>/dev/null > $output_file
         cat << _EOF_ >> $output_file
 ######## START Exastro auto generate (DO NOT REMOVE bellow lines.) ########
-0 * * * * cd /home/$(id -u -n)/exastro-docker-compose; ${DOCKER_COMPOSE} run ita-by-execinstance-dataautoclean > /dev/null 2>&1
-0 * * * * cd /home/$(id -u -n)/exastro-docker-compose; ${DOCKER_COMPOSE} run ita-by-file-autoclean > /dev/null 2>&1
+0 * * * * cd ${PROJECT_DIR}; ${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES} run ita-by-execinstance-dataautoclean > /dev/null 2>&1
+0 * * * * cd ${PROJECT_DIR}; ${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES} run ita-by-file-autoclean > /dev/null 2>&1
 ######## END Exastro auto generate   (DO NOT REMOVE bellow lines.) ########
 _EOF_
         cat $output_file | crontab -
@@ -516,8 +568,8 @@ _EOF_
 ### Installation Exastro
 installation_exastro() {
     info "Fetch compose files..."
-    cd ~
-    if [ ! -d ~/exastro-docker-compose ]; then
+    cd ${HOME}
+    if [ ! -d ${PROJECT_DIR} ]; then
         git clone https://github.com/exastro-suite/exastro-docker-compose.git
     fi
 
@@ -530,28 +582,28 @@ installation_exastro() {
 
 ### Generate .env file
 generate_env() {
-    if [ -f ~/exastro-docker-compose/.env ]; then
-        mv -f ~/exastro-docker-compose/.env ~/exastro-docker-compose/backup/.env.$(date +%Y%m%d-%H%M%S) 
+    if [ -f ${ENV_FILE} ]; then
+        mv -f ${ENV_FILE} ${ENV_FILE}.$(date +%Y%m%d-%H%M%S) 
     fi
-    cp -f ~/exastro-docker-compose/.env.docker.sample ~/exastro-docker-compose/.env
-    sed -i -e "s/^SYSTEM_ADMIN_PASSWORD=.*/SYSTEM_ADMIN_PASSWORD=${SYSTEM_ADMIN_PASSWORD}/" ~/exastro-docker-compose/.env
-    sed -i -e "s/^DB_ADMIN_PASSWORD=.*/DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}/" ~/exastro-docker-compose/.env
-    sed -i -e "s/^KEYCLOAK_DB_PASSWORD=.*/KEYCLOAK_DB_PASSWORD=${KEYCLOAK_DB_PASSWORD}/" ~/exastro-docker-compose/.env
-    sed -i -e "s/^ITA_DB_ADMIN_PASSWORD=.*/ITA_DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD}/" ~/exastro-docker-compose/.env
-    sed -i -e "s/^ITA_DB_PASSWORD=.*/ITA_DB_PASSWORD=${ITA_DB_PASSWORD}/" ~/exastro-docker-compose/.env
-    sed -i -e "s/^PLATFORM_DB_ADMIN_PASSWORD=.*/PLATFORM_DB_ADMIN_PASSWORD=${PLATFORM_DB_ADMIN_PASSWORD}/" ~/exastro-docker-compose/.env
-    sed -i -e "s/^PLATFORM_DB_PASSWORD=.*/PLATFORM_DB_PASSWORD=${PLATFORM_DB_PASSWORD}/" ~/exastro-docker-compose/.env
-    sed -i -e "/^# EXTERNAL_URL_PROTOCOL=.*/a EXTERNAL_URL_PROTOCOL=${EXTERNAL_URL_PROTOCOL}" ~/exastro-docker-compose/.env
-    sed -i -e "/^# EXTERNAL_URL_HOST=.*/a EXTERNAL_URL_HOST=${EXTERNAL_URL_HOST}" ~/exastro-docker-compose/.env
-    sed -i -e "/^# EXTERNAL_URL_PORT=.*/a EXTERNAL_URL_PORT=${EXTERNAL_URL_PORT}" ~/exastro-docker-compose/.env
-    sed -i -e "/^# EXTERNAL_URL_MNG_PROTOCOL=.*/a EXTERNAL_URL_MNG_PROTOCOL=${EXTERNAL_URL_MNG_PROTOCOL}" ~/exastro-docker-compose/.env
-    sed -i -e "/^# EXTERNAL_URL_MNG_HOST=.*/a EXTERNAL_URL_MNG_HOST=${EXTERNAL_URL_MNG_HOST}" ~/exastro-docker-compose/.env
-    sed -i -e "/^# EXTERNAL_URL_MNG_PORT=.*/a EXTERNAL_URL_MNG_PORT=${EXTERNAL_URL_MNG_PORT}" ~/exastro-docker-compose/.env
-    sed -i -e "s/^HOST_DOCKER_GID=.*/HOST_DOCKER_GID=${HOST_DOCKER_GID}/" ~/exastro-docker-compose/.env
-    sed -i -e "/^# HOST_DOCKER_SOCKET_PATH=.*/a HOST_DOCKER_SOCKET_PATH=${HOST_DOCKER_SOCKET_PATH}" ~/exastro-docker-compose/.env
-    sed -i -e "s/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=${COMPOSE_PROFILES}/" ~/exastro-docker-compose/.env
-    sed -i -e "s/^GITLAB_ROOT_PASSWORD=.*/GITLAB_ROOT_PASSWORD=${GITLAB_ROOT_PASSWORD}/" ~/exastro-docker-compose/.env
-    sed -i -e "s/^GITLAB_ROOT_TOKEN=.*/GITLAB_ROOT_TOKEN=${GITLAB_ROOT_TOKEN}/" ~/exastro-docker-compose/.env
+    cp -f ${ENV_FILE}.docker.sample ${ENV_FILE}
+    sed -i -e "s/^SYSTEM_ADMIN_PASSWORD=.*/SYSTEM_ADMIN_PASSWORD=${SYSTEM_ADMIN_PASSWORD}/" ${ENV_FILE}
+    sed -i -e "s/^DB_ADMIN_PASSWORD=.*/DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}/" ${ENV_FILE}
+    sed -i -e "s/^KEYCLOAK_DB_PASSWORD=.*/KEYCLOAK_DB_PASSWORD=${KEYCLOAK_DB_PASSWORD}/" ${ENV_FILE}
+    sed -i -e "s/^ITA_DB_ADMIN_PASSWORD=.*/ITA_DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD}/" ${ENV_FILE}
+    sed -i -e "s/^ITA_DB_PASSWORD=.*/ITA_DB_PASSWORD=${ITA_DB_PASSWORD}/" ${ENV_FILE}
+    sed -i -e "s/^PLATFORM_DB_ADMIN_PASSWORD=.*/PLATFORM_DB_ADMIN_PASSWORD=${PLATFORM_DB_ADMIN_PASSWORD}/" ${ENV_FILE}
+    sed -i -e "s/^PLATFORM_DB_PASSWORD=.*/PLATFORM_DB_PASSWORD=${PLATFORM_DB_PASSWORD}/" ${ENV_FILE}
+    sed -i -e "/^# EXTERNAL_URL_PROTOCOL=.*/a EXTERNAL_URL_PROTOCOL=${EXTERNAL_URL_PROTOCOL}" ${ENV_FILE}
+    sed -i -e "/^# EXTERNAL_URL_HOST=.*/a EXTERNAL_URL_HOST=${EXTERNAL_URL_HOST}" ${ENV_FILE}
+    sed -i -e "/^# EXTERNAL_URL_PORT=.*/a EXTERNAL_URL_PORT=${EXTERNAL_URL_PORT}" ${ENV_FILE}
+    sed -i -e "/^# EXTERNAL_URL_MNG_PROTOCOL=.*/a EXTERNAL_URL_MNG_PROTOCOL=${EXTERNAL_URL_MNG_PROTOCOL}" ${ENV_FILE}
+    sed -i -e "/^# EXTERNAL_URL_MNG_HOST=.*/a EXTERNAL_URL_MNG_HOST=${EXTERNAL_URL_MNG_HOST}" ${ENV_FILE}
+    sed -i -e "/^# EXTERNAL_URL_MNG_PORT=.*/a EXTERNAL_URL_MNG_PORT=${EXTERNAL_URL_MNG_PORT}" ${ENV_FILE}
+    sed -i -e "s/^HOST_DOCKER_GID=.*/HOST_DOCKER_GID=${HOST_DOCKER_GID}/" ${ENV_FILE}
+    sed -i -e "/^# HOST_DOCKER_SOCKET_PATH=.*/a HOST_DOCKER_SOCKET_PATH=${HOST_DOCKER_SOCKET_PATH}" ${ENV_FILE}
+    sed -i -e "s/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=${COMPOSE_PROFILES}/" ${ENV_FILE}
+    sed -i -e "s/^GITLAB_ROOT_PASSWORD=.*/GITLAB_ROOT_PASSWORD=${GITLAB_ROOT_PASSWORD}/" ${ENV_FILE}
+    sed -i -e "s/^GITLAB_ROOT_TOKEN=.*/GITLAB_ROOT_TOKEN=${GITLAB_ROOT_TOKEN}/" ${ENV_FILE}
 }
 
 ### Setup Exastro system
@@ -560,6 +612,16 @@ setup() {
     info "Setup Exastro system..."
     echo "Please regist system settings."
     echo ""
+
+    if [ -f ${ENV_FILE} ]; then
+        info "'.env' file is already exist. [${ENV_FILE}]"
+        echo ""
+        read -p "Regenerate .env file? (y/n) [default: n]: " confirm
+        if ! [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
+            info "Cancelled."
+            exit 0
+        fi
+    fi
     while true; do
 
         read -p "Generate all password and token automatically.? (y/n) [default: y]: " confirm
@@ -613,14 +675,20 @@ setup() {
         ENCRYPT_KEY=$(head -c 32 /dev/urandom | base64)
 
         while true; do
-            read -p "Service URL? (e.g. http://exastro.example.com:30080): " url
-            if [ $(expr "${url}" : "http://.*") == 0 ] && [ $(expr "${url}" : "https://.*") == 0 ] ; then
+            read -p "Service URL? [default: http://127.0.0.1:30080]: " url
+            if [ $(expr "${url}" : "http://.*") == 0 ] && [ $(expr "${url}" : "https://.*") == 0 ] && [ "${url}" != "" ]  ; then
                 echo "Invalid URL format"
                 continue
             fi
-            EXTERNAL_URL_PROTOCOL=$(echo $url | awk -F[:/] '{print $1}')
-            EXTERNAL_URL_HOST=$(echo $url | awk -F[:/] '{print $4}')
-            EXTERNAL_URL_PORT=$(echo $url | awk -F[:/] '{print $5}')
+            if [ "$url" == "" ]; then
+                EXTERNAL_URL_PROTOCOL=http
+                EXTERNAL_URL_HOST=127.0.0.1
+                EXTERNAL_URL_PORT=30080
+            else
+                EXTERNAL_URL_PROTOCOL=$(echo $url | awk -F[:/] '{print $1}')
+                EXTERNAL_URL_HOST=$(echo $url | awk -F[:/] '{print $4}')
+                EXTERNAL_URL_PORT=$(echo $url | awk -F[:/] '{print $5}')
+            fi
             if [ "${EXTERNAL_URL_PORT}" == "" ]; then
                 if [ "${EXTERNAL_URL_PROTOCOL}" == "http" ]; then
                     EXTERNAL_URL_PORT="80"
@@ -632,14 +700,20 @@ setup() {
         done
 
         while true; do
-            read -p "Management URL? (e.g. https://exastro-mng.example.com:30443): " url
-            if [ $(expr "${url}" : "http://.*") == 0 ] && [ $(expr "${url}" : "https://.*") == 0 ] ; then
+            read -p "Management URL? [default: http://127.0.0.1:30081]: " url
+            if [ $(expr "${url}" : "http://.*") == 0 ] && [ $(expr "${url}" : "https://.*") == 0 ] && [ "${url}" != "" ]; then
                 echo "Invalid URL format"
                 continue
             fi
-            EXTERNAL_URL_MNG_PROTOCOL=$(echo $url | awk -F[:/] '{print $1}')
-            EXTERNAL_URL_MNG_HOST=$(echo $url | awk -F[:/] '{print $4}')
-            EXTERNAL_URL_MNG_PORT=$(echo $url | awk -F[:/] '{print $5}')
+            if [ "$url" == "" ]; then
+                EXTERNAL_URL_MNG_PROTOCOL=http
+                EXTERNAL_URL_MNG_HOST=127.0.0.1
+                EXTERNAL_URL_MNG_PORT=30081
+            else
+                EXTERNAL_URL_MNG_PROTOCOL=$(echo $url | awk -F[:/] '{print $1}')
+                EXTERNAL_URL_MNG_HOST=$(echo $url | awk -F[:/] '{print $4}')
+                EXTERNAL_URL_MNG_PORT=$(echo $url | awk -F[:/] '{print $5}')
+            fi
             if [ "${EXTERNAL_URL_MNG_PORT}" == "" ]; then
                 if [ "${EXTERNAL_URL_MNG_PROTOCOL}" == "http" ]; then
                     EXTERNAL_URL_MNG_PORT="80"
@@ -739,13 +813,8 @@ _EOF_
 ### Start Exastro system
 start_exastro() {
     info "Starting Exastro system..."
-    cd ~/exastro-docker-compose
-    if [ "${DEP_PATTERN}" == "RHEL8" ]; then
-      DOCKER_COMPOSE="docker-compose"
-    else
-      DOCKER_COMPOSE="docker compose"
-    fi
-    ${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES:-all} -f /home/$(id -u -n)/exastro-docker-compose/docker-compose.yml --env-file /home/$(id -u -n)/exastro-docker-compose/.env up -d
+    cd ${PROJECT_DIR}
+    ${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES:-all} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d
 }
 
 ### Display Exastro system information
@@ -759,7 +828,7 @@ System manager page:
   Initial password:   ${SYSTEM_ADMIN_PASSWORD}
 
 Organization page:
-  URL:                ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${EXTERNAL_URL_PORT}/ORGANIZATION-ID/platform
+  URL:                ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${EXTERNAL_URL_PORT}/{{ Organization ID }}/platform
 
 GitLab page:
   URL:                ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:40080
@@ -768,7 +837,7 @@ GitLab page:
 
 
 Run creation organization command:
-   bash ~/exastro-docker-compose/create-organization.sh 
+   bash ${PROJECT_DIR}/create-organization.sh 
 
 _EOF_
 }
@@ -826,38 +895,54 @@ _EOF_
         esac
     done
 
-    check_requirement
     info "Start to setup Exastro system."
-    if [ "$DEPLOY_FLG" == "a" ]; then
-        banner
-    fi
-    if [ "$DEPLOY_FLG" == "a" ] || [ "$DEPLOY_FLG" == "i" ]; then
-        installation_container_engine
-    fi
-    if [ "$DEPLOY_FLG" == "a" ] || [ "$DEPLOY_FLG" == "r" ]; then
-        installation_exastro
-    fi
-    if [ "$DEPLOY_FLG" == "a" ] && [ ! -f ${ENV_FILE} ]; then
-        setup
-    fi
-    if [ "$DEPLOY_FLG" == "e" ]; then
-        setup
-    fi
-    if [ "$DEPLOY_FLG" == "a" ]; then
-        start_exastro
-    fi
-    if [ "$DEPLOY_FLG" == "a" ] || [ "$DEPLOY_FLG" == "p" ]; then
-        prompt
-    fi
+    get_system_info
+    case "$DEPLOY_FLG" in
+        a )
+            if [ ! -f ${ENV_FILE} ]; then
+                banner
+                check_requirement
+                installation_container_engine
+                installation_exastro
+                setup
+                start_exastro
+            fi
+            prompt
+            ;;
+        c )
+            banner
+            check_requirement
+            ;;
+        i )
+            banner
+            check_requirement
+            installation_container_engine
+            ;;
+        r )
+            banner
+            installation_exastro
+            ;;
+        e )
+            banner
+            setup
+            ;;
+        p )
+            prompt
+            ;;
+        * )
+            ;;
+    esac
+        
 }
 
 ### Remvoe job to Crontab
 remove_cronjob() {
     info "Removing Exastro cron job..."
     # Specify the input file name and output file name here
-    cd ~
-    input_file='exastro-docker-compose/backup/crontab.'$(date +%Y%m%d-%H%M%S)
-    output_file=".tmp.txt"
+
+    input_file="${PROJECT_DIR}/backup/crontab."$(date +%Y%m%d-%H%M%S)
+    output_file="${HOME}/.tmp.txt"
+    touch $output_file
 
     # Backup current crontab
     crontab -l > $input_file
@@ -895,29 +980,22 @@ remove_cronjob() {
 ### Remove Exastro service
 remove_service() {
     info "Stopping and removing Exastro service..."
-    remove_cronjob
-    cd ~/exastro-docker-compose
+    cd ${PROJECT_DIR}
     ${DOCKER_COMPOSE} --profile all down
     if [ "${DEP_PATTERN}" == "RHEL8" ]; then
         systemctl --user disable --now exastro
         systemctl --user daemon-reload
-        rm -f ~/.config/systemd/user/exastro.service
+        rm -f ${HOME}/.config/systemd/user/exastro.service
     fi
     info "Remove Exastro service completed."
 }
 
 ### Remove all containers and data
 remove_exastro_data() {
-        info "Starting Exastro system..."
-        remove_service
-        if [ "${DEP_PATTERN}" == "RHEL8" ]; then
-            DOCKER_COMPOSE="docker-compose"
-        else
-            DOCKER_COMPOSE="docker compose"
-        fi
-        cd ~/exastro-docker-compose
+        info "Deleting Exastro system..."
+        cd ${PROJECT_DIR}
         ${DOCKER_COMPOSE} --profile all down -v
-        sudo rm -rf ~/exastro-docker-compose/.volumes/storage/*
+        sudo rm -rf ${PROJECT_DIR}/.volumes/storage/*
         yes | docker system prune
 }
 
@@ -953,17 +1031,11 @@ _EOF_
                 ;;
         esac
     done
+
     info "Remove Exastro system."
-
-    check_requirement
-
-    if [ "${DEP_PATTERN}" == "RHEL8" ]; then
-        DOCKER_COMPOSE="docker-compose"
-    else
-        DOCKER_COMPOSE="docker compose"
-    fi
-
+    get_system_info
     if [ "$REMOVE_FLG" == "" ]; then
+        echo ""
         read -p "Really remove all containers? But, not remove presistent data. (y/n) [default: n]: " confirm
         if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
             remove_cronjob
@@ -973,9 +1045,16 @@ _EOF_
             exit 0
         fi
     elif [ "$REMOVE_FLG" == "c" ]; then
-        read -p "Really remove all containers and persistent data? You will NEVER be able to recovery your data again.(y/n) [default: n]: " confirm
+        echo ""
+        echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        echo "!!              ! ! !  C A U T I O N  ! ! !                     !!!"
+        echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        echo ""
+        echo "You will NEVER be able to recovery your data again."
+        read -p "Really remove all containers and persistent data? (y/n) [default: n]: " confirm
         if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
             remove_cronjob
+            remove_service
             remove_exastro_data
         else
             info "Cancelled."
@@ -1004,7 +1083,7 @@ _EOF_
 Usage:
   sh <(curl -Ssf https://ita.exastro.org/setup) COMMAND [options]
      or
-  exastro COMMAND [options]
+  setup.sh COMMAND [options]
 
 Commands:
   install     Installation Exastro system
