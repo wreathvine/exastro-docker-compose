@@ -1,5 +1,11 @@
 #!/bin/sh
 
+set -ue
+
+#########################################
+# Environment variable
+#########################################
+
 ### Set enviroment parameters
 DEPLOY_FLG="a"
 REMOVE_FLG=""
@@ -9,11 +15,16 @@ REQUIRED_DOT_FREE=1024
 DOCKER_COMPOSE_VER="v2.20.3"
 PROJECT_DIR="${HOME}/exastro-docker-compose"
 COMPOSE_FILE="${PROJECT_DIR}/docker-compose.yml"
-LOG_FILE="${PROJECT_DIR}/installation.log"
+LOG_FILE="${HOME}/exastro-installation.log"
 ENV_FILE="${PROJECT_DIR}/.env"
+COMPOSE_PROFILES="except-gitlab"
 if [ -f ${ENV_FILE} ]; then
-    source ${ENV_FILE}
+    . ${ENV_FILE}
 fi
+
+#########################################
+# Utility functions
+#########################################
 
 ### Logger functions
 info() {
@@ -27,12 +38,185 @@ error() {
     exit 1
 }
 
+### Convert to lowercase
+to_lowercase() {
+    echo "$1" | sed "y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/"
+}
+
+### Generate password
+generate_password() {
+    # Specify the length of the password
+    length="$1"
+    # Generate a random password
+    password=$(dd if=/dev/urandom bs=1 count=100 2>/dev/null | base64 | tr -dc 'a-zA-Z0-9' | fold -w $length | head -n 1)
+    # Display the generated password
+    echo $password
+}
+
+### Check System
+get_system_info() {
+    if [ $(to_lowercase $(uname)) != "linux" ]; then
+        error "Not supported OS."
+    fi
+
+    ARCH=$(uname -p)
+    OS_TYPE=$(uname)
+    OS_NAME=$(awk -F= '$1=="NAME" { print $2; }' /etc/os-release | tr -d '"')
+    VERSION_ID=$(awk -F= '$1=="VERSION_ID" { print $2; }' /etc/os-release | tr -d '"')
+    DOCKER_COMPOSE=$(command -v docker)" compose"
+    if [ "${OS_NAME}" = "Red Hat Enterprise Linux" ]; then
+        if [ $(expr "${VERSION_ID}" : "^8\..*") != 0 ]; then
+            DEP_PATTERN="RHEL8"
+            DOCKER_COMPOSE=$(command -v docker-compose)
+        fi
+    elif [ "${OS_NAME}" = "AlmaLinux" ]; then
+        if [ $(expr "${VERSION_ID}" : "^8\..*") != 0 ]; then
+            DEP_PATTERN="AlmaLinux8"
+        fi
+    elif [ "${OS_NAME}" = "Ubuntu" ]; then
+        if [ $(expr "${VERSION_ID}" : "^20\..*") != 0 ]; then
+            DEP_PATTERN="Ubuntu20"
+        elif [ $(expr "${VERSION_ID}" : "^22\..*") != 0 ]; then
+            DEP_PATTERN="Ubuntu22"
+        fi
+    fi
+}
+
+#########################################
+# Main functions
+#########################################
+main() {
+    SUB_COMMAND="$1"
+
+    case "$SUB_COMMAND" in
+        install)
+            shift
+            install "$@"
+            break
+            ;;
+        remove)
+            shift
+            remove "$@"
+            break
+            ;;
+        *)
+            cat <<'_EOF_'
+
+Usage:
+  sh <(curl -Ssf https://ita.exastro.org/setup) COMMAND [options]
+     or
+  setup.sh COMMAND [options]
+
+Commands:
+  install     Installation Exastro system
+  remove      Remove Exastro system
+
+_EOF_
+            exit 2
+            ;;
+    esac
+}
+
+### Get options when install
+install() {
+    info "======================================================"
+    args=$(getopt -o "cireph" --long "check,install-packages,regist-service,setup-env,print,help" -- "$@") || exit 1
+
+    eval set -- "$args"
+
+    while true; do
+        case "$1" in
+            -c | --check )
+                shift
+                DEPLOY_FLG="c"
+                ;;
+            -i | --install-packages )
+                shift
+                DEPLOY_FLG="i"
+                ;;
+            -r | --regist-service )
+                shift
+                DEPLOY_FLG="r"
+                ;;
+            -e | --setup-env )
+                shift
+                DEPLOY_FLG="e"
+                ;;
+            -p | --print )
+                shift
+                DEPLOY_FLG="p"
+                ;;
+            -- )
+                shift
+                break
+                ;;
+            * )
+                shift
+                cat <<'_EOF_'
+
+Usage:
+  exastro install [options]
+
+Options:
+  -c, --check                       Check if your system meets the requirements
+  -i, --install-packages            Only install required packages and fetch exastro source files
+  -r, --regist-service              Only install exastro service
+  -e, --setup                       Only generate environment file (.env)
+  -p, --print                       Print Exastro system information.
+
+_EOF_
+                exit 2
+                ;;
+        esac
+    done
+
+    info "Start to setup Exastro system."
+    get_system_info
+    case "$DEPLOY_FLG" in
+        a )
+            if [ ! -f ${ENV_FILE} ]; then
+                banner
+                check_requirement
+                installation_container_engine
+                fetch_exastro
+                setup
+                installation_exastro
+                start_exastro
+            fi
+            prompt
+            ;;
+        c )
+            banner
+            check_requirement
+            ;;
+        i )
+            banner
+            check_requirement
+            installation_container_engine
+            ;;
+        r )
+            banner
+            installation_exastro
+            ;;
+        e )
+            banner
+            setup
+            ;;
+        p )
+            prompt
+            ;;
+        * )
+            ;;
+    esac
+        
+}
+
 ### Banner
 banner(){
     # Get window width
     WIN_WIDTH=$(tput cols 2>/dev/null)
 
-    if [ "${WIN_WIDTH}" == "" ] || [ "${WIN_WIDTH}" -lt 80 ]; then
+    if [ "${WIN_WIDTH}" = "" ] || [ "${WIN_WIDTH}" -lt 80 ]; then
         # Small banner
         cat <<'_EOF_'
 ################################################
@@ -253,50 +437,11 @@ _EOF_
     fi
 }
 
-### Convert to lowercase
-to_lowercase() {
-    echo "$1" | sed "y/ABCDEFGHIJKLMNOPQRSTUVWXYZ/abcdefghijklmnopqrstuvwxyz/"
-}
-
-### Generate password
-generate_password() {
-    # Specify the length of the password
-    length="$1"
-    # Generate a random password
-    password=$(dd if=/dev/urandom bs=1 count=100 2>/dev/null | base64 | tr -dc 'a-zA-Z0-9' | fold -w $length | head -n 1)
-    # Display the generated password
-    echo $password
-}
-
-### Check System
-
-get_system_info() {
-    if [ $(to_lowercase $(uname)) != "linux" ]; then
-        error "Not supported OS."
-    fi
-
-    source /etc/os-release
-    ARCH=$(uname -p)
-    OS_TYPE=$(uname)
-    OS_NAME=$(awk -F= '$1=="NAME" { print $2; }' /etc/os-release | tr -d '"')
-    VERSION_ID=$(awk -F= '$1=="VERSION_ID" { print $2; }' /etc/os-release | tr -d '"')
-    DOCKER_COMPOSE="docker compose"
-    if [ "${OS_NAME}" == "Red Hat Enterprise Linux" ]; then
-        if [ $(expr "${VERSION_ID}" : "^8\..*") != 0 ]; then
-            DEP_PATTERN="RHEL8"
-            DOCKER_COMPOSE="docker-compose"
-        fi
-    elif [ "${OS_NAME}" == "AlmaLinux" ]; then
-        if [ $(expr "${VERSION_ID}" : "^8\..*") != 0 ]; then
-            DEP_PATTERN="AlmaLinux8"
-        fi
-    elif [ "${OS_NAME}" == "Ubuntu" ]; then
-        if [ $(expr "${VERSION_ID}" : "^20\..*") != 0 ]; then
-            DEP_PATTERN="Ubuntu20"
-        elif [ $(expr "${VERSION_ID}" : "^22\..*") != 0 ]; then
-            DEP_PATTERN="Ubuntu22"
-        fi
-    fi
+### Check requirements
+check_requirement() {
+    check_system
+    check_command
+    check_resource
 }
 
 ### Check system requirements
@@ -316,7 +461,6 @@ check_system() {
         error "Not supported OS."
     fi
     OS_TYPE=$(uname)
-    source /etc/os-release
 
     # Check OS
     info "NAME:         ${OS_NAME}"
@@ -393,17 +537,24 @@ check_resource() {
     echo ""
 }
 
-### Check requirements
-check_requirement() {
-    check_system
-    check_command
-    check_resource
+### Installation container engine
+installation_container_engine() {
+    info "Installing container engine..."
+    if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+        installation_podman_on_rhel8
+    elif [ "${DEP_PATTERN}" = "AlmaLinux8" ]; then
+        installation_docker_on_alamalinux8
+    elif [ "${DEP_PATTERN}" = "Ubuntu20" ]; then
+        installation_docker_on_ubuntu
+    elif [ "${DEP_PATTERN}" = "Ubuntu22" ]; then
+        installation_docker_on_ubuntu
+    fi
 }
 
 ### Installation Podman on RHEL8
 installation_podman_on_rhel8() {
-    info "Enable the extras repository"
-    sudo subscription-manager repos --enable=rhel-8-for-x86_64-appstream-rpms --enable=rhel-8-for-x86_64-baseos-rpms
+    # info "Enable the extras repository"
+    # sudo subscription-manager repos --enable=rhel-8-for-x86_64-appstream-rpms --enable=rhel-8-for-x86_64-baseos-rpms
 
     info "Enable container-tools module"
     sudo dnf module enable -y container-tools:rhel8
@@ -415,10 +566,10 @@ installation_podman_on_rhel8() {
     # sudo dnf update -y
 
     info "Install Podman"
-    sudo dnf install -y podman podman-docker
+    sudo dnf install -y podman podman-docker git
 
     info "Check if Podman is installed"
-    if ! command -v podman &>/dev/null; then
+    if ! command -v podman >/dev/null 2>&1; then
         error "Podman installation failed!"
     fi
 
@@ -439,10 +590,12 @@ installation_podman_on_rhel8() {
     systemctl --user status podman.socket
     podman unshare chown $(id -u):$(id -g) /run/user/$(id -u)/podman/podman.sock
 
-    if ! grep "^export DOCKER_HOST" ${HOME}/.bashrc > /dev/null; then
-        sed -i -e "s|^export DOCKER_HOST.*|export DOCKER_HOST=unix:///run/user/${UID}/podman/podman.sock|" ${HOME}/.bashrc
+    DOCKER_HOST="unix:///run/user/$(id -ru)/podman/podman.sock"
+    if grep -q "^export DOCKER_HOST" ${HOME}/.bashrc; then
+        sed -i -e "s|^export DOCKER_HOST.*|export DOCKER_HOST=${DOCKER_HOST}|" ${HOME}/.bashrc
     else
-        echo "export DOCKER_HOST=unix:///run/user/${UID}/podman/podman.sock" >> ${HOME}/.bashrc
+        echo "export DOCKER_HOST=${DOCKER_HOST}" >> ${HOME}/.bashrc
+        echo "alias docker-compose='podman unshare docker-compose'" >> ${HOME}/.bashrc
     fi
 }
 
@@ -462,10 +615,6 @@ installation_docker_on_alamalinux8() {
 
     info "Add current user to the docker group (optional)"
     sudo usermod -aG docker ${USER}
-
-    info "Apply new group"
-    newgrp docker
-
 }
 
 ### Installation Docker on Ubuntu
@@ -493,117 +642,15 @@ installation_docker_on_ubuntu() {
 
     info "Add current user to the docker group (optional)"
     sudo usermod -aG docker ${USER}
-
-    info "Apply new group"
-    newgrp docker
 }
 
-### Installation container engine
-installation_container_engine() {
-    info "Installing container engine..."
-    if [ "${DEP_PATTERN}" == "RHEL8" ]; then
-        installation_podman_on_rhel8
-    elif [ "${DEP_PATTERN}" == "AlmaLinux8" ]; then
-        installation_docker_on_alamalinux8
-    elif [ "${DEP_PATTERN}" == "Ubuntu20" ]; then
-        installation_docker_on_ubuntu
-    elif [ "${DEP_PATTERN}" == "Ubuntu22" ]; then
-        installation_docker_on_ubuntu
-    fi
-}
-
-### Installation Exastro on RHEL8
-installation_exastro_on_rhel8() {
-    info "Installing Exastro service..."
-    cat << _EOF_ >${HOME}/.config/systemd/user/exastro.service
-[Unit]
-Description=Exastro System
-After=podman.socket
-Requires=podman.socket
- 
-[Service]
-Type=oneshot
-RemainAfterExit=true
-WorkingDirectory=${PROJECT_DIR}
-ExecStartPre=/usr/bin/podman unshare chown $(id -u):$(id -g) /run/user/$(id -u)/podman/podman.sock
-Environment=DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock
-Environment=PWD=${PROJECT_DIR}
-ExecStart=$(command -v docker-compose) --profile ${COMPOSE_PROFILES} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d
-ExecStop=$(command -v docker-compose) --profile ${COMPOSE_PROFILES} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} down
- 
-[Install]
-WantedBy=default.target
-_EOF_
-    systemctl --user daemon-reload
-    systemctl --user enable exastro
-}
-
-### Installation job to Crontab
-installation_cronjob() {
-    # Specify the input file name and output file name here
-    cd 
-    backup_file="${PROJECT_DIR}/backup/crontab."$(date +%Y%m%d-%H%M%S)
-    output_file="${HOME}/.tmp.txt"
-
-    # Backup current crontab
-    crontab -l > $backup_file
-
-    if [ $(grep -c "Exastro auto generate" $backup_file) == 0 ]; then
-        crontab -l 2>/dev/null > $output_file
-        cat << _EOF_ >> $output_file
-######## START Exastro auto generate (DO NOT REMOVE bellow lines.) ########
-0 * * * * cd ${PROJECT_DIR}; ${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES} run ita-by-execinstance-dataautoclean > /dev/null 2>&1
-0 * * * * cd ${PROJECT_DIR}; ${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES} run ita-by-file-autoclean > /dev/null 2>&1
-######## END Exastro auto generate   (DO NOT REMOVE bellow lines.) ########
-_EOF_
-        cat $output_file | crontab -
-        rm -f $output_file
-        info "Registed job to crontab."
-    else
-        info "Already registed job to crontab."
-        rm -f $backup_file
-    fi
-}
-
-### Installation Exastro
-installation_exastro() {
+### Fetch Exastro
+fetch_exastro() {
     info "Fetch compose files..."
     cd ${HOME}
     if [ ! -d ${PROJECT_DIR} ]; then
         git clone https://github.com/exastro-suite/exastro-docker-compose.git
     fi
-
-    if [ "${DEP_PATTERN}" == "RHEL8" ]; then
-        installation_exastro_on_rhel8
-    fi
-
-    installation_cronjob
-}
-
-### Generate .env file
-generate_env() {
-    if [ -f ${ENV_FILE} ]; then
-        mv -f ${ENV_FILE} ${ENV_FILE}.$(date +%Y%m%d-%H%M%S) 
-    fi
-    cp -f ${ENV_FILE}.docker.sample ${ENV_FILE}
-    sed -i -e "s/^SYSTEM_ADMIN_PASSWORD=.*/SYSTEM_ADMIN_PASSWORD=${SYSTEM_ADMIN_PASSWORD}/" ${ENV_FILE}
-    sed -i -e "s/^DB_ADMIN_PASSWORD=.*/DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}/" ${ENV_FILE}
-    sed -i -e "s/^KEYCLOAK_DB_PASSWORD=.*/KEYCLOAK_DB_PASSWORD=${KEYCLOAK_DB_PASSWORD}/" ${ENV_FILE}
-    sed -i -e "s/^ITA_DB_ADMIN_PASSWORD=.*/ITA_DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD}/" ${ENV_FILE}
-    sed -i -e "s/^ITA_DB_PASSWORD=.*/ITA_DB_PASSWORD=${ITA_DB_PASSWORD}/" ${ENV_FILE}
-    sed -i -e "s/^PLATFORM_DB_ADMIN_PASSWORD=.*/PLATFORM_DB_ADMIN_PASSWORD=${PLATFORM_DB_ADMIN_PASSWORD}/" ${ENV_FILE}
-    sed -i -e "s/^PLATFORM_DB_PASSWORD=.*/PLATFORM_DB_PASSWORD=${PLATFORM_DB_PASSWORD}/" ${ENV_FILE}
-    sed -i -e "/^# EXTERNAL_URL_PROTOCOL=.*/a EXTERNAL_URL_PROTOCOL=${EXTERNAL_URL_PROTOCOL}" ${ENV_FILE}
-    sed -i -e "/^# EXTERNAL_URL_HOST=.*/a EXTERNAL_URL_HOST=${EXTERNAL_URL_HOST}" ${ENV_FILE}
-    sed -i -e "/^# EXTERNAL_URL_PORT=.*/a EXTERNAL_URL_PORT=${EXTERNAL_URL_PORT}" ${ENV_FILE}
-    sed -i -e "/^# EXTERNAL_URL_MNG_PROTOCOL=.*/a EXTERNAL_URL_MNG_PROTOCOL=${EXTERNAL_URL_MNG_PROTOCOL}" ${ENV_FILE}
-    sed -i -e "/^# EXTERNAL_URL_MNG_HOST=.*/a EXTERNAL_URL_MNG_HOST=${EXTERNAL_URL_MNG_HOST}" ${ENV_FILE}
-    sed -i -e "/^# EXTERNAL_URL_MNG_PORT=.*/a EXTERNAL_URL_MNG_PORT=${EXTERNAL_URL_MNG_PORT}" ${ENV_FILE}
-    sed -i -e "s/^HOST_DOCKER_GID=.*/HOST_DOCKER_GID=${HOST_DOCKER_GID}/" ${ENV_FILE}
-    sed -i -e "/^# HOST_DOCKER_SOCKET_PATH=.*/a HOST_DOCKER_SOCKET_PATH=${HOST_DOCKER_SOCKET_PATH}" ${ENV_FILE}
-    sed -i -e "s/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=${COMPOSE_PROFILES}/" ${ENV_FILE}
-    sed -i -e "s/^GITLAB_ROOT_PASSWORD=.*/GITLAB_ROOT_PASSWORD=${GITLAB_ROOT_PASSWORD}/" ${ENV_FILE}
-    sed -i -e "s/^GITLAB_ROOT_TOKEN=.*/GITLAB_ROOT_TOKEN=${GITLAB_ROOT_TOKEN}/" ${ENV_FILE}
 }
 
 ### Setup Exastro system
@@ -616,29 +663,28 @@ setup() {
     if [ -f ${ENV_FILE} ]; then
         info "'.env' file is already exist. [${ENV_FILE}]"
         echo ""
-        read -p "Regenerate .env file? (y/n) [default: n]: " confirm
-        if ! [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
+        read -r -p "Regenerate .env file? (y/n) [default: n]: " confirm
+        echo ""
+        if ! (echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"); then
             info "Cancelled."
             exit 0
         fi
     fi
     while true; do
 
-        read -p "Generate all password and token automatically.? (y/n) [default: y]: " confirm
-        if [[ $confirm == [nN] || $confirm == [nN][oO] ]]; then
+        read -r -p "Generate all password and token automatically.? (y/n) [default: y]: " confirm
+        echo ""
+        if echo $confirm | grep -q -e "[nN]" -e "[nN][oO]"; then
             PWD_METHOD="manually"
         else
             PWD_METHOD="auto"
         fi
 
-        if [ ${PWD_METHOD} == "manually" ]; then
+        if [ "${PWD_METHOD}" = "manually" ]; then
             while true; do
+                read -r -p "Exastro system admin password: " password1
                 echo ""
-                read -sp "Exastro system admin password: " password1
-                echo ""
-                read -sp "Exastro system admin password (confirm): " password2
-                echo ""
-                if [ "$password1" == "" ] || [ "$password1" != "$password2" ]; then
+                if [ "$password1" = "" ]; then
                     echo "Invalid password!!"
                 else
                     SYSTEM_ADMIN_PASSWORD=$password1
@@ -646,11 +692,9 @@ setup() {
                 fi
             done
             while true; do
-                read -sp "Database password: " password1
+                read -r -p "Database password: " password1
                 echo ""
-                read -sp "Database password (confirm): " password2
-                echo ""
-                if [ "$password1" == "" ] || [ "$password1" != "$password2" ]; then
+                if [ "$password1" = "" ]; then
                     echo "Invalid password!!"
                 else
                     DB_ADMIN_PASSWORD=$password1
@@ -675,12 +719,13 @@ setup() {
         ENCRYPT_KEY=$(head -c 32 /dev/urandom | base64)
 
         while true; do
-            read -p "Service URL? [default: http://127.0.0.1:30080]: " url
-            if [ $(expr "${url}" : "http://.*") == 0 ] && [ $(expr "${url}" : "https://.*") == 0 ] && [ "${url}" != "" ]  ; then
+            read -r -p "Service URL? [default: http://127.0.0.1:30080]: " url
+            echo ""
+            if $(echo "${url}" | grep -q "http://.*") && $(echo "${url}" | grep -q "https://.*") && [ "${url}" != "" ]  ; then
                 echo "Invalid URL format"
                 continue
             fi
-            if [ "$url" == "" ]; then
+            if [ "$url" = "" ]; then
                 EXTERNAL_URL_PROTOCOL=http
                 EXTERNAL_URL_HOST=127.0.0.1
                 EXTERNAL_URL_PORT=30080
@@ -689,8 +734,8 @@ setup() {
                 EXTERNAL_URL_HOST=$(echo $url | awk -F[:/] '{print $4}')
                 EXTERNAL_URL_PORT=$(echo $url | awk -F[:/] '{print $5}')
             fi
-            if [ "${EXTERNAL_URL_PORT}" == "" ]; then
-                if [ "${EXTERNAL_URL_PROTOCOL}" == "http" ]; then
+            if [ "${EXTERNAL_URL_PORT}" = "" ]; then
+                if [ "${EXTERNAL_URL_PROTOCOL}" = "http" ]; then
                     EXTERNAL_URL_PORT="80"
                 else
                     EXTERNAL_URL_PORT="443"
@@ -700,12 +745,13 @@ setup() {
         done
 
         while true; do
-            read -p "Management URL? [default: http://127.0.0.1:30081]: " url
-            if [ $(expr "${url}" : "http://.*") == 0 ] && [ $(expr "${url}" : "https://.*") == 0 ] && [ "${url}" != "" ]; then
+            read -r -p "Management URL? [default: http://127.0.0.1:30081]: " url
+            echo ""
+            if $(echo "${url}" | grep -q "http://.*") && $(echo "${url}" | grep -q "https://.*") && [ "${url}" != "" ]  ; then
                 echo "Invalid URL format"
                 continue
             fi
-            if [ "$url" == "" ]; then
+            if [ "$url" = "" ]; then
                 EXTERNAL_URL_MNG_PROTOCOL=http
                 EXTERNAL_URL_MNG_HOST=127.0.0.1
                 EXTERNAL_URL_MNG_PORT=30081
@@ -714,8 +760,8 @@ setup() {
                 EXTERNAL_URL_MNG_HOST=$(echo $url | awk -F[:/] '{print $4}')
                 EXTERNAL_URL_MNG_PORT=$(echo $url | awk -F[:/] '{print $5}')
             fi
-            if [ "${EXTERNAL_URL_MNG_PORT}" == "" ]; then
-                if [ "${EXTERNAL_URL_MNG_PROTOCOL}" == "http" ]; then
+            if [ "${EXTERNAL_URL_MNG_PORT}" = "" ]; then
+                if [ "${EXTERNAL_URL_MNG_PROTOCOL}" = "http" ]; then
                     EXTERNAL_URL_MNG_PORT="80"
                 else
                     EXTERNAL_URL_MNG_PORT="443"
@@ -724,24 +770,25 @@ setup() {
             break
         done
 
-        if [ "${DEP_PATTERN}" == "RHEL8" ]; then
+        if [ "${DEP_PATTERN}" = "RHEL8" ]; then
             HOST_DOCKER_GID=1000
-            HOST_DOCKER_SOCKET_PATH="/run/user/${UID}/podman/podman.sock"
+            HOST_DOCKER_SOCKET_PATH="/run/user/$(id -ru)/podman/podman.sock"
         else
             HOST_DOCKER_GID=$(grep docker /etc/group|awk -F':' '{print $3}')
             HOST_DOCKER_SOCKET_PATH="/var/run/docker.sock"
         fi
 
-        read -p "Deploy GitLab container? (y/n) [default: n]: " confirm
-        if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
+        GITLAB_ROOT_PASSWORD="None"
+        GITLAB_ROOT_TOKEN="None"
+        read -r -p "Deploy GitLab container? (y/n) [default: n]: " confirm
+        echo ""
+        if echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"; then
             COMPOSE_PROFILES=all
-            if [ ${PWD_METHOD} == "manually" ]; then
+            if [ ${PWD_METHOD} = "manually" ]; then
                 while true; do
-                    read -sp "GitLab root password: " password1
+                    read -r -p "GitLab root password: " password1
                     echo ""
-                    read -sp "GitLab root password (confirm): " password2
-                    echo ""
-                    if [ "$password1" == "" ] || [ "$password1" != "$password2" ]; then
+                    if [ "$password1" = "" ]; then
                         echo "Invalid password!!"
                         continue
                     else
@@ -751,11 +798,9 @@ setup() {
                 done
 
                 while true; do
-                    read -sp "GitLab root token (e.g. root-access-token): " password1
+                    read -r -p "GitLab root token (e.g. root-access-token): " password1
                     echo ""
-                    read -sp "GitLab root token (confirm): " password2
-                    echo ""
-                    if [ "$password1" == "" ] || [ "$password1" != "$password2" ]; then
+                    if [ "$password1" = "" ]; then
                         echo "Invalid password!!"
                         continue
                     else
@@ -784,14 +829,15 @@ Service URL:                      ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST
 Manegement URL:                   ${EXTERNAL_URL_MNG_PROTOCOL}://${EXTERNAL_URL_MNG_HOST}:${EXTERNAL_URL_MNG_PORT}
 Docker GID:                       ${HOST_DOCKER_GID}
 Docker Socket path:               ${HOST_DOCKER_SOCKET_PATH}
-GitLab deployment:                $(if [ ${COMPOSE_PROFILES} == "all" ]; then echo "true"; else echo "false"; fi)
+GitLab deployment:                $(if [ ${COMPOSE_PROFILES} = "all" ]; then echo "true"; else echo "false"; fi)
 GitLab root password:             ********
 GitLab root token:                ********
 
 _EOF_
 
-        read -p "Deploy under this setting? (y/n) [default: n]: " confirm
-        if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
+        read -r -p "Deploy this setting? (y/n) [default: n]: " confirm
+        echo ""
+        if echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"; then
             info "Generate settig file [${PWD}/.env]."
             info "System administrator password:    ********"
             info "Database password:                ********"
@@ -799,7 +845,7 @@ _EOF_
             info "Manegement URL:                   ${EXTERNAL_URL_MNG_PROTOCOL}://${EXTERNAL_URL_MNG_HOST}:${EXTERNAL_URL_MNG_PORT}"
             info "Docker GID:                       ${HOST_DOCKER_GID}"
             info "Docker Socket path:               ${HOST_DOCKER_SOCKET_PATH}"
-            info "GitLab deployment:                $(if [ ${COMPOSE_PROFILES} == "all" ]; then echo "true"; else echo "false"; fi)"
+            info "GitLab deployment:                $(if [ ${COMPOSE_PROFILES} = "all" ]; then echo "true"; else echo "false"; fi)"
             info "GitLab root password:             ********"
             info "GitLab root token:                ********"
             
@@ -809,12 +855,102 @@ _EOF_
     done
 }
 
+### Generate .env file
+generate_env() {
+    if [ -f ${ENV_FILE} ]; then
+        mv -f ${ENV_FILE} ${ENV_FILE}.$(date +%Y%m%d-%H%M%S) 
+    fi
+    cp -f ${ENV_FILE}.docker.sample ${ENV_FILE}
+    sed -i -e "s/^SYSTEM_ADMIN_PASSWORD=.*/SYSTEM_ADMIN_PASSWORD=${SYSTEM_ADMIN_PASSWORD}/" ${ENV_FILE}
+    sed -i -e "s/^DB_ADMIN_PASSWORD=.*/DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}/" ${ENV_FILE}
+    sed -i -e "s/^KEYCLOAK_DB_PASSWORD=.*/KEYCLOAK_DB_PASSWORD=${KEYCLOAK_DB_PASSWORD}/" ${ENV_FILE}
+    sed -i -e "s/^ITA_DB_ADMIN_PASSWORD=.*/ITA_DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD}/" ${ENV_FILE}
+    sed -i -e "s/^ITA_DB_PASSWORD=.*/ITA_DB_PASSWORD=${ITA_DB_PASSWORD}/" ${ENV_FILE}
+    sed -i -e "s/^PLATFORM_DB_ADMIN_PASSWORD=.*/PLATFORM_DB_ADMIN_PASSWORD=${PLATFORM_DB_ADMIN_PASSWORD}/" ${ENV_FILE}
+    sed -i -e "s/^PLATFORM_DB_PASSWORD=.*/PLATFORM_DB_PASSWORD=${PLATFORM_DB_PASSWORD}/" ${ENV_FILE}
+    sed -i -e "/^# EXTERNAL_URL_PROTOCOL=.*/a EXTERNAL_URL_PROTOCOL=${EXTERNAL_URL_PROTOCOL}" ${ENV_FILE}
+    sed -i -e "/^# EXTERNAL_URL_HOST=.*/a EXTERNAL_URL_HOST=${EXTERNAL_URL_HOST}" ${ENV_FILE}
+    sed -i -e "/^# EXTERNAL_URL_PORT=.*/a EXTERNAL_URL_PORT=${EXTERNAL_URL_PORT}" ${ENV_FILE}
+    sed -i -e "/^# EXTERNAL_URL_MNG_PROTOCOL=.*/a EXTERNAL_URL_MNG_PROTOCOL=${EXTERNAL_URL_MNG_PROTOCOL}" ${ENV_FILE}
+    sed -i -e "/^# EXTERNAL_URL_MNG_HOST=.*/a EXTERNAL_URL_MNG_HOST=${EXTERNAL_URL_MNG_HOST}" ${ENV_FILE}
+    sed -i -e "/^# EXTERNAL_URL_MNG_PORT=.*/a EXTERNAL_URL_MNG_PORT=${EXTERNAL_URL_MNG_PORT}" ${ENV_FILE}
+    sed -i -e "s/^HOST_DOCKER_GID=.*/HOST_DOCKER_GID=${HOST_DOCKER_GID}/" ${ENV_FILE}
+    sed -i -e "/^# HOST_DOCKER_SOCKET_PATH=.*/a HOST_DOCKER_SOCKET_PATH=${HOST_DOCKER_SOCKET_PATH}" ${ENV_FILE}
+    sed -i -e "s/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=${COMPOSE_PROFILES}/" ${ENV_FILE}
+    sed -i -e "s/^GITLAB_ROOT_PASSWORD=.*/GITLAB_ROOT_PASSWORD=${GITLAB_ROOT_PASSWORD}/" ${ENV_FILE}
+    sed -i -e "s/^GITLAB_ROOT_TOKEN=.*/GITLAB_ROOT_TOKEN=${GITLAB_ROOT_TOKEN}/" ${ENV_FILE}
+}
+
+### Installation Exastro
+installation_exastro() {
+    if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+        installation_exastro_on_rhel8
+    fi
+    installation_cronjob
+}
+
+### Installation Exastro on RHEL8
+installation_exastro_on_rhel8() {
+    info "Installing Exastro service..."
+    cat << _EOF_ >${HOME}/.config/systemd/user/exastro.service
+[Unit]
+Description=Exastro System
+After=podman.socket
+Requires=podman.socket
+ 
+[Service]
+Type=oneshot
+RemainAfterExit=true
+WorkingDirectory=${PROJECT_DIR}
+ExecStartPre=/usr/bin/podman unshare chown $(id -u):$(id -g) /run/user/$(id -u)/podman/podman.sock
+Environment=DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock
+Environment=PWD=${PROJECT_DIR}
+ExecStart=${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d
+ExecStop=${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} down
+ 
+[Install]
+WantedBy=default.target
+_EOF_
+    systemctl --user daemon-reload
+    systemctl --user enable exastro
+}
+
+### Installation job to Crontab
+installation_cronjob() {
+    # Specify the input file name and output file name here
+    cd 
+    backup_file="${PROJECT_DIR}/backup/crontab."$(date +%Y%m%d-%H%M%S)
+    output_file="${HOME}/.tmp.txt"
+
+    # Backup current crontab
+    crontab -l > $backup_file || :
+
+    if grep -q "Exastro auto generate" $backup_file; then
+        crontab -l 2>/dev/null > $output_file
+        cat << _EOF_ >> $output_file
+######## START Exastro auto generate (DO NOT REMOVE bellow lines.) ########
+0 * * * * cd ${PROJECT_DIR}; ${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES} run ita-by-execinstance-dataautoclean > /dev/null 2>&1
+0 * * * * cd ${PROJECT_DIR}; ${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES} run ita-by-file-autoclean > /dev/null 2>&1
+######## END Exastro auto generate   (DO NOT REMOVE bellow lines.) ########
+_EOF_
+        cat $output_file | crontab -
+        rm -f $output_file
+        info "Registed job to crontab."
+    else
+        info "Already registed job to crontab."
+        rm -f $backup_file
+    fi
+}
 
 ### Start Exastro system
 start_exastro() {
     info "Starting Exastro system..."
-    cd ${PROJECT_DIR}
-    ${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES:-all} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d
+    if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+        systemctl --user start exastro
+    else
+        cd ${PROJECT_DIR}
+        sudo -u $(id -u -n) -E ${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES:-all} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d
+    fi
 }
 
 ### Display Exastro system information
@@ -840,163 +976,6 @@ Run creation organization command:
    bash ${PROJECT_DIR}/create-organization.sh 
 
 _EOF_
-}
-
-### Get options when install
-install() {
-    info "======================================================"
-    args=$(getopt -o "cireph" --long "check,install-packages,regist-service,setup-env,print,help" -- "$@") || exit 1
-
-    eval set -- "$args"
-
-    while true; do
-        case "$1" in
-            -c | --check )
-                shift
-                DEPLOY_FLG="c"
-                ;;
-            -i | --install-packages )
-                shift
-                DEPLOY_FLG="i"
-                ;;
-            -r | --regist-service )
-                shift
-                DEPLOY_FLG="r"
-                ;;
-            -e | --setup-env )
-                shift
-                DEPLOY_FLG="e"
-                ;;
-            -p | --print )
-                shift
-                DEPLOY_FLG="p"
-                ;;
-            -- )
-                shift
-                break
-                ;;
-            * )
-                shift
-                cat <<'_EOF_'
-
-Usage:
-  exastro install [options]
-
-Options:
-  -c, --check                       Check if your system meets the requirements
-  -i, --install-packages            Only install required packages and fetch exastro source files
-  -r, --regist-service              Only install exastro service
-  -e, --setup                       Only generate environment file (.env)
-  -p, --print                       Print Exastro system information.
-
-_EOF_
-                exit 2
-                ;;
-        esac
-    done
-
-    info "Start to setup Exastro system."
-    get_system_info
-    case "$DEPLOY_FLG" in
-        a )
-            if [ ! -f ${ENV_FILE} ]; then
-                banner
-                check_requirement
-                installation_container_engine
-                installation_exastro
-                setup
-                start_exastro
-            fi
-            prompt
-            ;;
-        c )
-            banner
-            check_requirement
-            ;;
-        i )
-            banner
-            check_requirement
-            installation_container_engine
-            ;;
-        r )
-            banner
-            installation_exastro
-            ;;
-        e )
-            banner
-            setup
-            ;;
-        p )
-            prompt
-            ;;
-        * )
-            ;;
-    esac
-        
-}
-
-### Remvoe job to Crontab
-remove_cronjob() {
-    info "Removing Exastro cron job..."
-    # Specify the input file name and output file name here
-
-    input_file="${PROJECT_DIR}/backup/crontab."$(date +%Y%m%d-%H%M%S)
-    output_file="${HOME}/.tmp.txt"
-    touch $output_file
-
-    # Backup current crontab
-    crontab -l > $input_file
-
-    # Specify the starting string and ending string for deletion here
-    start_string="START Exastro auto generate"
-    end_string="END Exastro auto generate"
-
-    # Check if the input file exists
-    if [ ! -f "$input_file" ]; then
-        error "File does not exist: $input_file"
-        exit 1
-    fi
-
-    # Read input file line by line and write to output file, while excluding the specified lines
-    delete_lines=false
-    while read -r line; do
-        if [[ $line == *"$start_string"* ]]; then
-            delete_lines=true
-        fi
-        if [[ $delete_lines == false ]]; then
-            echo "$line" >> $output_file
-        fi
-        if [[ $line == *"$end_string"* ]]; then
-            delete_lines=false
-        fi
-    done < $input_file
-
-    # Display the result
-    cat $output_file | crontab -
-    info "Remove cron job completed."
-    rm -f $output_file
-}
-
-### Remove Exastro service
-remove_service() {
-    info "Stopping and removing Exastro service..."
-    cd ${PROJECT_DIR}
-    ${DOCKER_COMPOSE} --profile all down
-    if [ "${DEP_PATTERN}" == "RHEL8" ]; then
-        systemctl --user disable --now exastro
-        systemctl --user daemon-reload
-        rm -f ${HOME}/.config/systemd/user/exastro.service
-    fi
-    info "Remove Exastro service completed."
-}
-
-### Remove all containers and data
-remove_exastro_data() {
-        info "Deleting Exastro system..."
-        cd ${PROJECT_DIR}
-        ${DOCKER_COMPOSE} --profile all down -v
-        sudo rm -rf ${PROJECT_DIR}/.volumes/storage/*
-        yes | docker system prune
 }
 
 ### Get options when remove
@@ -1034,25 +1013,25 @@ _EOF_
 
     info "Remove Exastro system."
     get_system_info
-    if [ "$REMOVE_FLG" == "" ]; then
+    if [ "$REMOVE_FLG" = "" ]; then
         echo ""
-        read -p "Really remove all containers? But, not remove presistent data. (y/n) [default: n]: " confirm
-        if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
+        read -r -p "Really remove all containers? But, not remove presistent data. (y/n) [default: n]: " confirm
+        if echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"; then
             remove_cronjob
             remove_service
         else
             info "Cancelled."
             exit 0
         fi
-    elif [ "$REMOVE_FLG" == "c" ]; then
+    elif [ "$REMOVE_FLG" = "c" ]; then
         echo ""
         echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
         echo "!!              ! ! !  C A U T I O N  ! ! !                     !!!"
         echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
         echo ""
         echo "You will NEVER be able to recovery your data again."
-        read -p "Really remove all containers and persistent data? (y/n) [default: n]: " confirm
-        if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
+        read -r -p "Really remove all containers and persistent data? (y/n) [default: n]: " confirm
+        if echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"; then
             remove_cronjob
             remove_service
             remove_exastro_data
@@ -1063,34 +1042,68 @@ _EOF_
     fi
 }
 
-### Main
-{
-    SUB_COMMAND="$1"
-    shift
+### Remvoe job to Crontab
+remove_cronjob() {
+    info "Removing Exastro cron job..."
+    # Specify the input file name and output file name here
 
-    case "$SUB_COMMAND" in
-        install)
-            install "$@"
-            break
-            ;;
-        remove)
-            remove "$@"
-            break
-            ;;
-        *)
-            cat <<'_EOF_'
+    input_file="${PROJECT_DIR}/backup/crontab."$(date +%Y%m%d-%H%M%S)
+    output_file="${HOME}/.tmp.txt"
+    touch $output_file
 
-Usage:
-  sh <(curl -Ssf https://ita.exastro.org/setup) COMMAND [options]
-     or
-  setup.sh COMMAND [options]
+    # Backup current crontab
+    crontab -l > $input_file
 
-Commands:
-  install     Installation Exastro system
-  remove      Remove Exastro system
+    # Specify the starting string and ending string for deletion here
+    start_string="START Exastro auto generate"
+    end_string="END Exastro auto generate"
 
-_EOF_
-            exit 2
-            ;;
-    esac
+    # Check if the input file exists
+    if [ ! -f "$input_file" ]; then
+        error "File does not exist: $input_file"
+        exit 1
+    fi
+
+    # Read input file line by line and write to output file, while excluding the specified lines
+    delete_lines=false
+    while read -r line; do
+        if echo $line | grep -q "$start_string"; then
+            delete_lines="true"
+        fi
+        if [ "$delete_lines" = "false" ]; then
+            echo "$line" >> $output_file
+        fi
+        if echo $line | grep -q "$end_string"; then
+            delete_lines="false"
+        fi
+    done < $input_file
+
+    # Display the result
+    cat $output_file | crontab -
+    info "Remove cron job completed."
+    rm -f $output_file
 }
+
+### Remove Exastro service
+remove_service() {
+    info "Stopping and removing Exastro service..."
+    cd ${PROJECT_DIR}
+    ${DOCKER_COMPOSE} --profile all down
+    if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+        systemctl --user disable --now exastro
+        systemctl --user daemon-reload
+        rm -f ${HOME}/.config/systemd/user/exastro.service
+    fi
+    info "Remove Exastro service completed."
+}
+
+### Remove all containers and data
+remove_exastro_data() {
+        info "Deleting Exastro system..."
+        cd ${PROJECT_DIR}
+        ${DOCKER_COMPOSE} --profile all down -v
+        sudo rm -rf ${PROJECT_DIR}/.volumes/storage/*
+        yes | docker system prune
+}
+
+main "$1"
