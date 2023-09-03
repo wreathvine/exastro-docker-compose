@@ -133,6 +133,15 @@ fi
 
 rm "${TEMPFILE_API_RESPONSE}" "${TEMPFILE_API_CODE}"
 
+cat<<_EOF_
+
+Organization page:
+  URL:                ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${EXTERNAL_URL_PORT}/${ORG_ID}/platform/
+  User:               ${ORG_MNG_USERNAME}
+  Password:           ${ORG_MNG_PASSWORD}
+
+_EOF_
+
 if [ ${RESULT_CURL} -eq 0 -a "${RESULT_CODE}" == "200" ]; then
     exit 0
 else
