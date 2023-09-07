@@ -601,6 +601,12 @@ services:
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
       HOST_STORAGEPATH: ${PWD}/.volumes/storage/
+      HTTP_PROXY: ${HTTP_PROXY}
+      http_proxy: ${HTTP_PROXY}
+      HTTPS_PROXY: ${HTTPS_PROXY}
+      https_proxy: ${HTTPS_PROXY}
+      NO_PROXY: localhost,127.0.0.1,ita-api-organization,ita-api-admin,ita-web-server
+      no_proxy: localhost,127.0.0.1,ita-api-organization,ita-api-admin,ita-web-server
       NETWORK_ID: ${NETWORK_ID}
     volumes:
       - ${HOST_DOCKER_SOCKET_PATH:-/var/run/docker.sock}:/var/run/docker.sock:cached
@@ -1429,9 +1435,29 @@ services:
 
 volumes:
   vol-mariadb-data:
+    driver: local
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: ${PWD}/.volumes/mariadb/data
   vol-gitlab-config:
+    driver: local
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: ${PWD}/.volumes/gitlab/config
   vol-gitlab-logs:
+    driver: local
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: ${PWD}/.volumes/gitlab/logs
   vol-gitlab-data:
+    driver: local
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: ${PWD}/.volumes/gitlab/data
   vol-ita-storage:
     driver: local
     driver_opts:
