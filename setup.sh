@@ -1175,12 +1175,17 @@ GitLab page:
   Initial password:   ${GITLAB_ROOT_PASSWORD}
 
 _EOF_
+    printf "GitLab service is not ready."
     while [ $(curl -s -I -o nul -w "%{http_code}" ${GITLAB_PROTOCOL:-http}://${GITLAB_HOST:-localhost}:${GITLAB_PORT:-40080}/users/sign_in) -ne 200 ]; do
-        echo "GitLab service is not ready."
+        printf "."
         sleep 1
     done
+    while [ $(curl -s -I -o nul -w "%{http_code}" "PRIVATE-TOKEN: ${GITLAB_ROOT_TOKEN:-}" "${GITLAB_PROTOCOL:-http}://${GITLAB_HOST:-localhost}:${GITLAB_PORT:-40080}/api/v4/version") -ne 200 ]; do
+        printf "."
+        sleep 1
+    done
+    echo ""
     echo "GitLab service is has completely started!"
-
 fi
 
     cat<<_EOF_
