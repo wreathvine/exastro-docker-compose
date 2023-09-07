@@ -5,12 +5,16 @@ services:
       - organization_id={{ organization_id }}
       - workspace_id={{ workspace_id }}
       - execution_no={{ execution_no }}
-    image: "{{ ansible_agent_image }}"
-    # build:
-    #   context: ./
-    #   args:
-    #     ANSIBLE_AGENT_IMAGE: "${ANSIBLE_AGENT_IMAGE}"
-    #     ANSIBLE_AGENT_IMAGE_TAG: "${ANSIBLE_AGENT_IMAGE_TAG}"
+    # image: "{{ ansible_agent_image }}"
+    build:
+      context: ./work/
+      args:
+        ANSIBLE_AGENT_IMAGE: "${ANSIBLE_AGENT_IMAGE}"
+        ANSIBLE_AGENT_IMAGE_TAG: "${ANSIBLE_AGENT_IMAGE_TAG}"
+        http_proxy: "${http_proxy}"
+        https_proxy: "${https_proxy}"
+        HTTP_PROXY: "${HTTP_PROXY}"
+        HTTPS_PROXY: "${HTTPS_PROXY}"
     user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
     entrypoint:
       - "bash"
@@ -24,10 +28,10 @@ services:
         source: {{ host_mount_path_conductor }}
         target: {{ container_mount_path_conductor }}
     environment:
-      # - HTTP_PROXY={{ HTTP_PROXY }}
-      # - http_proxy={{ HTTP_PROXY }}
-      # - HTTPS_PROXY={{ HTTPS_PROXY }}
-      # - https_proxy={{ HTTPS_PROXY }}
+      - HTTP_PROXY: ${HTTP_PROXY}
+      - http_proxy: ${HTTP_PROXY}
+      - HTTPS_PROXY: ${HTTPS_PROXY}
+      - https_proxy: ${HTTPS_PROXY}
       - NO_PROXY=localhost,127.0.0.1,ita-api-organization,ita-api-admin,ita-web-server
       - no_proxy=localhost,127.0.0.1,ita-api-organization,ita-api-admin,ita-web-server
       - EXEC_DIR={{ container_mount_path_driver }}
