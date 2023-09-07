@@ -10,8 +10,8 @@ set -ue
 DEPLOY_FLG="a"
 REMOVE_FLG=""
 REQUIRED_MEM_TOTAL=4000000
-REQUIRED_VAR_FREE=25600
-REQUIRED_DOT_FREE=1024
+REQUIRED_FREE_FOR_CONTAINER_IMAGE=25600
+REQUIRED_FREE_FOR_EXASTRO_DATA=1024
 DOCKER_COMPOSE_VER="v2.20.3"
 PROJECT_DIR="${HOME}/exastro-docker-compose"
 COMPOSE_FILE="${PROJECT_DIR}/docker-compose.yml"
@@ -63,11 +63,9 @@ get_system_info() {
     OS_TYPE=$(uname)
     OS_NAME=$(awk -F= '$1=="NAME" { print $2; }' /etc/os-release | tr -d '"')
     VERSION_ID=$(awk -F= '$1=="VERSION_ID" { print $2; }' /etc/os-release | tr -d '"')
-    DOCKER_COMPOSE=$(command -v docker)" compose"
     if [ "${OS_NAME}" = "Red Hat Enterprise Linux" ]; then
         if [ $(expr "${VERSION_ID}" : "^8\..*") != 0 ]; then
             DEP_PATTERN="RHEL8"
-            DOCKER_COMPOSE=$(command -v docker-compose)
         fi
     elif [ "${OS_NAME}" = "AlmaLinux" ]; then
         if [ $(expr "${VERSION_ID}" : "^8\..*") != 0 ]; then
@@ -86,6 +84,22 @@ get_system_info() {
 # Main functions
 #########################################
 main() {
+    if [ "$#" = 0 ]; then
+        cat <<'_EOF_'
+
+Usage:
+  sh <(curl -Ssf https://ita.exastro.org/setup) COMMAND [options]
+     or
+  setup.sh COMMAND [options]
+
+Commands:
+  install     Installation Exastro system
+  remove      Remove Exastro system
+
+_EOF_
+        exit 2
+    fi
+
     SUB_COMMAND="$1"
 
     case "$SUB_COMMAND" in
@@ -119,8 +133,7 @@ _EOF_
 
 ### Get options when install
 install() {
-    info "======================================================"
-    args=$(getopt -o "cireph" --long "check,install-packages,regist-service,setup-env,print,help" -- "$@") || exit 1
+    args=$(getopt -o "ciferph" --long "check,install-packages,fetch,setup-env,regist-service,print,help" -- "$@") || exit 1
 
     eval set -- "$args"
 
@@ -134,13 +147,17 @@ install() {
                 shift
                 DEPLOY_FLG="i"
                 ;;
-            -r | --regist-service )
+            -f | --fetch )
                 shift
-                DEPLOY_FLG="r"
+                DEPLOY_FLG="f"
                 ;;
             -e | --setup-env )
                 shift
                 DEPLOY_FLG="e"
+                ;;
+            -r | --regist-service )
+                shift
+                DEPLOY_FLG="r"
                 ;;
             -p | --print )
                 shift
@@ -160,8 +177,9 @@ Usage:
 Options:
   -c, --check                       Check if your system meets the requirements
   -i, --install-packages            Only install required packages and fetch exastro source files
-  -r, --regist-service              Only install exastro service
+  -f, --fetch                       Only fetch Exastro resources.
   -e, --setup                       Only generate environment file (.env)
+  -r, --regist-service              Only install exastro service
   -p, --print                       Print Exastro system information.
 
 _EOF_
@@ -170,6 +188,7 @@ _EOF_
         esac
     done
 
+    info "======================================================"
     info "Start to setup Exastro system."
     get_system_info
     case "$DEPLOY_FLG" in
@@ -194,16 +213,34 @@ _EOF_
             check_requirement
             installation_container_engine
             ;;
-        r )
-            banner
-            installation_exastro
+        f )
+            if [ ! -f ${ENV_FILE} ]; then
+                banner
+                fetch_exastro
+            fi
             ;;
         e )
-            banner
-            setup
+            if [ -f ${ENV_FILE} ]; then
+                banner
+                setup
+            else
+                error "Exasto system in NOT installed."
+            fi
+            ;;
+        r )
+            if [ -f ${ENV_FILE} ]; then
+                banner
+                installation_exastro
+            else
+                error "Exasto system in NOT installed."
+            fi
             ;;
         p )
-            prompt
+            if [ -f ${ENV_FILE} ]; then
+                prompt
+            else
+                error "Exasto system in NOT installed."
+            fi
             ;;
         * )
             ;;
@@ -440,6 +477,7 @@ _EOF_
 ### Check requirements
 check_requirement() {
     check_system
+    check_security
     check_command
     check_resource
 }
@@ -489,6 +527,69 @@ check_system() {
     echo ""
 }
 
+### Check system requirements
+check_security() {
+    printf "$(date) [INFO]: Checking running security services.............\n" | tee -a "${LOG_FILE}"
+    SELINUX_STATUS=$(sudo getenforce 2>/dev/null || :)
+    if [ "${SELINUX_STATUS}" = "Enforcing" ]; then
+        info "SELinux is now Enforcing."
+        SELINUX_STATUS="inactive"
+        if [ "${DEP_PATTERN}" != "RHEL8" ]; then
+            SELINUX_STATUS="active"
+            printf "\r\033[2F\033[K$(date) [INFO]: Checking running security services.............check\n" | tee -a "${LOG_FILE}"
+            printf "\r\033[2E\033[K" | tee -a "${LOG_FILE}"
+        fi
+    else
+        SELINUX_STATUS="inactive"
+        info "SELinux is not Enforcing."
+        SELINUX_STATUS="inactive"
+        if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+            SELINUX_STATUS="active"
+            printf "\r\033[2F\033[K$(date) [INFO]: Checking running security services.............ng\n" | tee -a "${LOG_FILE}"
+            printf "\r\033[2E\033[K" | tee -a "${LOG_FILE}"
+            error "SELinux is must be Enforcing on Rootless Podman."
+        fi
+    fi
+
+    FIREWALLD_STATUS=$(sudo firewall-cmd --state 2>/dev/null || :)
+    if echo "${FIREWALLD_STATUS}" | grep -qi "running"; then
+        printf "\r\033[2F\033[K$(date) [INFO]: Checking running security services.............check\n" | tee -a "${LOG_FILE}"
+        printf "\r\033[2E\033[K" | tee -a "${LOG_FILE}"
+        warn "Firewalld is now running."
+        FIREWALLD_STATUS="active"
+    else
+        info "Firewalld is not running."
+        FIREWALLD_STATUS="inactive"
+    fi
+
+    UFW_STATUS=$(sudo ufw status 2>/dev/null || :) 
+    if echo "${UFW_STATUS}" | grep -qi "status: active"; then
+        printf "\r\033[3F\033[K$(date) [INFO]: Checking running security services.............check\n" | tee -a "${LOG_FILE}"
+        printf "\r\033[3E\033[K" | tee -a "${LOG_FILE}"
+        warn "UFW is now active."
+        UFW_STATUS="active"
+    else
+        info "UFW is inactive."
+        UFW_STATUS="inactive"
+    fi
+
+    sleep 1
+    printf "\r\033[4F\033[K$(date) [INFO]: Checking running security services.............ok\n" | tee -a "${LOG_FILE}"
+    printf "\r\033[4E\033[K" | tee -a "${LOG_FILE}"
+
+    # if [ "${SELINUX_STATUS}" = "active" ] || [ "${FIREWALLD_STATUS}" = "active" ] || [ "${UFW_STATUS}" = "active" ]; then
+    #     echo ""
+    #     echo "Security service is active."
+    #     read -r -p "Are you sure you want to continue processing? (y/n) [default: n]: " confirm
+    #     echo ""
+    #     if ! (echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"); then
+    #         info "Cancelled."
+    #         exit 0
+    #     fi
+    # fi
+    echo ""
+}
+
 ### Check required command
 check_command() {
     printf "$(date) [INFO]: Checking required commands.....................\n" | tee -a "${LOG_FILE}"
@@ -500,7 +601,7 @@ check_command() {
         error "Required 'sudo' command and $(id -u -n) is appended to sudoers."
     fi
     sleep 1
-    printf "\r\033[2F\033[K$(date) [INFO]: Checking required commands.....................ok\n" | tee -a "${LOG_FILE}"
+    printf "\r\033[2F\033[K$(date) [INFO]: Checking running security services.............ok\n" | tee -a "${LOG_FILE}"
     printf "\r\033[2E\033[K" | tee -a "${LOG_FILE}"
     echo ""
 }
@@ -512,29 +613,44 @@ check_resource() {
     info "Total memory (KiB):           $(cat /proc/meminfo  | grep MemTotal | awk '{ print $2 }')"
     if [ $(cat /proc/meminfo  | grep MemTotal | awk '{ print $2 }') -lt ${REQUIRED_MEM_TOTAL} ]; then
         error "Lack of total memory! Required at least ${REQUIRED_MEM_TOTAL} Bytes total memory."
-        printf "\r\033[1F\033[K$(date) [INFO]: Checking required resource.....................ng\n" | tee -a "${LOG_FILE}"
-        printf "\r\033[1E\033[K" | tee -a "${LOG_FILE}"
+        printf "\r\033[2F\033[K$(date) [INFO]: Checking required resource.....................ng\n" | tee -a "${LOG_FILE}"
+        printf "\r\033[2E\033[K" | tee -a "${LOG_FILE}"
     fi
 
-    # Check free space of /var 
-    info "'/var' free space (MiB):      $(df -m /var | awk 'NR==2 {print $4}')"
-    if [ $(df -m /var | awk 'NR==2 {print $4}') -lt ${REQUIRED_VAR_FREE} ]; then
-        printf "\r\033[3F\033[K$(date) [INFO]: Checking required resource.....................ng\n" | tee -a "${LOG_FILE}"
-        printf "\r\033[3E\033[K" | tee -a "${LOG_FILE}"
-        error "Lack of free space! Required at least ${REQUIRED_VAR_FREE} Bytes free space on /var directory."
-    fi
+    if [ "${DEP_PATTERN}" != "RHEL8" ]; then
+        # Check free space of /var
+        info "'/var' free space (MiB):      $(df -m /var | awk 'NR==2 {print $4}')"
+        if [ $(df -m /var | awk 'NR==2 {print $4}') -lt ${REQUIRED_FREE_FOR_CONTAINER_IMAGE} ]; then
+            printf "\r\033[3F\033[K$(date) [INFO]: Checking required resource.....................ng\n" | tee -a "${LOG_FILE}"
+            printf "\r\033[3E\033[K" | tee -a "${LOG_FILE}"
+            error "Lack of free space! Required at least ${REQUIRED_FREE_FOR_CONTAINER_IMAGE} MBytes free space on /var directory."
+        fi
 
-    # Check free space of current directory 
-    info "'.' free space (MiB):         $(df -m . | awk 'NR==2 {print $4}')"
-    if [ $(df -m . | awk 'NR==2 {print $4}') -lt ${REQUIRED_DOT_FREE} ]; then
-        printf "\r\033[4F\033[K$(date) [INFO]: Checking required resource.....................ng\n" | tee -a "${LOG_FILE}"
+        # Check free space of current directory 
+        info "'${HOME}' free space (MiB):         $(df -m "${HOME}" | awk 'NR==2 {print $4}')"
+        if [ $(df -m "${HOME}"| awk 'NR==2 {print $4}') -lt ${REQUIRED_FREE_FOR_EXASTRO_DATA} ]; then
+            printf "\r\033[4F\033[K$(date) [INFO]: Checking required resource.....................ng\n" | tee -a "${LOG_FILE}"
+            printf "\r\033[4E\033[K" | tee -a "${LOG_FILE}"
+            error "Lack of free space! Required at least ${REQUIRED_FREE_FOR_EXASTRO_DATA} MBytes free space on current directory."
+        fi
+        sleep 1
+        printf "\r\033[4F\033[K$(date) [INFO]: Checking required resource.....................ok\n" | tee -a "${LOG_FILE}"
         printf "\r\033[4E\033[K" | tee -a "${LOG_FILE}"
-        error "Lack of free space! Required at least ${REQUIRED_DOT_FREE} Bytes free space on current directory."
+        echo ""
+    else
+        # Check free space of /var
+        info "'${HOME}' free space (MiB):      $(df -m "${HOME}" | awk 'NR==2 {print $4}')"
+        if [ $(df -m ${HOME} | awk 'NR==2 {print $4}') -lt ${REQUIRED_FREE_FOR_CONTAINER_IMAGE} ]; then
+            printf "\r\033[3F\033[K$(date) [INFO]: Checking required resource.....................ng\n" | tee -a "${LOG_FILE}"
+            printf "\r\033[3E\033[K" | tee -a "${LOG_FILE}"
+            error "Lack of free space! Required at least ${REQUIRED_FREE_FOR_CONTAINER_IMAGE} MBytes free space on ${HOME} directory."
+        else
+            sleep 1
+            printf "\r\033[3F\033[K$(date) [INFO]: Checking required resource.....................ok\n" | tee -a "${LOG_FILE}"
+            printf "\r\033[3E\033[K" | tee -a "${LOG_FILE}"
+            echo ""
+        fi
     fi
-    sleep 1
-    printf "\r\033[4F\033[K$(date) [INFO]: Checking required resource.....................ok\n" | tee -a "${LOG_FILE}"
-    printf "\r\033[4E\033[K" | tee -a "${LOG_FILE}"
-    echo ""
 }
 
 ### Installation container engine
@@ -650,6 +766,10 @@ fetch_exastro() {
     cd ${HOME}
     if [ ! -d ${PROJECT_DIR} ]; then
         git clone https://github.com/exastro-suite/exastro-docker-compose.git
+        if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+            podman unshare chown $(id -u):$(id -g) "${PROJECT_DIR}/.volumes/storage/"
+            sudo chcon -R -h -t container_file_t "${PROJECT_DIR}"
+        fi
     fi
 }
 
@@ -784,6 +904,7 @@ setup() {
         echo ""
         if echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"; then
             COMPOSE_PROFILES=all
+            GITLAB_PORT="40080"
             if [ ${PWD_METHOD} = "manually" ]; then
                 while true; do
                     read -r -p "GitLab root password: " password1
@@ -830,12 +951,22 @@ Manegement URL:                   ${EXTERNAL_URL_MNG_PROTOCOL}://${EXTERNAL_URL_
 Docker GID:                       ${HOST_DOCKER_GID}
 Docker Socket path:               ${HOST_DOCKER_SOCKET_PATH}
 GitLab deployment:                $(if [ ${COMPOSE_PROFILES} = "all" ]; then echo "true"; else echo "false"; fi)
+_EOF_
+        if [ "${COMPOSE_PROFILES}" = "all" ]; then
+            cat <<_EOF_
+GitLab URL:                       ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${GITLAB_PORT}
 GitLab root password:             ********
 GitLab root token:                ********
 
 _EOF_
+        else
+            cat <<_EOF_
+GitLab URL:                       None
 
-        read -r -p "Deploy this setting? (y/n) [default: n]: " confirm
+_EOF_
+        fi
+
+        read -r -p "Generate .env file by above settings? (y/n) [default: n]: " confirm
         echo ""
         if echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"; then
             info "Generate settig file [${PWD}/.env]."
@@ -845,9 +976,13 @@ _EOF_
             info "Manegement URL:                   ${EXTERNAL_URL_MNG_PROTOCOL}://${EXTERNAL_URL_MNG_HOST}:${EXTERNAL_URL_MNG_PORT}"
             info "Docker GID:                       ${HOST_DOCKER_GID}"
             info "Docker Socket path:               ${HOST_DOCKER_SOCKET_PATH}"
-            info "GitLab deployment:                $(if [ ${COMPOSE_PROFILES} = "all" ]; then echo "true"; else echo "false"; fi)"
-            info "GitLab root password:             ********"
-            info "GitLab root token:                ********"
+            if [ "${COMPOSE_PROFILES}" = "all" ]; then
+                info "GitLab URL:                       ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${GITLAB_PORT}"
+                info "GitLab root password:             ********"
+                info "GitLab root token:                ********"
+            else
+                info "GitLab URL:                       None"
+            fi
             
             generate_env
             break
@@ -879,14 +1014,21 @@ generate_env() {
     sed -i -e "s/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=${COMPOSE_PROFILES}/" ${ENV_FILE}
     sed -i -e "s/^GITLAB_ROOT_PASSWORD=.*/GITLAB_ROOT_PASSWORD=${GITLAB_ROOT_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^GITLAB_ROOT_TOKEN=.*/GITLAB_ROOT_TOKEN=${GITLAB_ROOT_TOKEN}/" ${ENV_FILE}
+    if [ ${COMPOSE_PROFILES} = "all" ]; then
+        sed -i -e "s/^GITLAB_HOST=.*/GITLAB_HOST=${EXTERNAL_URL_HOST}/" ${ENV_FILE}
+        sed -i -e "/^# GITLAB_PORT=.*/a GITLAB_PORT=${GITLAB_PORT}" ${ENV_FILE}
+    fi
 }
 
 ### Installation Exastro
 installation_exastro() {
     if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+        DOCKER_COMPOSE=$(command -v docker-compose)
         installation_exastro_on_rhel8
     fi
+    DOCKER_COMPOSE=$(command -v docker)" compose"
     installation_cronjob
+    installtion_firewall_rules
 }
 
 ### Installation Exastro on RHEL8
@@ -925,8 +1067,8 @@ installation_cronjob() {
     # Backup current crontab
     crontab -l > $backup_file || :
 
-    if grep -q "Exastro auto generate" $backup_file; then
-        crontab -l 2>/dev/null > $output_file
+    if ! grep -q "Exastro auto generate" $backup_file; then
+        crontab -l 2>/dev/null > $output_file || :
         cat << _EOF_ >> $output_file
 ######## START Exastro auto generate (DO NOT REMOVE bellow lines.) ########
 0 * * * * cd ${PROJECT_DIR}; ${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES} run ita-by-execinstance-dataautoclean > /dev/null 2>&1
@@ -942,21 +1084,70 @@ _EOF_
     fi
 }
 
+### Installation Firewall rules
+installtion_firewall_rules() {
+    info "Add firewall rules."
+    if [ ${FIREWALLD_STATUS} = "active" ]; then
+        info "Add ${EXTERNAL_URL_PORT}/tcp for external service port."
+        sudo firewall-cmd --add-port=${EXTERNAL_URL_PORT}/tcp --zone=public --permanent
+        info "Add ${EXTERNAL_URL_MNG_PORT}/tcp for external management port."
+        sudo firewall-cmd --add-port=${EXTERNAL_URL_MNG_PORT}/tcp --zone=public --permanent
+        if [ ${COMPOSE_PROFILES} = "all" ]; then
+            info "Add ${GITLAB_PORT}/tcp for external GitLab port."
+            sudo firewall-cmd --add-port=${GITLAB_PORT}/tcp --zone=public --permanent
+        fi
+        sudo firewall-cmd --reload
+    fi
+    if [ ${UFW_STATUS} = "active" ]; then
+        info "Add ${EXTERNAL_URL_PORT}/tcp for external service port."
+        sudo ufw allow ${EXTERNAL_URL_PORT}/tcp
+        info "Add ${EXTERNAL_URL_MNG_PORT}/tcp for external management port."
+        sudo ufw allow ${EXTERNAL_URL_MNG_PORT}/tcp
+        if [ ${COMPOSE_PROFILES} = "all" ]; then
+            info "Add ${GITLAB_PORT}/tcp for external GitLab port."
+            sudo ufw allow ${GITLAB_PORT}/tcp
+        fi
+        sudo ufw reload
+    fi
+}
+
 ### Start Exastro system
 start_exastro() {
     info "Starting Exastro system..."
-    if [ "${DEP_PATTERN}" = "RHEL8" ]; then
-        systemctl --user start exastro
+    read -r -p "Deploy Exastro containers now? (y/n) [default: n]: " confirm
+    echo ""
+    if echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"; then
+        echo "Please wait for a little while. It will take 10 minutes or later.........."
+        if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+            systemctl --user start exastro
+            # pid1=$!
+        else
+            cd ${PROJECT_DIR}
+            sudo -u $(id -u -n) -E ${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES:-all} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d
+            # pid1=$!
+        fi
     else
-        cd ${PROJECT_DIR}
-        sudo -u $(id -u -n) -E ${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES:-all} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d
+        info "Cancelled."
+        exit 0
     fi
+    # printf "\r\033[2KPlease wait installation completed.";
+    # while true;
+    # do
+    #     sleep 0.1
+    #     printf ".";
+    # done &
+    # pid2=$!
+    # wait $pid1
+    # printf "Complete!\n"
+    # kill $pid2
+    # wait $pid2 2> /dev/null
 }
 
 ### Display Exastro system information
 prompt() {
     banner
     cat<<_EOF_
+
 
 System manager page:
   URL:                ${EXTERNAL_URL_MNG_PROTOCOL}://${EXTERNAL_URL_MNG_HOST}:${EXTERNAL_URL_MNG_PORT}/auth/
@@ -966,21 +1157,49 @@ System manager page:
 Organization page:
   URL:                ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${EXTERNAL_URL_PORT}/{{ Organization ID }}/platform
 
+_EOF_
+    if [ "${COMPOSE_PROFILES}" = "all" ]; then
+        cat <<_EOF_
+
+
+Make sure you can successfully access the GitLab login screen.
+
+Wait until the GitLab container has completely started before creating the organization.
+It may take more than 5 minutes.
+
+If you are unable to access due to a 503 error, please wait a while and try again.
+
 GitLab page:
-  URL:                ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:40080
+  URL:                ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${GITLAB_PORT}
   Login user:         root
   Initial password:   ${GITLAB_ROOT_PASSWORD}
 
+_EOF_
+    while [ $(curl -s -I -o nul -w "%{http_code}" ${GITLAB_PROTOCOL:-http}://${GITLAB_HOST:-localhost}:${GITLAB_PORT:-40080}/users/sign_in) -ne 200 ]; do
+        echo "GitLab service is not ready."
+        sleep 1
+    done
+    echo "GitLab service is has completely started!"
+
+fi
+
+    cat<<_EOF_
 
 Run creation organization command:
    bash ${PROJECT_DIR}/create-organization.sh 
+
+
+! ! ! ! ! ! ! ! ! ! ! ! ! ! !
+! ! !   C A U T I O N   ! ! !
+! ! ! ! ! ! ! ! ! ! ! ! ! ! !
+
+Be sure to reboot the you host operating system to ensure proper system operation.
 
 _EOF_
 }
 
 ### Get options when remove
 remove() {
-    info "======================================================"
     args=$(getopt -o "ch" --long "completely-clean-up,help" -- "$@") || exit 1
 
     eval set -- "$args"
@@ -1011,6 +1230,7 @@ _EOF_
         esac
     done
 
+    info "======================================================"
     info "Remove Exastro system."
     get_system_info
     if [ "$REMOVE_FLG" = "" ]; then
@@ -1019,6 +1239,8 @@ _EOF_
         if echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"; then
             remove_cronjob
             remove_service
+            check_security
+            remove_firewall_rules
         else
             info "Cancelled."
             exit 0
@@ -1034,6 +1256,8 @@ _EOF_
         if echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"; then
             remove_cronjob
             remove_service
+            check_security
+            remove_firewall_rules
             remove_exastro_data
         else
             info "Cancelled."
@@ -1088,22 +1312,59 @@ remove_cronjob() {
 remove_service() {
     info "Stopping and removing Exastro service..."
     cd ${PROJECT_DIR}
+ 
+    DOCKER_COMPOSE="docker compose"
+    if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+        DOCKER_COMPOSE="podman unshare docker-compose"
+    fi
+
     ${DOCKER_COMPOSE} --profile all down
     if [ "${DEP_PATTERN}" = "RHEL8" ]; then
         systemctl --user disable --now exastro
-        systemctl --user daemon-reload
         rm -f ${HOME}/.config/systemd/user/exastro.service
+        systemctl --user daemon-reload
     fi
     info "Remove Exastro service completed."
+}
+
+### Installation Firewall rules
+remove_firewall_rules() {
+    info "Remove firewall rules."
+    if [ ${FIREWALLD_STATUS} = "active" ]; then
+        info "Remove ${EXTERNAL_URL_PORT}/tcp for external service port."
+        sudo firewall-cmd --remove-port=${EXTERNAL_URL_PORT}/tcp --zone=public --permanent
+        info "Remove ${EXTERNAL_URL_MNG_PORT}/tcp for external management port."
+        sudo firewall-cmd --remove-port=${EXTERNAL_URL_MNG_PORT}/tcp --zone=public --permanent
+        if [ ${COMPOSE_PROFILES} = "all" ]; then
+            info "Remove ${GITLAB_PORT}/tcp for external GitLab port."
+            sudo firewall-cmd --remove-port=${GITLAB_PORT}/tcp --zone=public --permanent
+        fi
+        sudo firewall-cmd --reload
+    fi
+    if [ ${UFW_STATUS} = "active" ]; then
+        info "Remove ${EXTERNAL_URL_PORT}/tcp for external service port."
+        sudo ufw deny ${EXTERNAL_URL_PORT}/tcp
+        info "Remove ${EXTERNAL_URL_MNG_PORT}/tcp for external management port."
+        sudo ufw deny ${EXTERNAL_URL_MNG_PORT}/tcp
+        if [ ${COMPOSE_PROFILES} = "all" ]; then
+            info "Remove ${GITLAB_PORT}/tcp for external GitLab port."
+            sudo ufw deny ${GITLAB_PORT}/tcp
+        fi
+        sudo ufw reload
+    fi
 }
 
 ### Remove all containers and data
 remove_exastro_data() {
         info "Deleting Exastro system..."
         cd ${PROJECT_DIR}
+        DOCKER_COMPOSE="docker compose"
+        if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+            DOCKER_COMPOSE="podman unshare docker-compose"
+        fi
         ${DOCKER_COMPOSE} --profile all down -v
         sudo rm -rf ${PROJECT_DIR}/.volumes/storage/*
-        yes | docker system prune
+        # yes | docker system prune
 }
 
-main "$1"
+main "$@"
