@@ -4,3 +4,4 @@
 /*/.env
 backup/
 *.log
+.volumes/
