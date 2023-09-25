@@ -1369,7 +1369,7 @@ remove_exastro_data() {
         fi
         ${DOCKER_COMPOSE} --profile all down -v
         sudo rm -rf ${PROJECT_DIR}/.volumes/storage/*
-        # yes | docker system prune
+        yes | docker system prune
 }
 
 main "$@"
