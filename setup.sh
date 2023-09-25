@@ -1176,11 +1176,11 @@ GitLab page:
 
 _EOF_
     printf "GitLab service is not ready."
-    while [ $(curl -s -I -o nul -w "%{http_code}" ${GITLAB_PROTOCOL:-http}://${GITLAB_HOST:-localhost}:${GITLAB_PORT:-40080}/users/sign_in) -ne 200 ]; do
+    while [ $(curl -s -I -o nul -w "%{http_code}" ${GITLAB_PROTOCOL:-http}://127.0.0.1:${GITLAB_PORT:-40080}/users/sign_in) -ne 200 ]; do
         printf "."
         sleep 1
     done
-    while [ $(curl -s -I -o nul -w "%{http_code}" "PRIVATE-TOKEN: ${GITLAB_ROOT_TOKEN:-}" "${GITLAB_PROTOCOL:-http}://${GITLAB_HOST:-localhost}:${GITLAB_PORT:-40080}/api/v4/version") -ne 200 ]; do
+    while [ $(curl -s -I -o nul -w "%{http_code}" "PRIVATE-TOKEN: ${GITLAB_ROOT_TOKEN:-}" "${GITLAB_PROTOCOL:-http}://127.0.0.1:${GITLAB_PORT:-40080}/api/v4/version"|head -n 1|cut -b 1-3) -ne 200 ]; do
         printf "."
         sleep 1
     done
