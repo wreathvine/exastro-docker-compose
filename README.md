@@ -104,29 +104,38 @@ docker-compose up -d
 ### （オプション）起動するコンテナを限定する場合の起動方法
 起動するコンテナを限定する場合は、プロファイル (*--profile*) で対象を指定することで、起動するコンテナを選択することが可能です。  
 
-| プロファイル名                 | 対象となるコンテナ                            | スケーリング                 |
-| ------------------------------ | --------------------------------------------- | ---------------------------- |
-| *all*                          | すべてのコンテナ                              |                              |
-| *except-gitlab* （デフォルト） | GitLab 以外のすべてのコンテナ                 |                              |
-| *common*                       | MariaDB、GitLab、Keycloak コンテナ            | 不可 (対応予定)              |
-| *mariadb*                      | MariaDB コンテナ                              | 不可 (対応予定)              |
-| *gitlab*                       | GitLab コンテナ                               | 不可 (対応予定)              |
-| *keycloak*                     | Keycloak コンテナ                             | 不可 (対応予定)              |
-| *platform*                     | Exastro Platform 関連のコンテナ               | 可能                         |
-| *ita*                          | Exastro IT Automation 関連のコンテナ          | 一部可能                     |
-| *web*                          | Web 系のコンテナ                              | 可能                         |
-| *migration*                    | インストール・アップグレード用コンテナ        | 不可 (必ず同時に1つのみ起動) |
-| *backyard*                     | Backyard 関連のコンテナ                       | 不可 (対応予定)              |
-| *batch*                        | バッチ処理関連のコンテナ(Crontabに登録が必要) | 不可 (不要)                  |
+| プロファイル名                 | 対象となるコンテナ                                 | スケーリング                 |
+| ------------------------------ | -------------------------------------------------- | ---------------------------- |
+| *all*                          | すべてのコンテナ(batchを除く)                      |                              |
+| *except-gitlab* （デフォルト） | GitLab 以外のすべてのコンテナ(batchを除く)         |                              |
+| *common*                       | MariaDB、GitLab、Keycloak コンテナ                 | 不可 (対応予定)              |
+| *mariadb*                      | MariaDB コンテナ                                   | 不可 (対応予定)              |
+| *gitlab*                       | GitLab コンテナ                                    | 不可 (対応予定)              |
+| *keycloak*                     | Keycloak コンテナ                                  | 不可 (対応予定)              |
+| *platform*                     | Exastro Platform 関連のコンテナ                    | 可能                         |
+| *ita*                          | Exastro IT Automation 関連のコンテナ(batchを除く)  | 一部可能                     |
+| *web*                          | Web 系のコンテナ                                   | 可能                         |
+| *migration*                    | インストール・アップグレード用コンテナ             | 不可 (必ず同時に1つのみ起動) |
+| *backyard*                     | Backyard 関連のコンテナ                            | 不可 (対応予定)              |
+| *batch*                        | バッチ処理関連のコンテナ(Crontabに登録が必要)      | 不可 (不要)                  |
 
 以下の例では、**all** プロファイルを指定することで、すべてのコンテナを一度に起動します。
 
 ```shell
 # docker コマンドを利用する場合(Docker環境)
-docker compose --profile all up -d  
+docker compose --profile all up -d  --wait
 
 # docker-compose コマンドを利用する場合(Podman環境)
-docker-compose --profile all up -d  
+docker-compose --profile all up -d  --wait
+```  
+
+## Crontabの設定例
+以下の例では、exastro-suite/exastro-docker-composeを/home/test_user配下にgit cronして
+ita-by-file-autocleanを毎日00時01分、ita-by-file-autocleanを毎日00時02分に実行する場合のcrontabに設定する例です。
+
+```shell
+01 00 * * * cd /home/test_user; /usr/bin/docker compose --profile batch run ita-by-file-autoclean > /dev/null 2>&1
+02 00 * * * cd /home/test_user; /usr/bin/docker compose --profile batch run ita-by-execinstance-dataautoclean > /dev/null 2>&1
 ```  
 
 ## Organization作成とアクセス
@@ -191,7 +200,7 @@ curl -X 'POST' "${BASE_URL}/api/platform/organizations" -H 'accept: application/
 
 ### 各ページのURL  
 #### システム管理者用コンソール  
-http://exastro-mng.example.com:81/auth/  
+http://exastro-mng.example.com:81/
   
 #### Organization ページ  
 http://exastro.example.com:80/sample-org/platform/  

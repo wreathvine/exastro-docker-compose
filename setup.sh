@@ -201,6 +201,14 @@ _EOF_
                 setup
                 installation_exastro
                 start_exastro
+            else
+                banner
+                check_requirement
+                installation_container_engine
+                fetch_exastro
+                setup
+                installation_exastro
+                start_exastro
             fi
             prompt
             ;;
@@ -786,8 +794,8 @@ setup() {
         read -r -p "Regenerate .env file? (y/n) [default: n]: " confirm
         echo ""
         if ! (echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"); then
-            info "Cancelled."
-            exit 0
+
+            return 0
         fi
     fi
     while true; do
@@ -1071,8 +1079,8 @@ installation_cronjob() {
         crontab -l 2>/dev/null > $output_file || :
         cat << _EOF_ >> $output_file
 ######## START Exastro auto generate (DO NOT REMOVE bellow lines.) ########
-0 * * * * cd ${PROJECT_DIR}; ${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES} run ita-by-execinstance-dataautoclean > /dev/null 2>&1
-0 * * * * cd ${PROJECT_DIR}; ${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES} run ita-by-file-autoclean > /dev/null 2>&1
+01 00 * * * cd ${PROJECT_DIR}; ${DOCKER_COMPOSE} --profile batch run ita-by-file-autoclean > /dev/null 2>&1
+02 00 * * * cd ${PROJECT_DIR}; ${DOCKER_COMPOSE} --profile batch run ita-by-execinstance-dataautoclean > /dev/null 2>&1
 ######## END Exastro auto generate   (DO NOT REMOVE bellow lines.) ########
 _EOF_
         cat $output_file | crontab -
@@ -1123,7 +1131,7 @@ start_exastro() {
             # pid1=$!
         else
             cd ${PROJECT_DIR}
-            sudo -u $(id -u -n) -E ${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES:-all} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d
+            sudo -u $(id -u -n) -E ${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES:-all} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d --wait
             # pid1=$!
         fi
     else
@@ -1150,7 +1158,7 @@ prompt() {
 
 
 System manager page:
-  URL:                ${EXTERNAL_URL_MNG_PROTOCOL}://${EXTERNAL_URL_MNG_HOST}:${EXTERNAL_URL_MNG_PORT}/auth/
+  URL:                ${EXTERNAL_URL_MNG_PROTOCOL}://${EXTERNAL_URL_MNG_HOST}:${EXTERNAL_URL_MNG_PORT}/
   Login user:         admin
   Initial password:   ${SYSTEM_ADMIN_PASSWORD}
 
@@ -1176,11 +1184,13 @@ GitLab page:
 
 _EOF_
     printf "GitLab service is not ready."
-    while [ $(curl -s -I -o nul -w "%{http_code}" ${GITLAB_PROTOCOL:-http}://127.0.0.1:${GITLAB_PORT:-40080}/users/sign_in) -ne 200 ]; do
+    while ! curl -sfI -o /dev/null ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${GITLAB_PORT}/-/readiness;
+    do
         printf "."
         sleep 1
     done
-    while [ $(curl -s -I -o nul -w "%{http_code}" "PRIVATE-TOKEN: ${GITLAB_ROOT_TOKEN:-}" "${GITLAB_PROTOCOL:-http}://127.0.0.1:${GITLAB_PORT:-40080}/api/v4/version"|head -n 1|cut -b 1-3) -ne 200 ]; do
+    while ! curl -sfI -o /dev/null -H "PRIVATE-TOKEN: ${GITLAB_ROOT_TOKEN:-}" ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${GITLAB_PORT}/api/v4/version;
+    do
         printf "."
         sleep 1
     done
@@ -1369,6 +1379,10 @@ remove_exastro_data() {
         fi
         ${DOCKER_COMPOSE} --profile all down -v
         sudo rm -rf ${PROJECT_DIR}/.volumes/storage/*
+        sudo rm -rf ${PROJECT_DIR}/.volumes/mariadb/data/*
+        sudo rm -rf ${PROJECT_DIR}/.volumes/gitlab/config/*
+        sudo rm -rf ${PROJECT_DIR}/.volumes/gitlab/data/*
+        sudo rm -rf ${PROJECT_DIR}/.volumes/gitlab/logs/*
         yes | docker system prune
 }
 
