@@ -89,16 +89,16 @@ head -c 32 /dev/urandom | base64
 ## コンテナ起動
 
 
-### 一般的なコンテナの起動方法
+### exastroコンテナの起動方法
 *docker* もしくは *docker-compose* コマンドを使いコンテナを起動します。
 
 
 ```shell
 # docker コマンドを利用する場合(Docker環境)
-docker compose up -d  
+docker compose --profile all up -d  --wait  
 
 # docker-compose コマンドを利用する場合(Podman環境)
-docker-compose up -d  
+docker-compose --profile all up -d  --wait  
 ```  
 
 ### （オプション）起動するコンテナを限定する場合の起動方法
@@ -119,23 +119,28 @@ docker-compose up -d
 | *backyard*                     | Backyard 関連のコンテナ                            | 不可 (対応予定)              |
 | *batch*                        | バッチ処理関連のコンテナ(Crontabに登録が必要)      | 不可 (不要)                  |
 
-以下の例では、**all** プロファイルを指定することで、すべてのコンテナを一度に起動します。
+以下の例では、**except-gitlab** プロファイルを指定することで、Gitlabを個別に用意する場合のコンテナの起動方法です。
 
 ```shell
 # docker コマンドを利用する場合(Docker環境)
-docker compose --profile all up -d  --wait
+docker compose --profile except-gitlab up -d  --wait
 
 # docker-compose コマンドを利用する場合(Podman環境)
-docker-compose --profile all up -d  --wait
+docker-compose --profile except-gitlab up -d  --wait
 ```  
 
 ## Crontabの設定例
-以下の例では、exastro-suite/exastro-docker-composeを/home/test_user配下にgit cronして
+exastro-suite/exastro-docker-composeを/home/test_user配下にgit cronしている前提で、
 ita-by-file-autocleanを毎日00時01分、ita-by-file-autocleanを毎日00時02分に実行する場合のcrontabに設定する例です。
 
 ```shell
+# docker コマンドを利用する場合(Docker環境)
 01 00 * * * cd /home/test_user; /usr/bin/docker compose --profile batch run ita-by-file-autoclean > /dev/null 2>&1
 02 00 * * * cd /home/test_user; /usr/bin/docker compose --profile batch run ita-by-execinstance-dataautoclean > /dev/null 2>&1
+
+# docker-compose コマンドを利用する場合(Podman環境)
+01 00 * * * cd /home/test_user; /usr/bin/podman unshare docker-compose --profile batch run ita-by-file-autoclean > /dev/null 2>&1
+02 00 * * * cd /home/test_user; /usr/bin/podman unshare docker-compose --profile batch run ita-by-execinstance-dataautoclean > /dev/null 2>&1
 ```  
 
 ## Organization作成とアクセス
@@ -161,6 +166,7 @@ ita-by-file-autocleanを毎日00時01分、ita-by-file-autocleanを毎日00時02
 
 
 ### Organization 作成
+システム管理者用コンソールから作成可能ですが、以下のスクリプトでも作成可能です。
 
 ```shell
 BASE64_BASIC=$(echo -n "admin:password" | base64)
