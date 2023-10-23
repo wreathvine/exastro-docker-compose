@@ -50,6 +50,10 @@ services:
     container_name: gitlab
     hostname: gitlab
     restart: always
+    healthcheck:
+      test: curl -f http://localhost:40080/-/readiness
+      interval: 3s
+      retries: 200
     environment:
       TZ: ${TZ:-Asia/Tokyo}
       GITLAB_PROTOCOL: ${GITLAB_PROTOCOL:-http}
@@ -69,13 +73,14 @@ services:
         gitlab_rails['initial_root_password'] = "${GITLAB_ROOT_PASSWORD:-}"
         gitlab_rails['registry_enabled'] = false;
         gitlab_rails['db_prepared_statements'] = false;
+        gitlab_rails['monitoring_whitelist'] = ['0.0.0.0/0']
         # gitlab_rails['env'] = {'MALLOC_CONF' => 'dirty_decay_ms:1000,muzzy_decay_ms:1000'}
         # puma['worker_processes'] = 0
         prometheus_monitoring['enable'] = false
         # sidekiq['max_concurrency'] = 10
         # gitaly['env'] = {'MALLOC_CONF' => 'dirty_decay_ms:1000,muzzy_decay_ms:1000', 'GITALY_COMMAND_SPAWN_MAX_PARALLEL' => '2'}
       GITLAB_POST_RECONFIGURE_SCRIPT: |
-        while [ `curl -s -I -o nul -w "%{http_code}" http://localhost:40080/users/sign_in` -ne 200 ]
+        while ! curl -sfI -o /dev/null http://localhost:40080/-/readiness;
         do
         echo "GitLab service is not ready."
         sleep 1
@@ -1329,10 +1334,7 @@ services:
     networks:
       - exastro
     profiles:
-      - ita
       - batch
-      - except-gitlab
-      - all
     logging:
       driver: json-file
       options:
@@ -1368,10 +1370,7 @@ services:
     networks:
       - exastro
     profiles:
-      - ita
       - batch
-      - except-gitlab
-      - all
     logging:
       driver: json-file
       options:
