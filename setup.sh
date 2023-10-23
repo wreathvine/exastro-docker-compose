@@ -1031,10 +1031,11 @@ generate_env() {
 ### Installation Exastro
 installation_exastro() {
     if [ "${DEP_PATTERN}" = "RHEL8" ]; then
-        DOCKER_COMPOSE=$(command -v docker-compose)
+        DOCKER_COMPOSE=$(command -v podman)" unshare docker-compose"
         installation_exastro_on_rhel8
+    else
+        DOCKER_COMPOSE=$(command -v docker)" compose"
     fi
-    DOCKER_COMPOSE=$(command -v docker)" compose"
     installation_cronjob
     installtion_firewall_rules
 }
@@ -1328,9 +1329,10 @@ remove_service() {
     info "Stopping and removing Exastro service..."
     cd ${PROJECT_DIR}
  
-    DOCKER_COMPOSE="docker compose"
     if [ "${DEP_PATTERN}" = "RHEL8" ]; then
-        DOCKER_COMPOSE="podman unshare docker-compose"
+        DOCKER_COMPOSE=$(command -v podman)" unshare docker-compose"
+    else
+        DOCKER_COMPOSE=$(command -v docker)" compose"
     fi
 
     ${DOCKER_COMPOSE} --profile all down
@@ -1371,19 +1373,22 @@ remove_firewall_rules() {
 
 ### Remove all containers and data
 remove_exastro_data() {
-        info "Deleting Exastro system..."
-        cd ${PROJECT_DIR}
-        DOCKER_COMPOSE="docker compose"
-        if [ "${DEP_PATTERN}" = "RHEL8" ]; then
-            DOCKER_COMPOSE="podman unshare docker-compose"
-        fi
-        ${DOCKER_COMPOSE} --profile all down -v
-        sudo rm -rf ${PROJECT_DIR}/.volumes/storage/*
-        sudo rm -rf ${PROJECT_DIR}/.volumes/mariadb/data/*
-        sudo rm -rf ${PROJECT_DIR}/.volumes/gitlab/config/*
-        sudo rm -rf ${PROJECT_DIR}/.volumes/gitlab/data/*
-        sudo rm -rf ${PROJECT_DIR}/.volumes/gitlab/logs/*
-        yes | docker system prune
+    info "Deleting Exastro system..."
+    cd ${PROJECT_DIR}
+
+    if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+        DOCKER_COMPOSE=$(command -v podman)" unshare docker-compose"
+    else
+        DOCKER_COMPOSE=$(command -v docker)" compose"
+    fi
+
+    ${DOCKER_COMPOSE} --profile all down -v
+    sudo rm -rf ${PROJECT_DIR}/.volumes/storage/*
+    sudo rm -rf ${PROJECT_DIR}/.volumes/mariadb/data/*
+    sudo rm -rf ${PROJECT_DIR}/.volumes/gitlab/config/*
+    sudo rm -rf ${PROJECT_DIR}/.volumes/gitlab/data/*
+    sudo rm -rf ${PROJECT_DIR}/.volumes/gitlab/logs/*
+    yes | docker system prune
 }
 
 main "$@"
