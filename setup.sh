@@ -1056,7 +1056,7 @@ WorkingDirectory=${PROJECT_DIR}
 ExecStartPre=/usr/bin/podman unshare chown $(id -u):$(id -g) /run/user/$(id -u)/podman/podman.sock
 Environment=DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock
 Environment=PWD=${PROJECT_DIR}
-ExecStart=podman unshare ${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d
+ExecStart=podman unshare ${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d --wait
 ExecStop=podman unshare ${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} down
  
 [Install]
