@@ -7,7 +7,7 @@ on:
 jobs:
   push_to_docker_hub:
     runs-on: ubuntu-latest
-    if: "(github.repository == 'exastro-suite/exastro-docker-compose' && github.ref_name != 'main')"
+    if: "(github.repository == 'exastro-suite/exastro-docker-compose' && github.ref_name == 'main')"
     steps:
     - name: Check out repository
       uses: actions/checkout@v2
