@@ -28,8 +28,8 @@ services:
       - ./mariadb/conf/custom.cnf:/etc/mysql/conf.d/custom.cnf
     environment:
       TZ: ${TZ:-Asia/Tokyo}
-      MARIADB_ROOT_PASSWORD: ${DB_ADMIN_PASSWORD:-}
-      MYSQL_ROOT_PASSWORD: ${DB_ADMIN_PASSWORD:-}
+      MARIADB_ROOT_PASSWORD: ${DB_ADMIN_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ADMIN_PASSWORD}
     # ports:
     #   - "0.0.0.0:${DB_PORT:-3306}:3306"
     networks:
@@ -70,7 +70,7 @@ services:
         postgresql['checkpoint_timeout'] = "10min"
         external_url '${GITLAB_PROTOCOL:-http}://${GITLAB_HOST:-localhost}:${GITLAB_PORT:-40080}'
         nginx['listen_port'] = 40080
-        gitlab_rails['initial_root_password'] = "${GITLAB_ROOT_PASSWORD:-}"
+        gitlab_rails['initial_root_password'] = "${GITLAB_ROOT_PASSWORD}"
         gitlab_rails['registry_enabled'] = false;
         gitlab_rails['db_prepared_statements'] = false;
         gitlab_rails['monitoring_whitelist'] = ['0.0.0.0/0']
@@ -86,8 +86,8 @@ services:
         sleep 1
         done
         echo "GitLab service started normally"
-        curl -Ssf -H "PRIVATE-TOKEN: ${GITLAB_ROOT_TOKEN:-}" "http://localhost:40080/api/v4/version" || (
-          gitlab-rails runner "token = User.find_by_username('root').personal_access_tokens.create(scopes: [:api, :write_repository, :sudo], name: 'exastro system token'); token.set_token('${GITLAB_ROOT_TOKEN:-}'); token.save!"
+        curl -Ssf -H "PRIVATE-TOKEN: ${GITLAB_ROOT_TOKEN}" "http://localhost:40080/api/v4/version" || (
+          gitlab-rails runner "token = User.find_by_username('root').personal_access_tokens.create(scopes: [:api, :write_repository, :sudo], name: 'exastro system token'); token.set_token('${GITLAB_ROOT_TOKEN}'); token.save!"
         )
         echo "GitLab post reconfigure script ended."
     ports:
@@ -120,7 +120,7 @@ services:
       retries: 200
     environment:
       KEYCLOAK_ADMIN: ${SYSTEM_ADMIN:-admin}
-      KEYCLOAK_ADMIN_PASSWORD: ${SYSTEM_ADMIN_PASSWORD:-}
+      KEYCLOAK_ADMIN_PASSWORD: ${SYSTEM_ADMIN_PASSWORD}
       TZ: ${TZ:-Asia/Tokyo}
       KC_PROXY: passthrough
       KC_HTTP_RELATIVE_PATH: /auth
@@ -129,7 +129,7 @@ services:
       KC_DB_URL_PORT: ${KEYCLOAK_DB_PORT:-3306}
       KC_DB_URL_DATABASE: ${KEYCLOAK_DB_DATABASE:-keycloak}
       KC_DB_USERNAME: ${KEYCLOAK_DB_USER:-keycloak}
-      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
     command:
       # 開発モードで起動
       - start-dev --spi-theme-static-max-age=-1 --spi-theme-cache-themes=false --spi-theme-cache-templates=false
@@ -160,7 +160,7 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
       PYTHONIOENCODING: utf-8
       LISTEN_PORT: 8000
       LISTEN_PORT_PF_MNG: 8001
@@ -194,9 +194,9 @@ services:
       DB_PORT: ${PLATFORM_DB_PORT:-3306}
       DB_DATABASE: ${PLATFORM_DB_DATABASE:-platform}
       DB_ADMIN_USER: ${PLATFORM_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${PLATFORM_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${PLATFORM_DB_ADMIN_PASSWORD}
       DB_USER: ${PLATFORM_DB_USER:-app_user}
-      DB_PASSWORD: ${PLATFORM_DB_PASSWORD:-}
+      DB_PASSWORD: ${PLATFORM_DB_PASSWORD}
     ports:
       - "0.0.0.0:${EXTERNAL_URL_PORT:-80}:8000"
       - "0.0.0.0:${EXTERNAL_URL_MNG_PORT:-81}:8001"
@@ -254,9 +254,9 @@ services:
       DB_PORT: ${PLATFORM_DB_PORT:-3306}
       DB_DATABASE: ${PLATFORM_DB_DATABASE:-platform}
       DB_ADMIN_USER: ${PLATFORM_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${PLATFORM_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${PLATFORM_DB_ADMIN_PASSWORD}
       DB_USER: ${PLATFORM_DB_USER:-app_user}
-      DB_PASSWORD: ${PLATFORM_DB_PASSWORD:-}
+      DB_PASSWORD: ${PLATFORM_DB_PASSWORD}
     networks:
       - exastro
     profiles:
@@ -283,7 +283,7 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
       PYTHONIOENCODING: utf-8
       LISTEN_PORT: 8000
       ITA_API_ADMIN_PROTOCOL: ${ITA_API_ADMIN_PROTOCOL:-http}
@@ -313,9 +313,9 @@ services:
       DB_PORT: ${PLATFORM_DB_PORT:-3306}
       DB_DATABASE: ${PLATFORM_DB_DATABASE:-platform}
       DB_ADMIN_USER: ${PLATFORM_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${PLATFORM_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${PLATFORM_DB_ADMIN_PASSWORD}
       DB_USER: ${PLATFORM_DB_USER:-app_user}
-      DB_PASSWORD: ${PLATFORM_DB_PASSWORD:-}
+      DB_PASSWORD: ${PLATFORM_DB_PASSWORD}
     networks:
       - exastro
     profiles:
@@ -339,7 +339,7 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
       PYTHONIOENCODING: utf-8
       ITA_API_ADMIN_PROTOCOL: ${ITA_API_ADMIN_PROTOCOL:-http}
       ITA_API_ADMIN_HOST: ${ITA_API_ADMIN_HOST:-ita-api-admin}
@@ -351,14 +351,14 @@ services:
       ITA_WEB_HOST: ${ITA_WEB_HOST:-ita-web-server}
       ITA_WEB_PORT: ${ITA_WEB_PORT:-8000}
       KEYCLOAK_DB_DATABASE: ${KEYCLOAK_DB_DATABASE:-keycloak}
-      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
       KEYCLOAK_DB_USER: ${KEYCLOAK_DB_USER:-keycloak}
       KEYCLOAK_PROTOCOL: ${KEYCLOAK_PROTOCOL:-http}
       KEYCLOAK_HOST: ${KEYCLOAK_HOST:-keycloak}
       KEYCLOAK_PORT: ${KEYCLOAK_PORT:-8080}
       KEYCLOAK_MASTER_REALM: ${KEYCLOAK_MASTER_REALM:-Master}
       KEYCLOAK_USER: ${SYSTEM_ADMIN:-admin}
-      KEYCLOAK_PASSWORD: ${SYSTEM_ADMIN_PASSWORD:-}
+      KEYCLOAK_PASSWORD: ${SYSTEM_ADMIN_PASSWORD}
       PLATFORM_API_PROTOCOL: ${PLATFORM_API_PROTOCOL:-http}
       PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
       PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
@@ -370,9 +370,9 @@ services:
       DB_PORT: ${PLATFORM_DB_PORT:-3306}
       DB_DATABASE: ${PLATFORM_DB_DATABASE:-platform}
       DB_ADMIN_USER: ${PLATFORM_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${PLATFORM_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${PLATFORM_DB_ADMIN_PASSWORD}
       DB_USER: ${PLATFORM_DB_USER:-app_user}
-      DB_PASSWORD: ${PLATFORM_DB_PASSWORD:-}
+      DB_PASSWORD: ${PLATFORM_DB_PASSWORD}
     networks:
       - exastro
     profiles:
@@ -396,7 +396,7 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
       PYTHONIOENCODING: utf-8
       ITA_API_ADMIN_PROTOCOL: ${ITA_API_ADMIN_PROTOCOL:-http}
       ITA_API_ADMIN_HOST: ${ITA_API_ADMIN_HOST:-ita-api-admin}
@@ -411,14 +411,14 @@ services:
       API_KEYCLOAK_HOST: ${API_KEYCLOAK_HOST:-keycloak}
       API_KEYCLOAK_PORT: ${API_KEYCLOAK_PORT:-8080}
       KEYCLOAK_DB_DATABASE: ${KEYCLOAK_DB_DATABASE:-keycloak}
-      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-}
+      KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
       KEYCLOAK_DB_USER: ${KEYCLOAK_DB_USER:-keycloak}
       KEYCLOAK_HOST: ${KEYCLOAK_HOST:-keycloak}
       KEYCLOAK_MASTER_REALM: ${KEYCLOAK_MASTER_REALM:-Master}
       KEYCLOAK_PORT: ${KEYCLOAK_PORT:-8080}
       KEYCLOAK_PROTOCOL: ${KEYCLOAK_PROTOCOL:-http}
       KEYCLOAK_USER: ${SYSTEM_ADMIN:-admin}
-      KEYCLOAK_PASSWORD: ${SYSTEM_ADMIN_PASSWORD:-}
+      KEYCLOAK_PASSWORD: ${SYSTEM_ADMIN_PASSWORD}
       PLATFORM_API_PROTOCOL: ${PLATFORM_API_PROTOCOL:-http}
       PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
       PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
@@ -430,9 +430,9 @@ services:
       DB_PORT: ${PLATFORM_DB_PORT:-3306}
       DB_DATABASE: ${PLATFORM_DB_DATABASE:-platform}
       DB_ADMIN_USER: ${PLATFORM_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${PLATFORM_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${PLATFORM_DB_ADMIN_PASSWORD}
       DB_USER: ${PLATFORM_DB_USER:-app_user}
-      DB_PASSWORD: ${PLATFORM_DB_PASSWORD:-}
+      DB_PASSWORD: ${PLATFORM_DB_PASSWORD}
     networks:
       - exastro
     depends_on:
@@ -459,7 +459,7 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
       APACHE_USERNAME: "#${UID:-1000}"
       APACHE_GROUPNAME: "#${HOST_DOCKER_GID:-1000}"
       DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
@@ -467,11 +467,13 @@ services:
       DB_PORT: ${ITA_DB_PORT:-3306}
       DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
       DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
       DB_USER: ${ITA_DB_USER:-ITA_USER}
-      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
+      DB_PASSWORD: ${ITA_DB_PASSWORD}
       PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
       PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      MONGO_HOST: ${MONGO_HOST:-mongodb}
+      MONGO_PORT: ${MONGO_PORT:-27015}
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
       LISTEN_PORT: 8080
@@ -500,7 +502,7 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
       APACHE_USERNAME: "#${UID:-1000}"
       APACHE_GROUPNAME: "#${HOST_DOCKER_GID:-1000}"
       DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
@@ -508,15 +510,19 @@ services:
       DB_PORT: ${ITA_DB_PORT:-3306}
       DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
       DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
       DB_USER: ${ITA_DB_USER:-ITA_USER}
-      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
+      DB_PASSWORD: ${ITA_DB_PASSWORD}
       GITLAB_PROTOCOL: ${GITLAB_PROTOCOL:-http}
       GITLAB_HOST: ${GITLAB_HOST:-}
       GITLAB_PORT: ${GITLAB_PORT:-40080}
-      GITLAB_ROOT_TOKEN: ${GITLAB_ROOT_TOKEN:-}
+      GITLAB_ROOT_TOKEN: ${GITLAB_ROOT_TOKEN}
       PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
       PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      MONGO_HOST: ${MONGO_HOST:-mongodb}
+      MONGO_PORT: ${MONGO_PORT:-27015}
+      MONGO_ADMIN_USER: ${MONGO_ADMIN_USER:-adminer}
+      MONGO_ADMIN_PASSWORD: ${MONGO_ADMIN_PASSWORD}
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
       LISTEN_PORT: 8080
@@ -545,7 +551,7 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
       APACHE_USERNAME: "#${UID:-1000}"
       APACHE_GROUPNAME: "#${HOST_DOCKER_GID:-1000}"
       DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
@@ -553,9 +559,9 @@ services:
       DB_PORT: ${ITA_DB_PORT:-3306}
       DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
       DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
       DB_USER: ${ITA_DB_USER:-ITA_USER}
-      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
+      DB_PASSWORD: ${ITA_DB_PASSWORD}
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
       LISTEN_PORT: 8000
@@ -582,7 +588,7 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
       EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
       ANSIBLE_AGENT_IMAGE: ${ANSIBLE_AGENT_IMAGE:-exastro/exastro-it-automation-by-ansible-agent}
       ANSIBLE_AGENT_IMAGE_TAG: ${ANSIBLE_AGENT_IMAGE_TAG:-2.2.1}
@@ -594,13 +600,13 @@ services:
       DB_PORT: ${ITA_DB_PORT:-3306}
       DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
       DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
       DB_USER: ${ITA_DB_USER:-ITA_USER}
-      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
+      DB_PASSWORD: ${ITA_DB_PASSWORD}
       GITLAB_PROTOCOL: ${GITLAB_PROTOCOL:-http}
       GITLAB_HOST: ${GITLAB_HOST:-}
       GITLAB_PORT: ${GITLAB_PORT:-40080}
-      GITLAB_ROOT_TOKEN: ${GITLAB_ROOT_TOKEN:-}
+      GITLAB_ROOT_TOKEN: ${GITLAB_ROOT_TOKEN}
       PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
       PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
       CONTAINER_BASE: docker
@@ -643,7 +649,7 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
       EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
@@ -654,9 +660,9 @@ services:
       DB_PORT: ${ITA_DB_PORT:-3306}
       DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
       DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
       DB_USER: ${ITA_DB_USER:-ITA_USER}
-      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
+      DB_PASSWORD: ${ITA_DB_PASSWORD}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -685,7 +691,7 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
       EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
@@ -696,9 +702,9 @@ services:
       DB_PORT: ${ITA_DB_PORT:-3306}
       DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
       DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
       DB_USER: ${ITA_DB_USER:-ITA_USER}
-      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
+      DB_PASSWORD: ${ITA_DB_PASSWORD}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -727,7 +733,7 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
       EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
@@ -738,9 +744,9 @@ services:
       DB_PORT: ${ITA_DB_PORT:-3306}
       DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
       DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
       DB_USER: ${ITA_DB_USER:-ITA_USER}
-      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
+      DB_PASSWORD: ${ITA_DB_PASSWORD}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -769,7 +775,7 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
       EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
@@ -780,9 +786,9 @@ services:
       DB_PORT: ${ITA_DB_PORT:-3306}
       DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
       DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
       DB_USER: ${ITA_DB_USER:-ITA_USER}
-      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
+      DB_PASSWORD: ${ITA_DB_PASSWORD}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -811,7 +817,7 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
       EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
@@ -822,9 +828,9 @@ services:
       DB_PORT: ${ITA_DB_PORT:-3306}
       DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
       DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
       DB_USER: ${ITA_DB_USER:-ITA_USER}
-      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
+      DB_PASSWORD: ${ITA_DB_PASSWORD}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -853,7 +859,7 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
       EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
@@ -864,9 +870,9 @@ services:
       DB_PORT: ${ITA_DB_PORT:-3306}
       DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
       DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
       DB_USER: ${ITA_DB_USER:-ITA_USER}
-      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
+      DB_PASSWORD: ${ITA_DB_PASSWORD}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -895,7 +901,7 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
       EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
@@ -906,9 +912,9 @@ services:
       DB_PORT: ${ITA_DB_PORT:-3306}
       DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
       DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
       DB_USER: ${ITA_DB_USER:-ITA_USER}
-      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
+      DB_PASSWORD: ${ITA_DB_PASSWORD}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -937,7 +943,7 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
       EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
@@ -948,9 +954,9 @@ services:
       DB_PORT: ${ITA_DB_PORT:-3306}
       DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
       DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
       DB_USER: ${ITA_DB_USER:-ITA_USER}
-      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
+      DB_PASSWORD: ${ITA_DB_PASSWORD}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -979,7 +985,7 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
       EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
@@ -990,9 +996,9 @@ services:
       DB_PORT: ${ITA_DB_PORT:-3306}
       DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
       DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
       DB_USER: ${ITA_DB_USER:-ITA_USER}
-      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
+      DB_PASSWORD: ${ITA_DB_PASSWORD}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -1021,7 +1027,7 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
       EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
@@ -1032,9 +1038,9 @@ services:
       DB_PORT: ${ITA_DB_PORT:-3306}
       DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
       DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
       DB_USER: ${ITA_DB_USER:-ITA_USER}
-      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
+      DB_PASSWORD: ${ITA_DB_PASSWORD}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -1063,7 +1069,7 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
       EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
@@ -1074,9 +1080,9 @@ services:
       DB_PORT: ${ITA_DB_PORT:-3306}
       DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
       DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
       DB_USER: ${ITA_DB_USER:-ITA_USER}
-      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
+      DB_PASSWORD: ${ITA_DB_PASSWORD}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -1105,7 +1111,7 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
       EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
@@ -1116,9 +1122,9 @@ services:
       DB_PORT: ${ITA_DB_PORT:-3306}
       DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
       DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
       DB_USER: ${ITA_DB_USER:-ITA_USER}
-      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
+      DB_PASSWORD: ${ITA_DB_PASSWORD}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -1147,7 +1153,7 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
       EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
@@ -1158,9 +1164,9 @@ services:
       DB_PORT: ${ITA_DB_PORT:-3306}
       DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
       DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
       DB_USER: ${ITA_DB_USER:-ITA_USER}
-      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
+      DB_PASSWORD: ${ITA_DB_PASSWORD}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -1189,7 +1195,7 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
       EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
@@ -1200,9 +1206,9 @@ services:
       DB_PORT: ${ITA_DB_PORT:-3306}
       DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
       DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
       DB_USER: ${ITA_DB_USER:-ITA_USER}
-      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
+      DB_PASSWORD: ${ITA_DB_PASSWORD}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -1231,7 +1237,7 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
       EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
@@ -1242,9 +1248,9 @@ services:
       DB_PORT: ${ITA_DB_PORT:-3306}
       DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
       DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
       DB_USER: ${ITA_DB_USER:-ITA_USER}
-      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
+      DB_PASSWORD: ${ITA_DB_PASSWORD}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -1273,7 +1279,7 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
       EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
@@ -1284,9 +1290,9 @@ services:
       DB_PORT: ${ITA_DB_PORT:-3306}
       DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
       DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
       DB_USER: ${ITA_DB_USER:-ITA_USER}
-      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
+      DB_PASSWORD: ${ITA_DB_PASSWORD}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -1315,7 +1321,7 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
       EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
@@ -1326,9 +1332,9 @@ services:
       DB_PORT: ${ITA_DB_PORT:-3306}
       DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
       DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
       DB_USER: ${ITA_DB_USER:-ITA_USER}
-      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
+      DB_PASSWORD: ${ITA_DB_PASSWORD}
     volumes:
       - vol-ita-storage:/storage
     networks:
@@ -1351,7 +1357,7 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
       EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
@@ -1362,15 +1368,139 @@ services:
       DB_PORT: ${ITA_DB_PORT:-3306}
       DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
       DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
       DB_USER: ${ITA_DB_USER:-ITA_USER}
-      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
+      DB_PASSWORD: ${ITA_DB_PASSWORD}
     volumes:
       - vol-ita-storage:/storage
     networks:
       - exastro
     profiles:
       - batch
+    logging:
+      driver: json-file
+      options:
+        max-size: ${LOGGING_MAX_SIZE:-10m}
+        max-file: '${LOGGING_MAX_FILE:-10}'
+
+  ita-api-oase-receiver:
+    image: exastro/exastro-it-automation-api-oase-receiver:${ITA_VERSION:-alpha.40f442.20231204-094457}
+    container_name: ita-api-oase-receiver
+    hostname: ita-api-oase-receiver
+    restart: always
+    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
+    environment:
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
+      APACHE_USERNAME: "#${UID:-1000}"
+      APACHE_GROUPNAME: "#${HOST_DOCKER_GID:-1000}"
+      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
+      DB_HOST: ${ITA_DB_HOST:-mariadb}
+      DB_PORT: ${ITA_DB_PORT:-3306}
+      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
+      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
+      DB_USER: ${ITA_DB_USER:-ITA_USER}
+      DB_PASSWORD: ${ITA_DB_PASSWORD}
+      MONGO_HOST: ${MONGO_HOST:-mongodb}
+      MONGO_PORT: ${MONGO_PORT:-27015}
+      MONGO_ADMIN_USER: ${MONGO_ADMIN_USER:-adminer}
+      MONGO_ADMIN_PASSWORD: ${MONGO_ADMIN_PASSWORD}
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      CONTAINER_BASE: docker
+      STORAGEPATH: /storage/
+      LISTEN_PORT: 8000
+    networks:
+      - exastro
+    profiles:
+      - ita
+      - web
+      - except-gitlab
+      - all
+      - oase
+    logging:
+      driver: json-file
+      options:
+        max-size: ${LOGGING_MAX_SIZE:-10m}
+        max-file: '${LOGGING_MAX_FILE:-10}'
+
+  ita-by-oase-conclusion:
+    image: exastro/exastro-it-automation-by-oase-conclusion:${ITA_VERSION:-alpha.40f442.20231204-094457}
+    container_name: ita-by-oase-conclusion
+    hostname: ita-by-oase-conclusion
+    restart: always
+    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
+    environment:
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
+      EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
+      CONTAINER_BASE: docker
+      STORAGEPATH: /storage/
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
+      DB_HOST: ${ITA_DB_HOST:-mariadb}
+      DB_PORT: ${ITA_DB_PORT:-3306}
+      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
+      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
+      DB_USER: ${ITA_DB_USER:-ITA_USER}
+      DB_PASSWORD: ${ITA_DB_PASSWORD}
+      MONGO_HOST: ${MONGO_HOST:-mongodb}
+      MONGO_PORT: ${MONGO_PORT:-27015}
+      MONGO_ADMIN_USER: ${MONGO_ADMIN_USER:-adminer}
+      MONGO_ADMIN_PASSWORD: ${MONGO_ADMIN_PASSWORD}
+    volumes:
+      - vol-ita-storage:/storage
+    networks:
+      - exastro
+    depends_on:
+      ita-migration:
+        condition: service_completed_successfully
+      ita-mongodb:
+        condition: service_healthy
+    profiles:
+      - ita
+      - backyard
+      - except-gitlab
+      - all
+      - oase
+    logging:
+      driver: json-file
+      options:
+        max-size: ${LOGGING_MAX_SIZE:-10m}
+        max-file: '${LOGGING_MAX_FILE:-10}'
+
+  mongodb:
+    image: mongo:${MONGO_VERSION:-6.0.7}
+    container_name: mongodb
+    hostname: mongodb
+    restart: always
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh mongodb://127.0.0.1:27017/test || exit 1
+      interval: 3s
+      retries: 200
+    volumes:
+      - vol-mongo-data:/data/db
+      # - ./mongodb/conf/mongod.conf:/etc/mongodb/conf/mongod.conf
+    environment:
+      TZ: ${TZ:-Asia/Tokyo}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+    # ports:
+    #   - "0.0.0.0:${DB_PORT:-3306}:3306"
+    networks:
+      - exastro
+    profiles:
+      - ita
+      - except-gitlab
+      - all
+      - oase
     logging:
       driver: json-file
       options:
@@ -1394,11 +1524,11 @@ services:
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY:-}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
       GITLAB_HOST: ${GITLAB_HOST:-}
       GITLAB_PORT: ${GITLAB_PORT:-40080}
       GITLAB_PROTOCOL: ${GITLAB_PROTOCOL:-http}
-      GITLAB_ROOT_TOKEN: ${GITLAB_ROOT_TOKEN:-}
+      GITLAB_ROOT_TOKEN: ${GITLAB_ROOT_TOKEN}
       STORAGEPATH: /storage/
       PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
       PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
@@ -1407,9 +1537,9 @@ services:
       DB_PORT: ${ITA_DB_PORT:-3306}
       DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
       DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD:-}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
       DB_USER: ${ITA_DB_USER:-ITA_USER}
-      DB_PASSWORD: ${ITA_DB_PASSWORD:-}
+      DB_PASSWORD: ${ITA_DB_PASSWORD}
     volumes:
       - vol-ita-storage:/storage:rw
     networks:
@@ -1463,6 +1593,12 @@ volumes:
       type: 'none'
       o: 'bind'
       device: ${PWD}/.volumes/storage
+  vol-mongo-data:
+    driver: local
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: ${PWD}/.volumes/mongo/data
 
 networks:
   exastro:
