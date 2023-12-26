@@ -14,7 +14,7 @@
 version: '3.7'
 services:
   ita-ag-oase:
-    image: exastro/exastro-it-automation-ag-oase:${ITA_VERSION:-alpha.95e64a.20231204-144504}
+    image: exastro/exastro-it-automation-ag-oase:${ITA_VERSION:-2.3.0}
     container_name: ${AGENT_NAME:-ita-oase-agent-01}
     hostname: ${AGENT_NAME:-ita-oase-agent-01}
     restart: always
@@ -50,6 +50,6 @@ volumes:
       o: 'bind'
       device: ${PWD}/.volumes/storage
 
-# networks:
-#   exastro:
-#     name: "exastro_${NETWORK_ID}"
+networks:
+  exastro:
+    name: "exastro_${NETWORK_ID:-ita-oase-agent-01}"
