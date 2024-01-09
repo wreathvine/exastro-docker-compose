@@ -109,6 +109,37 @@ services:
         max-size: ${LOGGING_MAX_SIZE:-10m}
         max-file: '${LOGGING_MAX_FILE:-10}'
 
+  mongodb:
+    image: mongo:${MONGO_VERSION:-6.0.7}
+    container_name: mongodb
+    hostname: mongodb
+    restart: always
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh mongodb://127.0.0.1:27017/test || exit 1
+      interval: 3s
+      retries: 200
+    volumes:
+      - vol-mongodb-data:/data/db
+      # - ./mongodb/conf/mongod.conf:/etc/mongodb/conf/mongod.conf
+    environment:
+      TZ: ${TZ:-Asia/Tokyo}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-adminer}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+    # ports:
+    #   - "0.0.0.0:${MONGO_PORT:-27017}:27017"
+    networks:
+      - exastro
+    profiles:
+      - ita
+      - except-gitlab
+      - all
+      - oase
+    logging:
+      driver: json-file
+      options:
+        max-size: ${LOGGING_MAX_SIZE:-10m}
+        max-file: '${LOGGING_MAX_FILE:-10}'
+
   keycloak:
     image: exastro/keycloak:${PLATFORM_VERSION:-1.7.0}
     container_name: keycloak
@@ -525,7 +556,7 @@ services:
       MONGO_SCHEME: ${MONGO_SCHEME:-mongodb}
       MONGO_HOST: ${MONGO_HOST:-mongodb}
       MONGO_PORT: ${MONGO_PORT:-27017}
-      MONGO_ADMIN_USERNAME: ${MONGO_ADMIN_USERNAME:-adminer}
+      MONGO_ADMIN_USER: ${MONGO_ADMIN_USER:-adminer}
       MONGO_ADMIN_PASSWORD: ${MONGO_ADMIN_PASSWORD}
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
@@ -539,6 +570,50 @@ services:
       - web
       - except-gitlab
       - all
+    logging:
+      driver: json-file
+      options:
+        max-size: ${LOGGING_MAX_SIZE:-10m}
+        max-file: '${LOGGING_MAX_FILE:-10}'
+
+  ita-api-oase-receiver:
+    image: exastro/exastro-it-automation-api-oase-receiver:${ITA_VERSION:-2.3.0}
+    container_name: ita-api-oase-receiver
+    hostname: ita-api-oase-receiver
+    restart: always
+    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
+    environment:
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
+      APACHE_USERNAME: "#${UID:-1000}"
+      APACHE_GROUPNAME: "#${HOST_DOCKER_GID:-1000}"
+      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
+      DB_HOST: ${ITA_DB_HOST:-mariadb}
+      DB_PORT: ${ITA_DB_PORT:-3306}
+      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
+      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
+      DB_USER: ${ITA_DB_USER:-ITA_USER}
+      DB_PASSWORD: ${ITA_DB_PASSWORD}
+      MONGO_OPTION_SSL: ${MONGO_OPTION_SSL:-FALSE}
+      MONGO_SCHEME: ${MONGO_SCHEME:-mongodb}
+      MONGO_HOST: ${MONGO_HOST:-mongodb}
+      MONGO_PORT: ${MONGO_PORT:-27017}
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      CONTAINER_BASE: docker
+      STORAGEPATH: /storage/
+      LISTEN_PORT: 8000
+    networks:
+      - exastro
+    profiles:
+      - ita
+      - web
+      - except-gitlab
+      - all
+      - oase
     logging:
       driver: json-file
       options:
@@ -1315,6 +1390,55 @@ services:
         max-size: ${LOGGING_MAX_SIZE:-10m}
         max-file: '${LOGGING_MAX_FILE:-10}'
 
+  ita-by-oase-conclusion:
+    image: exastro/exastro-it-automation-by-oase-conclusion:${ITA_VERSION:-2.3.0}
+    container_name: ita-by-oase-conclusion
+    hostname: ita-by-oase-conclusion
+    restart: always
+    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
+    environment:
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
+      EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
+      CONTAINER_BASE: docker
+      STORAGEPATH: /storage/
+      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
+      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
+      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
+      DB_HOST: ${ITA_DB_HOST:-mariadb}
+      DB_PORT: ${ITA_DB_PORT:-3306}
+      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
+      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
+      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
+      DB_USER: ${ITA_DB_USER:-ITA_USER}
+      DB_PASSWORD: ${ITA_DB_PASSWORD}
+      MONGO_OPTION_SSL: ${MONGO_OPTION_SSL:-FALSE}
+      MONGO_SCHEME: ${MONGO_SCHEME:-mongodb}
+      MONGO_HOST: ${MONGO_HOST:-mongodb}
+      MONGO_PORT: ${MONGO_PORT:-27017}
+    volumes:
+      - vol-ita-storage:/storage
+    networks:
+      - exastro
+    depends_on:
+      ita-migration:
+        condition: service_completed_successfully
+      # ita-mongodb:
+      #   condition: service_healthy
+    profiles:
+      - ita
+      - backyard
+      - except-gitlab
+      - all
+      - oase
+    logging:
+      driver: json-file
+      options:
+        max-size: ${LOGGING_MAX_SIZE:-10m}
+        max-file: '${LOGGING_MAX_FILE:-10}'
+
   ita-by-execinstance-dataautoclean:
     image: exastro/exastro-it-automation-by-execinstance-dataautoclean:${ITA_VERSION:-2.3.0}
     container_name: ita-by-execinstance-dataautoclean
@@ -1381,130 +1505,6 @@ services:
       - exastro
     profiles:
       - batch
-    logging:
-      driver: json-file
-      options:
-        max-size: ${LOGGING_MAX_SIZE:-10m}
-        max-file: '${LOGGING_MAX_FILE:-10}'
-
-  ita-api-oase-receiver:
-    image: exastro/exastro-it-automation-api-oase-receiver:${ITA_VERSION:-2.3.0}
-    container_name: ita-api-oase-receiver
-    hostname: ita-api-oase-receiver
-    restart: always
-    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
-    environment:
-      TZ: ${TZ:-Asia/Tokyo}
-      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
-      LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY}
-      APACHE_USERNAME: "#${UID:-1000}"
-      APACHE_GROUPNAME: "#${HOST_DOCKER_GID:-1000}"
-      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
-      DB_HOST: ${ITA_DB_HOST:-mariadb}
-      DB_PORT: ${ITA_DB_PORT:-3306}
-      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
-      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
-      DB_USER: ${ITA_DB_USER:-ITA_USER}
-      DB_PASSWORD: ${ITA_DB_PASSWORD}
-      MONGO_OPTION_SSL: ${MONGO_OPTION_SSL:-FALSE}
-      MONGO_SCHEME: ${MONGO_SCHEME:-mongodb}
-      MONGO_HOST: ${MONGO_HOST:-mongodb}
-      MONGO_PORT: ${MONGO_PORT:-27017}
-      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
-      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
-      CONTAINER_BASE: docker
-      STORAGEPATH: /storage/
-      LISTEN_PORT: 8000
-    networks:
-      - exastro
-    profiles:
-      - ita
-      - web
-      - except-gitlab
-      - all
-      - oase
-    logging:
-      driver: json-file
-      options:
-        max-size: ${LOGGING_MAX_SIZE:-10m}
-        max-file: '${LOGGING_MAX_FILE:-10}'
-
-  ita-by-oase-conclusion:
-    image: exastro/exastro-it-automation-by-oase-conclusion:${ITA_VERSION:-2.3.0}
-    container_name: ita-by-oase-conclusion
-    hostname: ita-by-oase-conclusion
-    restart: always
-    user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
-    environment:
-      TZ: ${TZ:-Asia/Tokyo}
-      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
-      LANGUAGE: ${LANGUAGE:-en}
-      ENCRYPT_KEY: ${ENCRYPT_KEY}
-      EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
-      CONTAINER_BASE: docker
-      STORAGEPATH: /storage/
-      PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
-      PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
-      DB_VENDOR: ${ITA_DB_VENDOR:-mariadb}
-      DB_HOST: ${ITA_DB_HOST:-mariadb}
-      DB_PORT: ${ITA_DB_PORT:-3306}
-      DB_DATABASE: ${ITA_DB_DATABASE:-ITA_DB}
-      DB_ADMIN_USER: ${ITA_DB_ADMIN_USER:-root}
-      DB_ADMIN_PASSWORD: ${ITA_DB_ADMIN_PASSWORD}
-      DB_USER: ${ITA_DB_USER:-ITA_USER}
-      DB_PASSWORD: ${ITA_DB_PASSWORD}
-      MONGO_OPTION_SSL: ${MONGO_OPTION_SSL:-FALSE}
-      MONGO_SCHEME: ${MONGO_SCHEME:-mongodb}
-      MONGO_HOST: ${MONGO_HOST:-mongodb}
-      MONGO_PORT: ${MONGO_PORT:-27017}
-    volumes:
-      - vol-ita-storage:/storage
-    networks:
-      - exastro
-    depends_on:
-      ita-migration:
-        condition: service_completed_successfully
-      ita-mongodb:
-        condition: service_healthy
-    profiles:
-      - ita
-      - backyard
-      - except-gitlab
-      - all
-      - oase
-    logging:
-      driver: json-file
-      options:
-        max-size: ${LOGGING_MAX_SIZE:-10m}
-        max-file: '${LOGGING_MAX_FILE:-10}'
-
-  mongodb:
-    image: mongo:${MONGO_VERSION:-6.0.7}
-    container_name: mongodb
-    hostname: mongodb
-    restart: always
-    healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh mongodb://127.0.0.1:27017/test || exit 1
-      interval: 3s
-      retries: 200
-    volumes:
-      - vol-mongo-data:/data/db
-      # - ./mongodb/conf/mongod.conf:/etc/mongodb/conf/mongod.conf
-    environment:
-      TZ: ${TZ:-Asia/Tokyo}
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ADMIN_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ADMIN_PASSWORD}
-    # ports:
-    #   - "0.0.0.0:${MONGO_PORT:-27017}:27017"
-    networks:
-      - exastro
-    profiles:
-      - ita
-      - except-gitlab
-      - all
-      - oase
     logging:
       driver: json-file
       options:
@@ -1597,12 +1597,12 @@ volumes:
       type: 'none'
       o: 'bind'
       device: ${PWD}/.volumes/storage
-  vol-mongo-data:
+  vol-mongodb-data:
     driver: local
     driver_opts:
       type: 'none'
       o: 'bind'
-      device: ${PWD}/.volumes/mongo/data
+      device: ${PWD}/.volumes/mongodb/data
 
 networks:
   exastro:

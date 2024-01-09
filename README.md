@@ -289,12 +289,14 @@ http://gitlab.example.com:40080
 | ORG_ANSIBLE_EXECUTION_LIMIT_DEFAULT     | Exastro システム全体の Movement デフォルト実行数                            | 可                            | 25                                                                                                      |
 | ORG_ANSIBLE_EXECUTION_LIMIT_MAX         | オーガナイゼーションごとの Movement 最大実行数                              | 可                            | 1000                                                                                                    |
 | ORG_ANSIBLE_EXECUTION_LIMIT_DESCRIPTION | Movement 最大実行数の説明文表記                                             | 不要                          | Maximum number of movement executions for organization default                                          |
-| MONGO_VERSION                           | Exastro OASE を利用時のMongoDBのバージョン                       | 可       | 6.0.7                               |
+| MONGO_INITDB_ROOT_USERNAME              | 起動するMongoDBコンテナの管理ユーザー名                           | 可                           | adminer          |
+| MONGO_INITDB_ROOT_PASSWORD              | 起動するMongoDBコンテナの管理ユーザーのパスワード                  | **必須**                     | Ch@ngeMeDBAdm    |
+| MONGO_VERSION                           | Exastro OASE を利用時のMongoDBのバージョン                       | 可                           | 6.0.7            |
 | MONGO_CONNECTION_STRING                 | Exastro OASE 利用時のMongoDBコンテナへの接続文字列                | 可 (外部のデータベース利用時)  |                  |
 | MONGO_OPTION_SSL                        | Exastro OASE 利用時のMongoDBへのSSL接続の使用                    | 可 (外部のデータベース利用時)  | FALSE            |
 | MONGO_SCHEME                            | Exastro OASE 利用時のMongoDBのスキーム                           | 可 (外部のデータベース利用時)  | mongodb          |
 | MONGO_HOST                              | Exastro OASE 利用時のMongoDBのホスト名                           | 可 (外部のデータベース利用時)  | mongodb          |
 | MONGO_PORT                              | Exastro OASE 利用時のMongoDBのポート番号                         | 可 (外部のデータベース利用時)  | 27017            |
-| MONGO_ADMIN_USERNAME                    | Exastro OASE 利用時のMongoDBコンテナの管理ユーザー名              | 可                           | adminer          |
+| MONGO_ADMIN_USER                        | Exastro OASE 利用時のMongoDBコンテナの管理ユーザー名              | 可                           | adminer          |
 | MONGO_ADMIN_PASSWORD                    | Exastro OASE 利用時のMongoDBコンテナの管理ユーザーのパスワード     | **必須**                     | Ch@ngeMeDBAdm    |
 
