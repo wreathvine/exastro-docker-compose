@@ -20,14 +20,15 @@ services:
     restart: always
     user: ${UID:-1000}:${HOST_DOCKER_GID:-1000}
     environment:
-      TZ: Asia/Tokyo
-      DEFAULT_LANGUAGE: en
-      AGENT_NAME: ${AGENT_NAME}
-      ORGANIZATION_ID: ${ORGANIZATION_ID}
-      WORKSPACE_ID: ${WORKSPACE_ID}
-      USERNAME: ${USERNAME}
-      PASSWORD: ${PASSWORD}
-      URL: ${URL}
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      AGENT_NAME: ${AGENT_NAME:-ita-oase-agent-01}
+      ORGANIZATION_ID: ${EXASTRO_ORGANIZATION_ID}
+      WORKSPACE_ID: ${EXASTRO_WORKSPACE_ID}
+      USERNAME: ${EXASTRO_USERNAME}
+      PASSWORD: ${EXASTRO_PASSWORD}
+      URL: ${EXASTRO_URL}
       EVENT_COLLECTION_SETTINGS_NAMES: ${EVENT_COLLECTION_SETTINGS_NAMES}
       ITERATION: ${ITERATION:-500}
       EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-10}
@@ -52,4 +53,4 @@ volumes:
 
 networks:
   exastro:
-    name: "exastro_${NETWORK_ID:-ita-oase-agent-01}"
+    name: "exastro_${NETWORK_ID}"

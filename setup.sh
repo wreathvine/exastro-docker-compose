@@ -17,7 +17,7 @@ PROJECT_DIR="${HOME}/exastro-docker-compose"
 COMPOSE_FILE="${PROJECT_DIR}/docker-compose.yml"
 LOG_FILE="${HOME}/exastro-installation.log"
 ENV_FILE="${PROJECT_DIR}/.env"
-COMPOSE_PROFILES="except-gitlab"
+COMPOSE_PROFILES="minimal"
 if [ -f ${ENV_FILE} ]; then
     . ${ENV_FILE}
 fi
@@ -798,7 +798,31 @@ setup() {
             return 0
         fi
     fi
+
     while true; do
+        COMPOSE_PROFILES=minimal
+
+        read -r -p "Deploy OASE containers? (y/n) [default: y]: " confirm
+        echo ""
+        if echo $confirm | grep -q -e "[nN]" -e "[nN][oO]"; then
+            is_use_oase=false
+        else
+            COMPOSE_PROFILES="${COMPOSE_PROFILES},oase"
+            is_use_oase=true
+        fi
+
+        read -r -p "Deploy GitLab container? (y/n) [default: n]: " confirm
+        echo ""
+        if echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"; then
+            COMPOSE_PROFILES="${COMPOSE_PROFILES},gitlab"
+            is_use_gitlab=true
+        else
+            is_use_gitlab=false
+        fi
+
+        if "${is_use_oase}" && "${is_use_gitlab}"; then
+            COMPOSE_PROFILES="all"
+        fi
 
         read -r -p "Generate all password and token automatically.? (y/n) [default: y]: " confirm
         echo ""
@@ -820,7 +844,7 @@ setup() {
                 fi
             done
             while true; do
-                read -r -p "Database password: " password1
+                read -r -p "MariaDB password: " password1
                 echo ""
                 if [ "$password1" = "" ]; then
                     echo "Invalid password!!"
@@ -906,12 +930,32 @@ setup() {
             HOST_DOCKER_SOCKET_PATH="/var/run/docker.sock"
         fi
 
+        MONGO_INITDB_ROOT_PASSWORD="None"
+        MONGO_ADMIN_PASSWORD="None"
+        if "${is_use_oase}"; then
+            if [ ${PWD_METHOD} = "manually" ]; then
+                while true; do
+                    read -r -p "MongoDB password: " password1
+                    echo ""
+                    if [ "$password1" = "" ]; then
+                        echo "Invalid password!!"
+                        continue
+                    else
+                        MONGO_INITDB_ROOT_PASSWORD=$password1
+                        MONGO_ADMIN_PASSWORD=$password1
+                        break
+                    fi
+                done
+            else
+                password1=$(generate_password 12)
+                MONGO_INITDB_ROOT_PASSWORD=${password1}
+                MONGO_ADMIN_PASSWORD=${password1}
+            fi
+        fi
+
         GITLAB_ROOT_PASSWORD="None"
         GITLAB_ROOT_TOKEN="None"
-        read -r -p "Deploy GitLab container? (y/n) [default: n]: " confirm
-        echo ""
-        if echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"; then
-            COMPOSE_PROFILES=all
+        if "${is_use_gitlab}"; then
             GITLAB_PORT="40080"
             if [ ${PWD_METHOD} = "manually" ]; then
                 while true; do
@@ -943,24 +987,24 @@ setup() {
                 GITLAB_ROOT_PASSWORD=$password1
                 GITLAB_ROOT_TOKEN=$password2
             fi
-        else
-            COMPOSE_PROFILES=except-gitlab
         fi
 
         cat <<_EOF_
-    
+
 
 System parametes are bellow.
 
 System administrator password:    ********
-Database password:                ********
+MariaDB password:                 ********
+OASE deployment:                  $(if "${is_use_oase}"; then echo "true"; else echo "false"; fi)
+MongoDB password:                 ********
 Service URL:                      ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${EXTERNAL_URL_PORT}
 Manegement URL:                   ${EXTERNAL_URL_MNG_PROTOCOL}://${EXTERNAL_URL_MNG_HOST}:${EXTERNAL_URL_MNG_PORT}
 Docker GID:                       ${HOST_DOCKER_GID}
 Docker Socket path:               ${HOST_DOCKER_SOCKET_PATH}
-GitLab deployment:                $(if [ ${COMPOSE_PROFILES} = "all" ]; then echo "true"; else echo "false"; fi)
+GitLab deployment:                $(if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then echo "true"; else echo "false"; fi)
 _EOF_
-        if [ "${COMPOSE_PROFILES}" = "all" ]; then
+        if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then
             cat <<_EOF_
 GitLab URL:                       ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${GITLAB_PORT}
 GitLab root password:             ********
@@ -979,12 +1023,13 @@ _EOF_
         if echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"; then
             info "Generate settig file [${PWD}/.env]."
             info "System administrator password:    ********"
-            info "Database password:                ********"
+            info "MariaDB password:                 ********"
+            info "MongoDB password:                 ********"
             info "Service URL:                      ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${EXTERNAL_URL_PORT}"
             info "Manegement URL:                   ${EXTERNAL_URL_MNG_PROTOCOL}://${EXTERNAL_URL_MNG_HOST}:${EXTERNAL_URL_MNG_PORT}"
             info "Docker GID:                       ${HOST_DOCKER_GID}"
             info "Docker Socket path:               ${HOST_DOCKER_SOCKET_PATH}"
-            if [ "${COMPOSE_PROFILES}" = "all" ]; then
+            if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then
                 info "GitLab URL:                       ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${GITLAB_PORT}"
                 info "GitLab root password:             ********"
                 info "GitLab root token:                ********"
@@ -1022,7 +1067,9 @@ generate_env() {
     sed -i -e "s/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=${COMPOSE_PROFILES}/" ${ENV_FILE}
     sed -i -e "s/^GITLAB_ROOT_PASSWORD=.*/GITLAB_ROOT_PASSWORD=${GITLAB_ROOT_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^GITLAB_ROOT_TOKEN=.*/GITLAB_ROOT_TOKEN=${GITLAB_ROOT_TOKEN}/" ${ENV_FILE}
-    if [ ${COMPOSE_PROFILES} = "all" ]; then
+    sed -i -e "s/^MONGO_INITDB_ROOT_PASSWORD=.*/MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}/" ${ENV_FILE}
+    sed -i -e "s/^MONGO_ADMIN_PASSWORD=.*/MONGO_ADMIN_PASSWORD=${MONGO_ADMIN_PASSWORD}/" ${ENV_FILE}
+    if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then
         sed -i -e "s/^GITLAB_HOST=.*/GITLAB_HOST=${EXTERNAL_URL_HOST}/" ${ENV_FILE}
         sed -i -e "/^# GITLAB_PORT=.*/a GITLAB_PORT=${GITLAB_PORT}" ${ENV_FILE}
     fi
@@ -1101,7 +1148,7 @@ installtion_firewall_rules() {
         sudo firewall-cmd --add-port=${EXTERNAL_URL_PORT}/tcp --zone=public --permanent
         info "Add ${EXTERNAL_URL_MNG_PORT}/tcp for external management port."
         sudo firewall-cmd --add-port=${EXTERNAL_URL_MNG_PORT}/tcp --zone=public --permanent
-        if [ ${COMPOSE_PROFILES} = "all" ]; then
+        if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then
             info "Add ${GITLAB_PORT}/tcp for external GitLab port."
             sudo firewall-cmd --add-port=${GITLAB_PORT}/tcp --zone=public --permanent
         fi
@@ -1112,7 +1159,7 @@ installtion_firewall_rules() {
         sudo ufw allow ${EXTERNAL_URL_PORT}/tcp
         info "Add ${EXTERNAL_URL_MNG_PORT}/tcp for external management port."
         sudo ufw allow ${EXTERNAL_URL_MNG_PORT}/tcp
-        if [ ${COMPOSE_PROFILES} = "all" ]; then
+        if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then
             info "Add ${GITLAB_PORT}/tcp for external GitLab port."
             sudo ufw allow ${GITLAB_PORT}/tcp
         fi
@@ -1167,7 +1214,7 @@ Organization page:
   URL:                ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${EXTERNAL_URL_PORT}/{{ Organization ID }}/platform
 
 _EOF_
-    if [ "${COMPOSE_PROFILES}" = "all" ]; then
+    if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then
         cat <<_EOF_
 
 
@@ -1352,7 +1399,7 @@ remove_firewall_rules() {
         sudo firewall-cmd --remove-port=${EXTERNAL_URL_PORT}/tcp --zone=public --permanent
         info "Remove ${EXTERNAL_URL_MNG_PORT}/tcp for external management port."
         sudo firewall-cmd --remove-port=${EXTERNAL_URL_MNG_PORT}/tcp --zone=public --permanent
-        if [ ${COMPOSE_PROFILES} = "all" ]; then
+        if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then
             info "Remove ${GITLAB_PORT}/tcp for external GitLab port."
             sudo firewall-cmd --remove-port=${GITLAB_PORT}/tcp --zone=public --permanent
         fi
@@ -1363,7 +1410,7 @@ remove_firewall_rules() {
         sudo ufw deny ${EXTERNAL_URL_PORT}/tcp
         info "Remove ${EXTERNAL_URL_MNG_PORT}/tcp for external management port."
         sudo ufw deny ${EXTERNAL_URL_MNG_PORT}/tcp
-        if [ ${COMPOSE_PROFILES} = "all" ]; then
+        if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then
             info "Remove ${GITLAB_PORT}/tcp for external GitLab port."
             sudo ufw deny ${GITLAB_PORT}/tcp
         fi
@@ -1388,6 +1435,7 @@ remove_exastro_data() {
     sudo rm -rf ${PROJECT_DIR}/.volumes/gitlab/config/*
     sudo rm -rf ${PROJECT_DIR}/.volumes/gitlab/data/*
     sudo rm -rf ${PROJECT_DIR}/.volumes/gitlab/logs/*
+    sudo rm -rf ${PROJECT_DIR}/.volumes/mongo/data/*
     yes | docker system prune
 }
 
