@@ -107,9 +107,10 @@ docker-compose --profile all up -d  --wait
 | プロファイル名                 | 対象となるコンテナ                                 | スケーリング                 |
 | ------------------------------ | -------------------------------------------------- | ---------------------------- |
 | *all*                          | すべてのコンテナ(batchを除く)                      |                              |
-| *except-gitlab* （デフォルト） | GitLab 以外のすべてのコンテナ(batchを除く)         |                              |
-| *common*                       | MariaDB、GitLab、Keycloak コンテナ                 | 不可 (対応予定)              |
+| *minimal*                      | GitLab、OASE関連、MongoDB 以外のすべてのコンテナ(batchを除く) |                    |
+| *common*                       | MariaDB、GitLab、Keycloak、MongoDB コンテナ        | 不可 (対応予定)              |
 | *mariadb*                      | MariaDB コンテナ                                   | 不可 (対応予定)              |
+| *mongo*                        | MongoDB コンテナ                                   | 不可 (対応予定)              |
 | *gitlab*                       | GitLab コンテナ                                    | 不可 (対応予定)              |
 | *keycloak*                     | Keycloak コンテナ                                  | 不可 (対応予定)              |
 | *platform*                     | Exastro Platform 関連のコンテナ                    | 可能                         |
@@ -117,17 +118,17 @@ docker-compose --profile all up -d  --wait
 | *web*                          | Web 系のコンテナ                                   | 可能                         |
 | *migration*                    | インストール・アップグレード用コンテナ             | 不可 (必ず同時に1つのみ起動) |
 | *backyard*                     | Backyard 関連のコンテナ                            | 不可 (対応予定)              |
-| *oase*                         | OASE 関連のコンテナ                                | 不可 (対応予定)              |
+| *oase*                         | OASE 関連のコンテナとMongoDB コンテナ            | 不可 (対応予定)              |
 | *batch*                        | バッチ処理関連のコンテナ(Crontabに登録が必要)      | 不可 (不要)                  |
 
-以下の例では、**except-gitlab** プロファイルを指定することで、Gitlabを個別に用意する場合のコンテナの起動方法です。
+以下の例では、**minimal** プロファイルを指定することで、Exastro IT Automationを利用する上で、最低限必要なコンテナのみを起動する方法をご紹介します。
 
 ```shell
 # docker コマンドを利用する場合(Docker環境)
-docker compose --profile except-gitlab up -d  --wait
+docker compose --profile minimal up -d  --wait
 
 # docker-compose コマンドを利用する場合(Podman環境)
-docker-compose --profile except-gitlab up -d  --wait
+docker-compose --profile minimal up -d  --wait
 ```  
 
 ## Crontabの設定例
@@ -289,14 +290,13 @@ http://gitlab.example.com:40080
 | ORG_ANSIBLE_EXECUTION_LIMIT_DEFAULT     | Exastro システム全体の Movement デフォルト実行数                            | 可                            | 25                                                                                                      |
 | ORG_ANSIBLE_EXECUTION_LIMIT_MAX         | オーガナイゼーションごとの Movement 最大実行数                              | 可                            | 1000                                                                                                    |
 | ORG_ANSIBLE_EXECUTION_LIMIT_DESCRIPTION | Movement 最大実行数の説明文表記                                             | 不要                          | Maximum number of movement executions for organization default                                          |
+| MONGO_VERSION                           | 起動するMongoDBのバージョン                                      | 可                           | 6.0.7            |
 | MONGO_INITDB_ROOT_USERNAME              | 起動するMongoDBコンテナの管理ユーザー名                           | 可                           | adminer          |
 | MONGO_INITDB_ROOT_PASSWORD              | 起動するMongoDBコンテナの管理ユーザーのパスワード                  | **必須**                     | Ch@ngeMeDBAdm    |
-| MONGO_VERSION                           | Exastro OASE を利用時のMongoDBのバージョン                       | 可                           | 6.0.7            |
-| MONGO_CONNECTION_STRING                 | Exastro OASE 利用時のMongoDBコンテナへの接続文字列                | 可 (外部のデータベース利用時)  |                  |
-| MONGO_OPTION_SSL                        | Exastro OASE 利用時のMongoDBへのSSL接続の使用                    | 可 (外部のデータベース利用時)  | FALSE            |
-| MONGO_SCHEME                            | Exastro OASE 利用時のMongoDBのスキーム                           | 可 (外部のデータベース利用時)  | mongodb          |
-| MONGO_HOST                              | Exastro OASE 利用時のMongoDBのホスト名                           | 可 (外部のデータベース利用時)  | mongodb          |
-| MONGO_PORT                              | Exastro OASE 利用時のMongoDBのポート番号                         | 可 (外部のデータベース利用時)  | 27017            |
+| MONGO_OPTION_SSL                        | Exastro OASE 利用時のMongoDBへのSSL接続の使用                    | 可                           | FALSE            |
+| MONGO_SCHEME                            | Exastro OASE 利用時のMongoDBのスキーム                           | 可                           | mongodb          |
+| MONGO_HOST                              | Exastro OASE 利用時のMongoDBのホスト名                           | 可                           | mongodb          |
+| MONGO_PORT                              | Exastro OASE 利用時のMongoDBのポート番号                         | 可                           | 27017            |
 | MONGO_ADMIN_USER                        | Exastro OASE 利用時のMongoDBコンテナの管理ユーザー名              | 可                           | adminer          |
 | MONGO_ADMIN_PASSWORD                    | Exastro OASE 利用時のMongoDBコンテナの管理ユーザーのパスワード     | **必須**                     | Ch@ngeMeDBAdm    |
 

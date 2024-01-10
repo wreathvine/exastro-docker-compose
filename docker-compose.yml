@@ -37,7 +37,7 @@ services:
     profiles:
       - mariadb
       - common
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -109,18 +109,18 @@ services:
         max-size: ${LOGGING_MAX_SIZE:-10m}
         max-file: '${LOGGING_MAX_FILE:-10}'
 
-  mongodb:
+  mongo:
     image: mongo:${MONGO_VERSION:-6.0.7}
-    container_name: mongodb
-    hostname: mongodb
+    container_name: mongo
+    hostname: mongo
     restart: always
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh mongodb://127.0.0.1:27017/test || exit 1
       interval: 3s
       retries: 200
     volumes:
-      - vol-mongodb-data:/data/db
-      # - ./mongodb/conf/mongod.conf:/etc/mongodb/conf/mongod.conf
+      - vol-mongo-data:/data/db
+      # - ./mongo/conf/mongod.conf:/etc/mongodb/conf/mongod.conf
     environment:
       TZ: ${TZ:-Asia/Tokyo}
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-adminer}
@@ -130,8 +130,7 @@ services:
     networks:
       - exastro
     profiles:
-      - ita
-      - except-gitlab
+      - mongo
       - all
       - oase
     logging:
@@ -172,7 +171,7 @@ services:
     profiles:
       - keycloak
       - common
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -239,7 +238,7 @@ services:
     profiles:
       - platform
       - web
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -293,7 +292,7 @@ services:
     profiles:
       - platform
       - web
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -352,7 +351,7 @@ services:
     profiles:
       - platform
       - web
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -409,7 +408,7 @@ services:
     profiles:
       - platform
       - migration
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -472,7 +471,7 @@ services:
     profiles:
       - platform
       - migration
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -505,7 +504,7 @@ services:
       PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
       MONGO_OPTION_SSL: ${MONGO_OPTION_SSL:-FALSE}
       MONGO_SCHEME: ${MONGO_SCHEME:-mongodb}
-      MONGO_HOST: ${MONGO_HOST:-mongodb}
+      MONGO_HOST: ${MONGO_HOST:-mongo}
       MONGO_PORT: ${MONGO_PORT:-27017}
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
@@ -517,7 +516,7 @@ services:
     profiles:
       - ita
       - web
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -554,7 +553,7 @@ services:
       PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
       MONGO_OPTION_SSL: ${MONGO_OPTION_SSL:-FALSE}
       MONGO_SCHEME: ${MONGO_SCHEME:-mongodb}
-      MONGO_HOST: ${MONGO_HOST:-mongodb}
+      MONGO_HOST: ${MONGO_HOST:-mongo}
       MONGO_PORT: ${MONGO_PORT:-27017}
       MONGO_ADMIN_USER: ${MONGO_ADMIN_USER:-adminer}
       MONGO_ADMIN_PASSWORD: ${MONGO_ADMIN_PASSWORD}
@@ -568,7 +567,7 @@ services:
     profiles:
       - ita
       - web
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -599,7 +598,7 @@ services:
       DB_PASSWORD: ${ITA_DB_PASSWORD}
       MONGO_OPTION_SSL: ${MONGO_OPTION_SSL:-FALSE}
       MONGO_SCHEME: ${MONGO_SCHEME:-mongodb}
-      MONGO_HOST: ${MONGO_HOST:-mongodb}
+      MONGO_HOST: ${MONGO_HOST:-mongo}
       MONGO_PORT: ${MONGO_PORT:-27017}
       PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
       PLATFORM_API_PORT: ${PLATFORM_API_PORT:-8000}
@@ -609,11 +608,9 @@ services:
     networks:
       - exastro
     profiles:
-      - ita
-      - web
-      - except-gitlab
-      - all
       - oase
+      - web
+      - all
     logging:
       driver: json-file
       options:
@@ -649,7 +646,7 @@ services:
     profiles:
       - ita
       - web
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -710,7 +707,7 @@ services:
     profiles:
       - ita
       - backyard
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -752,7 +749,7 @@ services:
     profiles:
       - ita
       - backyard
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -794,7 +791,7 @@ services:
     profiles:
       - ita
       - backyard
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -836,7 +833,7 @@ services:
     profiles:
       - ita
       - backyard
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -878,7 +875,7 @@ services:
     profiles:
       - ita
       - backyard
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -920,7 +917,7 @@ services:
     profiles:
       - ita
       - backyard
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -962,7 +959,7 @@ services:
     profiles:
       - ita
       - backyard
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -1004,7 +1001,7 @@ services:
     profiles:
       - ita
       - backyard
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -1046,7 +1043,7 @@ services:
     profiles:
       - ita
       - backyard
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -1088,7 +1085,7 @@ services:
     profiles:
       - ita
       - backyard
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -1130,7 +1127,7 @@ services:
     profiles:
       - ita
       - backyard
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -1172,7 +1169,7 @@ services:
     profiles:
       - ita
       - backyard
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -1214,7 +1211,7 @@ services:
     profiles:
       - ita
       - backyard
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -1256,7 +1253,7 @@ services:
     profiles:
       - ita
       - backyard
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -1298,7 +1295,7 @@ services:
     profiles:
       - ita
       - backyard
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -1340,7 +1337,7 @@ services:
     profiles:
       - ita
       - backyard
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -1382,7 +1379,7 @@ services:
     profiles:
       - ita
       - backyard
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -1416,7 +1413,7 @@ services:
       DB_PASSWORD: ${ITA_DB_PASSWORD}
       MONGO_OPTION_SSL: ${MONGO_OPTION_SSL:-FALSE}
       MONGO_SCHEME: ${MONGO_SCHEME:-mongodb}
-      MONGO_HOST: ${MONGO_HOST:-mongodb}
+      MONGO_HOST: ${MONGO_HOST:-mongo}
       MONGO_PORT: ${MONGO_PORT:-27017}
     volumes:
       - vol-ita-storage:/storage
@@ -1425,14 +1422,10 @@ services:
     depends_on:
       ita-migration:
         condition: service_completed_successfully
-      # ita-mongodb:
-      #   condition: service_healthy
     profiles:
-      - ita
-      - backyard
-      - except-gitlab
-      - all
       - oase
+      - backyard
+      - all
     logging:
       driver: json-file
       options:
@@ -1558,7 +1551,7 @@ services:
     profiles:
       - ita
       - migration
-      - except-gitlab
+      - minimal
       - all
     logging:
       driver: json-file
@@ -1597,12 +1590,12 @@ volumes:
       type: 'none'
       o: 'bind'
       device: ${PWD}/.volumes/storage
-  vol-mongodb-data:
+  vol-mongo-data:
     driver: local
     driver_opts:
       type: 'none'
       o: 'bind'
-      device: ${PWD}/.volumes/mongodb/data
+      device: ${PWD}/.volumes/mongo/data
 
 networks:
   exastro:
