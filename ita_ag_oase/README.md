@@ -118,7 +118,7 @@ docker-compose up -d  --wait
 | UID                                 | OASE エージェント の実行ユーザ                              | 不要                   | **1000** (デフォルト): Docker 利用の場合<br>**0**: Podman 利用の場合     |
 | HOST_DOCKER_GID                     | ホスト上の Docker のグループID                             | 不要                    | **999**: Docker 利用の場合<br>**0**: Podman 利用の場合           |
 | AGENT_NAME                          | 起動する OASEエージェントの名前                             | 可                     | ita-oase-agent-01                         |
-| EXASTRO_URL                         | Exastro IT Automation の Service URL                      | **必須**               | http://localhost:30080                    |
+| EXASTRO_URL                         | Exastro IT Automation の Service URL                      | 可                     | http://localhost:30080                    |
 | EXASTRO_ORGANIZATION_ID             | Exastro IT Automation で作成した OrganizationID            | **必須**               | 無し                                      |
 | EXASTRO_WORKSPACE_ID                | Exastro IT Automation で作成した WorkspaceID               | **必須**               | 無し                                      |
 | EXASTRO_USERNAME                    | Exastro IT Automation で作成した ユーザー名                 | 可                     | admin                                     |
