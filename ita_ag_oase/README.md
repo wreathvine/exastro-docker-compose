@@ -1,6 +1,7 @@
-# OASE Agent in Docker Compose  
+# Exastro OASE Agent in Docker Compose  
 ## 概要   
-Docker Compose を利用することで、OASEにデータを送信するためのエージェントを簡単に起動することが可能です。  
+Docker Compose を利用することで、Exastro OASE Agentを簡単に起動することが可能です。  
+  - (based on [exastro-it-automation](https://github.com/exastro-suite/exastro-it-automation))  
 
 ## 前提条件
 
@@ -10,8 +11,8 @@ Docker Compose を利用することで、OASEにデータを送信するため�
 |              |        |
 | ------------ | ------ |
 | CPU          | 2Cores |
-| メモリ       | 8GB    |
-| ディスク容量 | 40GB   |
+| メモリ       | 4GB    |
+| ディスク容量 | 10GB   |
 
 ### ソフトウェア要件 (Docker利用時)
 
@@ -107,7 +108,6 @@ docker-compose up -d  --wait
 
 | パラメータ                           | 説明                                                      | 変更                    | デフォルト値・選択可能な設定値              |
 | ----------------------------------- | --------------------------------------------------------- | ---------------------- | ----------------------------------------- |
-
 | NETWORK_ID                          | OASE エージェント で利用する Docker ネットワークのID         | 可                     | 20230101                       |
 | LOGGING_MAX_SIZE                    | コンテナ毎のログファイルの1ファイルあたりのファイルサイズ      | 可                     | 10m                            |
 | LOGGING_MAX_FILE                    | コンテナ毎のログファイルの世代数                             | 可                     | 10                             |
