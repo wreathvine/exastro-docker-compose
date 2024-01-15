@@ -203,6 +203,9 @@ services:
       ITA_WEB_PROTOCOL: ${ITA_WEB_PROTOCOL:-http}
       ITA_WEB_HOST: ${ITA_WEB_HOST:-ita-web-server}
       ITA_WEB_PORT: ${ITA_WEB_PORT:-8000}
+      ITA_API_OASE_RECEIVER_PROTOCOL: ${ITA_API_ADMIN_PROTOCOL:-http}
+      ITA_API_OASE_RECEIVER_HOST: ${ITA_API_ADMIN_HOST:-ita-api-oase-receiver}
+      ITA_API_OASE_RECEIVER_PORT: ${ITA_API_ADMIN_PORT:-8000}
       API_KEYCLOAK_PROTOCOL: ${API_KEYCLOAK_PROTOCOL:-http}
       API_KEYCLOAK_HOST: ${API_KEYCLOAK_HOST:-keycloak}
       API_KEYCLOAK_PORT: ${API_KEYCLOAK_PORT:-8080}
@@ -351,6 +354,35 @@ services:
     profiles:
       - platform
       - web
+      - minimal
+      - all
+    logging:
+      driver: json-file
+      options:
+        max-size: ${LOGGING_MAX_SIZE:-10m}
+        max-file: '${LOGGING_MAX_FILE:-10}'
+
+  platform-job:
+    image: exastro/exastro-platform-job:${PLATFORM_VERSION:-1.7.0}
+    container_name: platform-job
+    hostname: platform-job
+    restart: always
+    environment:
+      TZ: ${TZ:-Asia/Tokyo}
+      DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
+      LANGUAGE: ${LANGUAGE:-en}
+      ENCRYPT_KEY: ${ENCRYPT_KEY}
+      PYTHONIOENCODING: utf-8
+      DB_VENDOR: ${PLATFORM_DB_VENDOR:-mariadb}
+      DB_HOST: ${PLATFORM_DB_HOST:-mariadb}
+      DB_PORT: ${PLATFORM_DB_PORT:-3306}
+      DB_DATABASE: ${PLATFORM_DB_DATABASE:-platform}
+      DB_USER: ${PLATFORM_DB_USER:-app_user}
+      DB_PASSWORD: ${PLATFORM_DB_PASSWORD}
+    networks:
+      - exastro
+    profiles:
+      - platform
       - minimal
       - all
     logging:
