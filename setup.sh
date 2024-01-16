@@ -1103,8 +1103,8 @@ WorkingDirectory=${PROJECT_DIR}
 ExecStartPre=/usr/bin/podman unshare chown $(id -u):$(id -g) /run/user/$(id -u)/podman/podman.sock
 Environment=DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock
 Environment=PWD=${PROJECT_DIR}
-ExecStart=podman unshare ${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d --wait
-ExecStop=podman unshare ${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} down
+ExecStart=podman unshare ${DOCKER_COMPOSE} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d --wait
+ExecStop=podman unshare ${DOCKER_COMPOSE} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} down
  
 [Install]
 WantedBy=default.target
@@ -1179,7 +1179,7 @@ start_exastro() {
             # pid1=$!
         else
             cd ${PROJECT_DIR}
-            sudo -u $(id -u -n) -E ${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES:-all} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d --wait
+            sudo -u $(id -u -n) -E ${DOCKER_COMPOSE} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d --wait
             # pid1=$!
         fi
     else
@@ -1382,7 +1382,7 @@ remove_service() {
         DOCKER_COMPOSE=$(command -v docker)" compose"
     fi
 
-    ${DOCKER_COMPOSE} --profile all down
+    ${DOCKER_COMPOSE} down
     if [ "${DEP_PATTERN}" = "RHEL8" ]; then
         systemctl --user disable --now exastro
         rm -f ${HOME}/.config/systemd/user/exastro.service
@@ -1429,7 +1429,7 @@ remove_exastro_data() {
         DOCKER_COMPOSE=$(command -v docker)" compose"
     fi
 
-    ${DOCKER_COMPOSE} --profile all down -v
+    ${DOCKER_COMPOSE} down -v
     sudo rm -rf ${PROJECT_DIR}/.volumes/storage/*
     sudo rm -rf ${PROJECT_DIR}/.volumes/mariadb/data/*
     sudo rm -rf ${PROJECT_DIR}/.volumes/gitlab/config/*
