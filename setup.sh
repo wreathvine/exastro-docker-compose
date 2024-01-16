@@ -18,6 +18,8 @@ COMPOSE_FILE="${PROJECT_DIR}/docker-compose.yml"
 LOG_FILE="${HOME}/exastro-installation.log"
 ENV_FILE="${PROJECT_DIR}/.env"
 COMPOSE_PROFILES="minimal"
+is_use_oase=true
+is_use_gitlab=false
 if [ -f ${ENV_FILE} ]; then
     . ${ENV_FILE}
 fi
@@ -1024,7 +1026,9 @@ _EOF_
             info "Generate settig file [${PWD}/.env]."
             info "System administrator password:    ********"
             info "MariaDB password:                 ********"
-            info "MongoDB password:                 ********"
+            if "${is_use_oase}"; then
+                info "MongoDB password:                 ********"
+            fi
             info "Service URL:                      ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${EXTERNAL_URL_PORT}"
             info "Manegement URL:                   ${EXTERNAL_URL_MNG_PROTOCOL}://${EXTERNAL_URL_MNG_HOST}:${EXTERNAL_URL_MNG_PORT}"
             info "Docker GID:                       ${HOST_DOCKER_GID}"
@@ -1067,6 +1071,9 @@ generate_env() {
     sed -i -e "s/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=${COMPOSE_PROFILES}/" ${ENV_FILE}
     sed -i -e "s/^GITLAB_ROOT_PASSWORD=.*/GITLAB_ROOT_PASSWORD=${GITLAB_ROOT_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^GITLAB_ROOT_TOKEN=.*/GITLAB_ROOT_TOKEN=${GITLAB_ROOT_TOKEN}/" ${ENV_FILE}
+    if ! "${is_use_oase}"; then
+        sed -i -e "/^# MONGO_HOST=.*/a MONGO_HOST=" ${ENV_FILE}
+    fi
     sed -i -e "s/^MONGO_INITDB_ROOT_PASSWORD=.*/MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^MONGO_ADMIN_PASSWORD=.*/MONGO_ADMIN_PASSWORD=${MONGO_ADMIN_PASSWORD}/" ${ENV_FILE}
     if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then
@@ -1247,10 +1254,6 @@ _EOF_
 fi
 
     cat<<_EOF_
-
-Run creation organization command:
-   bash ${PROJECT_DIR}/create-organization.sh 
-
 
 ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
 ! ! !   C A U T I O N   ! ! !
