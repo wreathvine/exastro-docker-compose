@@ -1023,7 +1023,7 @@ _EOF_
         read -r -p "Generate .env file by above settings? (y/n) [default: n]: " confirm
         echo ""
         if echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"; then
-            info "Generate settig file [${PWD}/.env]."
+            info "Generate settig file [${ENV_FILE}]."
             info "System administrator password:    ********"
             info "MariaDB password:                 ********"
             if "${is_use_oase}"; then
