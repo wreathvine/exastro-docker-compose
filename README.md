@@ -151,67 +151,31 @@ ita-by-file-autocleanを毎日00時01分、ita-by-file-autocleanを毎日00時02
 
 | 設定項目                      | 設定値                  |
 | ----------------------------- | ----------------------- |
-| システム管理者                | admin                   |
-| システム管理者パスワード      | password                |
+| システム管理者                 | admin                   |
+| システム管理者パスワード        | password                |
 | Organization ID               | sample-org              |
 | Organization 管理者           | admin                   |
-| Organization 管理者パスワード | password                |
+| Organization 管理者パスワード  | password                |
 | EXTERNAL_URL_PROTOCOL         | http                    |
 | EXTERNAL_URL_HOST             | exastro.example.com     |
-| EXTERNAL_URL_PORT             | 81                      |
+| EXTERNAL_URL_PORT             | 30080                   |
 | EXTERNAL_URL_MNG_PROTOCOL     | http                    |
 | EXTERNAL_URL_MNG_HOST         | exastro-mng.example.com |
-| EXTERNAL_URL_MNG_PORT         | 80                      |
+| EXTERNAL_URL_MNG_PORT         | 30081                   |
 | GITLAB_PROTOCOL               | http                    |
 | GITLAB_HOST                   | gitlab.example.com      |
 | GITLAB_PORT                   | 40080                   |
 
 
 ### Organization 作成
-システム管理者用コンソールから作成可能ですが、以下のスクリプトでも作成可能です。
-
-```shell
-BASE64_BASIC=$(echo -n "admin:password" | base64)
-BASE_URL=http://exastro-mng.example.com:81
-
-
-curl -X 'POST' "${BASE_URL}/api/platform/organizations" -H 'accept: application/json' -H "Authorization: Basic ${BASE64_BASIC}" -H 'Content-Type: application/json' -d '{
-  "id": "sample-org",
-  "name": "Sample organization",
-  "organization_managers": [
-    {
-      "username": "admin",
-      "email": "admin@example.com",
-      "firstName": "admin",
-      "lastName": "admin",
-      "credentials": [
-        {
-          "type": "password",
-          "value": "password",
-          "temporary": true
-        }
-      ],
-      "requiredActions": [
-        "UPDATE_PROFILE"
-      ],
-      "enabled": true
-    }
-  ],
-  "plan": {},
-  "options": {
-    "sslRequired": "None"
-  },
-  "optionsIta": {}
-}'
-```
-  
+システム管理者用コンソールから作成可能です。
 
 ### 各ページのURL  
 #### システム管理者用コンソール  
-http://exastro-mng.example.com:81/
+http://exastro-mng.example.com:30081/
   
 #### Organization ページ  
-http://exastro.example.com:80/sample-org/platform/  
+http://exastro.example.com:30080/sample-org/platform/  
   
 #### Gitlab  
 http://gitlab.example.com:40080  
