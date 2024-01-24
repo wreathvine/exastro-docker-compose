@@ -1118,6 +1118,7 @@ WantedBy=default.target
 _EOF_
     systemctl --user daemon-reload
     systemctl --user enable exastro
+    sudo loginctl enable-linger $(id -u -n)
 }
 
 ### Installation job to Crontab
