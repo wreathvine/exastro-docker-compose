@@ -107,28 +107,28 @@ docker-compose --profile all up -d  --wait
 | プロファイル名                 | 対象となるコンテナ                                 | スケーリング                 |
 | ------------------------------ | -------------------------------------------------- | ---------------------------- |
 | *all*                          | すべてのコンテナ(batchを除く)                      |                              |
-| *minimal*                      | GitLab、OASE関連、MongoDB 以外のすべてのコンテナ(batchを除く) |                    |
-| *common*                       | MariaDB、GitLab、Keycloak、MongoDB コンテナ        | 不可 (対応予定)              |
-| *mariadb*                      | MariaDB コンテナ                                   | 不可 (対応予定)              |
-| *mongo*                        | MongoDB コンテナ                                   | 不可 (対応予定)              |
-| *gitlab*                       | GitLab コンテナ                                    | 不可 (対応予定)              |
+| *minimal*                      | Exastro IT Automation、Exastro Platform、Keycloak コンテナ(batchを除く) |                    |
+| *base*                         | Exastro IT Automation、Exastro Platform、Keycloak、MariaDB コンテナ(batchを除く)  |               |
 | *keycloak*                     | Keycloak コンテナ                                  | 不可 (対応予定)              |
-| *platform*                     | Exastro Platform 関連のコンテナ                    | 可能                         |
-| *ita*                          | Exastro IT Automation 関連のコンテナ(batchを除く)  | 一部可能                     |
-| *web*                          | Web 系のコンテナ                                   | 可能                         |
+| *mariadb*                      | MariaDB コンテナ                                   | 不可 (対応予定)              |
+| *gitlab*                       | GitLab コンテナ                                    | 不可 (対応予定)              |
+| *mongo*                        | MongoDB コンテナ                                   | 不可 (対応予定)              |
 | *migration*                    | インストール・アップグレード用コンテナ             | 不可 (必ず同時に1つのみ起動) |
+| *web*                          | Web 系のコンテナ                                   | 可能                         |
 | *backyard*                     | Backyard 関連のコンテナ                            | 不可 (対応予定)              |
-| *oase*                         | OASE 関連のコンテナとMongoDB コンテナ            | 不可 (対応予定)              |
+| *ita*                          | Exastro IT Automation 関連のコンテナ(batchを除く)  | 一部可能                     |
+| *oase*                         | Exastro OASE 関連のコンテナ                        | 不可 (対応予定)              |
+| *platform*                     | Exastro Platform 関連のコンテナ                    | 可能                         |
 | *batch*                        | バッチ処理関連のコンテナ(Crontabに登録が必要)      | 不可 (不要)                  |
 
-以下の例では、**minimal** プロファイルを指定することで、Exastro IT Automationを利用する上で、最低限必要なコンテナのみを起動する方法をご紹介します。
+以下の例では、**base** プロファイルを指定することで、Exastro IT Automationを利用する上で、最低限必要なコンテナのみを起動する方法をご紹介します。
 
 ```shell
 # docker コマンドを利用する場合(Docker環境)
-docker compose --profile minimal up -d  --wait
+docker compose --profile base up -d  --wait
 
 # docker-compose コマンドを利用する場合(Podman環境)
-docker-compose --profile minimal up -d  --wait
+docker-compose --profile base up -d  --wait
 ```  
 
 ## Crontabの設定例
