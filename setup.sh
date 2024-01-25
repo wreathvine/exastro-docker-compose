@@ -17,7 +17,7 @@ PROJECT_DIR="${HOME}/exastro-docker-compose"
 COMPOSE_FILE="${PROJECT_DIR}/docker-compose.yml"
 LOG_FILE="${HOME}/exastro-installation.log"
 ENV_FILE="${PROJECT_DIR}/.env"
-COMPOSE_PROFILES="minimal"
+COMPOSE_PROFILES="base"
 is_use_oase=true
 is_use_gitlab=false
 if [ -f ${ENV_FILE} ]; then
@@ -802,7 +802,7 @@ setup() {
     fi
 
     while true; do
-        COMPOSE_PROFILES=minimal
+        COMPOSE_PROFILES=base
 
         read -r -p "Deploy OASE containers? (y/n) [default: y]: " confirm
         echo ""
@@ -1118,6 +1118,7 @@ WantedBy=default.target
 _EOF_
     systemctl --user daemon-reload
     systemctl --user enable exastro
+    sudo loginctl enable-linger $(id -u -n)
 }
 
 ### Installation job to Crontab

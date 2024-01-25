@@ -35,10 +35,9 @@ services:
     networks:
       - exastro
     profiles:
-      - mariadb
-      - common
-      - minimal
       - all
+      - base
+      - mariadb
     logging:
       driver: json-file
       options:
@@ -100,9 +99,8 @@ services:
     networks:
       - exastro
     profiles:
-      - gitlab
-      - common
       - all
+      - gitlab
     logging:
       driver: json-file
       options:
@@ -130,9 +128,8 @@ services:
     networks:
       - exastro
     profiles:
-      - mongo
       - all
-      - oase
+      - mongo
     logging:
       driver: json-file
       options:
@@ -169,10 +166,10 @@ services:
       platform-migration-1:
         condition: service_completed_successfully
     profiles:
-      - keycloak
-      - common
-      - minimal
       - all
+      - minimal
+      - base
+      - keycloak
     logging:
       driver: json-file
       options:
@@ -239,10 +236,11 @@ services:
       platform-migration-2:
         condition: service_completed_successfully
     profiles:
-      - platform
-      - web
-      - minimal
       - all
+      - minimal
+      - base
+      - web
+      - platform
     logging:
       driver: json-file
       options:
@@ -293,10 +291,11 @@ services:
     networks:
       - exastro
     profiles:
-      - platform
-      - web
-      - minimal
       - all
+      - minimal
+      - base
+      - web
+      - platform
     logging:
       driver: json-file
       options:
@@ -352,10 +351,11 @@ services:
     networks:
       - exastro
     profiles:
-      - platform
-      - web
-      - minimal
       - all
+      - minimal
+      - base
+      - web
+      - platform
     logging:
       driver: json-file
       options:
@@ -382,9 +382,12 @@ services:
     networks:
       - exastro
     profiles:
-      - platform
-      - minimal
       - all
+      - minimal
+      - base
+      - backyard
+      - ita
+      - platform
     logging:
       driver: json-file
       options:
@@ -438,10 +441,11 @@ services:
     networks:
       - exastro
     profiles:
-      - platform
-      - migration
-      - minimal
       - all
+      - minimal
+      - base
+      - migration
+      - platform
     logging:
       driver: json-file
       options:
@@ -501,10 +505,11 @@ services:
       platform-migration-1:
         condition: service_completed_successfully
     profiles:
-      - platform
-      - migration
-      - minimal
       - all
+      - minimal
+      - base
+      - migration
+      - platform
     logging:
       driver: json-file
       options:
@@ -546,10 +551,11 @@ services:
     networks:
       - exastro
     profiles:
-      - ita
-      - web
-      - minimal
       - all
+      - minimal
+      - base
+      - web
+      - ita
     logging:
       driver: json-file
       options:
@@ -597,10 +603,11 @@ services:
     networks:
       - exastro
     profiles:
-      - ita
-      - web
-      - minimal
       - all
+      - minimal
+      - base
+      - web
+      - ita
     logging:
       driver: json-file
       options:
@@ -640,9 +647,11 @@ services:
     networks:
       - exastro
     profiles:
-      - oase
-      - web
       - all
+      - minimal
+      - base
+      - web
+      - ita
     logging:
       driver: json-file
       options:
@@ -676,10 +685,11 @@ services:
     networks:
       - exastro
     profiles:
-      - ita
-      - web
-      - minimal
       - all
+      - minimal
+      - base
+      - web
+      - ita
     logging:
       driver: json-file
       options:
@@ -737,10 +747,11 @@ services:
       ita-migration:
         condition: service_completed_successfully
     profiles:
-      - ita
-      - backyard
-      - minimal
       - all
+      - minimal
+      - base
+      - backyard
+      - ita
     logging:
       driver: json-file
       options:
@@ -779,10 +790,11 @@ services:
       ita-migration:
         condition: service_completed_successfully
     profiles:
-      - ita
-      - backyard
-      - minimal
       - all
+      - minimal
+      - base
+      - backyard
+      - ita
     logging:
       driver: json-file
       options:
@@ -821,10 +833,11 @@ services:
       ita-migration:
         condition: service_completed_successfully
     profiles:
-      - ita
-      - backyard
-      - minimal
       - all
+      - minimal
+      - base
+      - backyard
+      - ita
     logging:
       driver: json-file
       options:
@@ -863,10 +876,11 @@ services:
       ita-migration:
         condition: service_completed_successfully
     profiles:
-      - ita
-      - backyard
-      - minimal
       - all
+      - minimal
+      - base
+      - backyard
+      - ita
     logging:
       driver: json-file
       options:
@@ -905,10 +919,11 @@ services:
       ita-migration:
         condition: service_completed_successfully
     profiles:
-      - ita
-      - backyard
-      - minimal
       - all
+      - minimal
+      - base
+      - backyard
+      - ita
     logging:
       driver: json-file
       options:
@@ -947,10 +962,11 @@ services:
       ita-migration:
         condition: service_completed_successfully
     profiles:
-      - ita
-      - backyard
-      - minimal
       - all
+      - minimal
+      - base
+      - backyard
+      - ita
     logging:
       driver: json-file
       options:
@@ -989,10 +1005,11 @@ services:
       ita-migration:
         condition: service_completed_successfully
     profiles:
-      - ita
-      - backyard
-      - minimal
       - all
+      - minimal
+      - base
+      - backyard
+      - ita
     logging:
       driver: json-file
       options:
@@ -1031,10 +1048,11 @@ services:
       ita-migration:
         condition: service_completed_successfully
     profiles:
-      - ita
-      - backyard
-      - minimal
       - all
+      - minimal
+      - base
+      - backyard
+      - ita
     logging:
       driver: json-file
       options:
@@ -1073,10 +1091,11 @@ services:
       ita-migration:
         condition: service_completed_successfully
     profiles:
-      - ita
-      - backyard
-      - minimal
       - all
+      - minimal
+      - base
+      - backyard
+      - ita
     logging:
       driver: json-file
       options:
@@ -1115,10 +1134,11 @@ services:
       ita-migration:
         condition: service_completed_successfully
     profiles:
-      - ita
-      - backyard
-      - minimal
       - all
+      - minimal
+      - base
+      - backyard
+      - ita
     logging:
       driver: json-file
       options:
@@ -1157,10 +1177,11 @@ services:
       ita-migration:
         condition: service_completed_successfully
     profiles:
-      - ita
-      - backyard
-      - minimal
       - all
+      - minimal
+      - base
+      - backyard
+      - ita
     logging:
       driver: json-file
       options:
@@ -1199,10 +1220,11 @@ services:
       ita-migration:
         condition: service_completed_successfully
     profiles:
-      - ita
-      - backyard
-      - minimal
       - all
+      - minimal
+      - base
+      - backyard
+      - ita
     logging:
       driver: json-file
       options:
@@ -1241,10 +1263,11 @@ services:
       ita-migration:
         condition: service_completed_successfully
     profiles:
-      - ita
-      - backyard
-      - minimal
       - all
+      - minimal
+      - base
+      - backyard
+      - ita
     logging:
       driver: json-file
       options:
@@ -1283,10 +1306,11 @@ services:
       ita-migration:
         condition: service_completed_successfully
     profiles:
-      - ita
-      - backyard
-      - minimal
       - all
+      - minimal
+      - base
+      - backyard
+      - ita
     logging:
       driver: json-file
       options:
@@ -1325,10 +1349,11 @@ services:
       ita-migration:
         condition: service_completed_successfully
     profiles:
-      - ita
-      - backyard
-      - minimal
       - all
+      - minimal
+      - base
+      - backyard
+      - ita
     logging:
       driver: json-file
       options:
@@ -1367,10 +1392,11 @@ services:
       ita-migration:
         condition: service_completed_successfully
     profiles:
-      - ita
-      - backyard
-      - minimal
       - all
+      - minimal
+      - base
+      - backyard
+      - ita
     logging:
       driver: json-file
       options:
@@ -1409,10 +1435,11 @@ services:
       ita-migration:
         condition: service_completed_successfully
     profiles:
-      - ita
-      - backyard
-      - minimal
       - all
+      - minimal
+      - base
+      - backyard
+      - ita
     logging:
       driver: json-file
       options:
@@ -1455,9 +1482,9 @@ services:
       ita-migration:
         condition: service_completed_successfully
     profiles:
-      - oase
-      - backyard
       - all
+      - backyard
+      - oase
     logging:
       driver: json-file
       options:
@@ -1581,10 +1608,11 @@ services:
       platform-migration-2:
         condition: service_completed_successfully
     profiles:
-      - ita
-      - migration
-      - minimal
       - all
+      - minimal
+      - base
+      - migration
+      - ita
     logging:
       driver: json-file
       options:
