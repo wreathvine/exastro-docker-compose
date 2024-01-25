@@ -809,7 +809,7 @@ setup() {
         if echo $confirm | grep -q -e "[nN]" -e "[nN][oO]"; then
             is_use_oase=false
         else
-            COMPOSE_PROFILES="${COMPOSE_PROFILES},oase"
+            COMPOSE_PROFILES="${COMPOSE_PROFILES},oase,mongo"
             is_use_oase=true
         fi
 
