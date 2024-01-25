@@ -116,8 +116,8 @@ docker-compose --profile all up -d  --wait
 | *migration*                    | インストール・アップグレード用コンテナ             | 不可 (必ず同時に1つのみ起動) |
 | *web*                          | Web 系のコンテナ                                   | 可能                         |
 | *backyard*                     | Backyard 関連のコンテナ                            | 不可 (対応予定)              |
-| *ita*                          | Exastro IT Automation 関連のコンテナ(batchを除く)  | 一部可能                     |
-| *oase*                         | Exastro OASE 関連のコンテナ                        | 不可 (対応予定)              |
+| *ita*                          | Exastro IT Automation 関連のコンテナ(batchを除く)   | 一部可能                     |
+| *oase*                         | Exastro OASE 関連のコンテナ(MongoDB コンテナを除く)  | 不可 (対応予定)              |
 | *platform*                     | Exastro Platform 関連のコンテナ                    | 可能                         |
 | *batch*                        | バッチ処理関連のコンテナ(Crontabに登録が必要)      | 不可 (不要)                  |
 
