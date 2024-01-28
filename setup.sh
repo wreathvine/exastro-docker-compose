@@ -246,6 +246,7 @@ _EOF_
         r )
             if [ -f ${ENV_FILE} ]; then
                 banner
+                check_security
                 installation_exastro
             else
                 error "Exasto system in NOT installed."
@@ -721,7 +722,7 @@ installation_podman_on_rhel8() {
     if [ -z "${PROXY}" ]; then
         sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VER}/docker-compose-${OS_TYPE}-${ARCH}" -o /usr/local/bin/docker-compose
     else
-        sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VER}/docker-compose-${OS_TYPE}-${ARCH}" -o /usr/local/bin/docker-compose -x ${PROXY}
+        sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VER}/docker-compose-${OS_TYPE}-${ARCH}" -o /usr/local/bin/docker-compose -x ${https_proxy}
     fi
     sudo chmod a+x /usr/local/bin/docker-compose
 
@@ -735,19 +736,25 @@ installation_podman_on_rhel8() {
     sed -i.$(date +%Y%m%d-%H%M%S) -e 's|^network_backend = "cni"|network_backend = "netavark"|' ${CONTAINERS_CONF}
 
     if [ ! -z "${PROXY}" ]; then
+        if ! (grep -q "^ *http_proxy *=" ${CONTAINERS_CONF}); then
+            sed -i -e '/^#http_proxy = \[\]/a http_proxy = true' ${CONTAINERS_CONF}
+        fi
+        if ! (grep -q "^ *http_proxy *=" ${CONTAINERS_CONF}); then
+            sed -i -e '/^#http_proxy *=.*/a http_proxy = true' ${CONTAINERS_CONF}
+        fi
         if grep -q "^ *env *=" ${CONTAINERS_CONF}; then
             if grep "^ *env *=" ${CONTAINERS_CONF} | grep -q -v "http_proxy"; then
-                sed -i -e 's/\(^ *env *=.*\)\]/\1,"http_proxy='${PROXY//\//\\/}'"]/' ${CONTAINERS_CONF}
+                sed -i -e 's/\(^ *env *=.*\)\]/\1,"http_proxy='${http_proxy//\//\\/}'"]/' ${CONTAINERS_CONF}
             fi
             if grep "^ *env *=" ${CONTAINERS_CONF} | grep -q -v "https_proxy"; then
-                sed -i -e 's/\(^ *env *=.*\)\]/\1,"https_proxy='${PROXY//\//\\/}'"]/' ${CONTAINERS_CONF}
+                sed -i -e 's/\(^ *env *=.*\)\]/\1,"https_proxy='${https_proxy//\//\\/}'"]/' ${CONTAINERS_CONF}
             fi
         else
-            sed -i -e '/^#env = \[\]/a env = ["http_proxy='${PROXY}'","https_proxy='${PROXY}'"]' ${CONTAINERS_CONF}
+            sed -i -e '/^#env = \[\]/a env = ["http_proxy='${http_proxy}'","https_proxy='${https_proxy}'"]' ${CONTAINERS_CONF}
         fi
     fi
 
-    info "Start and enable Podman sockert service"
+    info "Start and enable Podman socket service"
     systemctl --user enable --now podman.socket
     systemctl --user status podman.socket
     podman unshare chown $(id -u):$(id -g) /run/user/$(id -u)/podman/podman.sock
