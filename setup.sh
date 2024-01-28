@@ -560,7 +560,7 @@ check_security() {
     if [ "${SELINUX_STATUS}" = "Enforcing" ]; then
         info "SELinux is now Enforcing."
         SELINUX_STATUS="inactive"
-        if [ "${DEP_PATTERN}" != "RHEL8" ] || [ "${DEP_PATTERN}" != "RHEL9" ]; then
+        if [ "${DEP_PATTERN}" != "RHEL8" ] && [ "${DEP_PATTERN}" != "RHEL9" ]; then
             SELINUX_STATUS="active"
             printf "\r\033[2F\033[K$(date) [INFO]: Checking running security services.............check\n" | tee -a "${LOG_FILE}"
             printf "\r\033[2E\033[K" | tee -a "${LOG_FILE}"
@@ -569,7 +569,7 @@ check_security() {
         SELINUX_STATUS="inactive"
         info "SELinux is not Enforcing."
         SELINUX_STATUS="inactive"
-        if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" != "RHEL9" ]; then
+        if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
             SELINUX_STATUS="active"
             printf "\r\033[2F\033[K$(date) [INFO]: Checking running security services.............ng\n" | tee -a "${LOG_FILE}"
             printf "\r\033[2E\033[K" | tee -a "${LOG_FILE}"
@@ -643,7 +643,7 @@ check_resource() {
         printf "\r\033[2E\033[K" | tee -a "${LOG_FILE}"
     fi
 
-    if [ "${DEP_PATTERN}" != "RHEL8" ] || [ "${DEP_PATTERN}" != "RHEL9" ]; then
+    if [ "${DEP_PATTERN}" != "RHEL8" ] && [ "${DEP_PATTERN}" != "RHEL9" ]; then
         # Check free space of /var
         info "'/var' free space (MiB):      $(df -m /var | awk 'NR==2 {print $4}')"
         if [ $(df -m /var | awk 'NR==2 {print $4}') -lt ${REQUIRED_FREE_FOR_CONTAINER_IMAGE} ]; then
@@ -682,7 +682,7 @@ check_resource() {
 ### Installation container engine
 installation_container_engine() {
     info "Installing container engine..."
-    if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" != "RHEL9" ]; then
+    if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
         installation_podman_on_rhel8
     elif [ "${DEP_PATTERN}" = "AlmaLinux8" ]; then
         installation_docker_on_alamalinux8
@@ -817,7 +817,7 @@ fetch_exastro() {
     if [ ! -d ${PROJECT_DIR} ]; then
         git clone https://github.com/exastro-suite/exastro-docker-compose.git
     fi
-    if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" != "RHEL9" ]; then
+    if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
         podman unshare chown $(id -u):$(id -g) "${PROJECT_DIR}/.volumes/storage/"
         sudo chcon -R -h -t container_file_t "${PROJECT_DIR}"
     fi
@@ -964,7 +964,7 @@ setup() {
             break
         done
 
-        if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" != "RHEL9" ]; then
+        if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
             HOST_DOCKER_GID=1000
             HOST_DOCKER_SOCKET_PATH="/run/user/$(id -ru)/podman/podman.sock"
         else
@@ -1124,7 +1124,7 @@ generate_env() {
 
 ### Installation Exastro
 installation_exastro() {
-    if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" != "RHEL9" ]; then
+    if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
         DOCKER_COMPOSE=$(command -v podman)" unshare docker-compose"
         installation_exastro_on_rhel8
     else
@@ -1222,7 +1222,7 @@ start_exastro() {
     echo ""
     if echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"; then
         echo "Please wait for a little while. It will take 10 minutes or later.........."
-        if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" != "RHEL9" ]; then
+        if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
             systemctl --user start exastro
             # pid1=$!
         else
@@ -1420,14 +1420,14 @@ remove_service() {
     info "Stopping and removing Exastro service..."
     cd ${PROJECT_DIR}
  
-    if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" != "RHEL9" ]; then
+    if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
         DOCKER_COMPOSE=$(command -v podman)" unshare docker-compose"
     else
         DOCKER_COMPOSE=$(command -v docker)" compose"
     fi
 
     ${DOCKER_COMPOSE} down --rmi all
-    if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" != "RHEL9" ]; then
+    if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
         systemctl --user disable --now exastro
         rm -f ${HOME}/.config/systemd/user/exastro.service
         systemctl --user daemon-reload
@@ -1467,7 +1467,7 @@ remove_exastro_data() {
     info "Deleting Exastro system..."
     cd ${PROJECT_DIR}
 
-    if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" != "RHEL9" ]; then
+    if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
         DOCKER_COMPOSE=$(command -v podman)" unshare docker-compose"
     else
         DOCKER_COMPOSE=$(command -v docker)" compose"
