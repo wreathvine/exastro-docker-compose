@@ -14,7 +14,7 @@
 version: '3.7'
 services:
   ita-ag-oase:
-    image: exastro/exastro-it-automation-ag-oase:${ITA_VERSION:-2.3.0}
+    image: docker.io/exastro/exastro-it-automation-ag-oase:${ITA_VERSION:-2.3.0}
     container_name: ${AGENT_NAME:-ita-oase-agent-01}
     hostname: ${AGENT_NAME:-ita-oase-agent-01}
     restart: always

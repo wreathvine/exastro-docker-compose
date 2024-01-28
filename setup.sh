@@ -65,9 +65,15 @@ get_system_info() {
     OS_TYPE=$(uname)
     OS_NAME=$(awk -F= '$1=="NAME" { print $2; }' /etc/os-release | tr -d '"')
     VERSION_ID=$(awk -F= '$1=="VERSION_ID" { print $2; }' /etc/os-release | tr -d '"')
-    if [ "${OS_NAME}" = "Red Hat Enterprise Linux" ]; then
+    if ( echo "${OS_NAME}" | grep -q -e "Red Hat Enterprise Linux" ); then
+        if [ $(expr "${VERSION_ID}" : "^7\..*") != 0 ]; then
+            DEP_PATTERN="RHEL7"
+        fi
         if [ $(expr "${VERSION_ID}" : "^8\..*") != 0 ]; then
             DEP_PATTERN="RHEL8"
+        fi
+        if [ $(expr "${VERSION_ID}" : "^9\..*") != 0 ]; then
+            DEP_PATTERN="RHEL9"
         fi
     elif [ "${OS_NAME}" = "AlmaLinux" ]; then
         if [ $(expr "${VERSION_ID}" : "^8\..*") != 0 ]; then
@@ -240,6 +246,7 @@ _EOF_
         r )
             if [ -f ${ENV_FILE} ]; then
                 banner
+                check_security
                 installation_exastro
             else
                 error "Exasto system in NOT installed."
@@ -514,9 +521,18 @@ check_system() {
     info "NAME:         ${OS_NAME}"
     info "VERSION_ID:   ${VERSION_ID}"
     info "ARCH:         ${ARCH}"
+    PROXY=${http_proxy}
+    sleep 1
+    if [ -z "${PROXY}" ]; then
+        info "PROXY:        None"
+    else
+        info "PROXY:        ${PROXY}"
+    fi
 
     case "${DEP_PATTERN}" in
         RHEL8 )
+            ;;
+        RHEL9 )
             ;;
         AlmaLinux8 )
             ;;
@@ -525,16 +541,17 @@ check_system() {
         Ubuntu22 )
             ;;
         * )
-            printf "\r\033[4F\033[K$(date) [INFO]: Checking Operating System......................ng" | tee -a "${LOG_FILE}"
-            printf "\r\033[4E\033[K" | tee -a "${LOG_FILE}"
+            printf "\r\033[5F\033[K$(date) [INFO]: Checking Operating System......................ng" | tee -a "${LOG_FILE}"
+            printf "\r\033[5E\033[K" | tee -a "${LOG_FILE}"
             error "Unsupported OS."
             ;;
     esac
 
     sleep 1
-    printf "\r\033[4F\033[K$(date) [INFO]: Checking Operating System......................ok" | tee -a "${LOG_FILE}"
-    printf "\r\033[4E\033[K" | tee -a "${LOG_FILE}"
+    printf "\r\033[5F\033[K$(date) [INFO]: Checking Operating System......................ok" | tee -a "${LOG_FILE}"
+    printf "\r\033[5E\033[K" | tee -a "${LOG_FILE}"
     echo ""
+
 }
 
 ### Check system requirements
@@ -544,7 +561,7 @@ check_security() {
     if [ "${SELINUX_STATUS}" = "Enforcing" ]; then
         info "SELinux is now Enforcing."
         SELINUX_STATUS="inactive"
-        if [ "${DEP_PATTERN}" != "RHEL8" ]; then
+        if [ "${DEP_PATTERN}" != "RHEL8" ] && [ "${DEP_PATTERN}" != "RHEL9" ]; then
             SELINUX_STATUS="active"
             printf "\r\033[2F\033[K$(date) [INFO]: Checking running security services.............check\n" | tee -a "${LOG_FILE}"
             printf "\r\033[2E\033[K" | tee -a "${LOG_FILE}"
@@ -553,7 +570,7 @@ check_security() {
         SELINUX_STATUS="inactive"
         info "SELinux is not Enforcing."
         SELINUX_STATUS="inactive"
-        if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+        if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
             SELINUX_STATUS="active"
             printf "\r\033[2F\033[K$(date) [INFO]: Checking running security services.............ng\n" | tee -a "${LOG_FILE}"
             printf "\r\033[2E\033[K" | tee -a "${LOG_FILE}"
@@ -627,7 +644,7 @@ check_resource() {
         printf "\r\033[2E\033[K" | tee -a "${LOG_FILE}"
     fi
 
-    if [ "${DEP_PATTERN}" != "RHEL8" ]; then
+    if [ "${DEP_PATTERN}" != "RHEL8" ] && [ "${DEP_PATTERN}" != "RHEL9" ]; then
         # Check free space of /var
         info "'/var' free space (MiB):      $(df -m /var | awk 'NR==2 {print $4}')"
         if [ $(df -m /var | awk 'NR==2 {print $4}') -lt ${REQUIRED_FREE_FOR_CONTAINER_IMAGE} ]; then
@@ -666,7 +683,7 @@ check_resource() {
 ### Installation container engine
 installation_container_engine() {
     info "Installing container engine..."
-    if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+    if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
         installation_podman_on_rhel8
     elif [ "${DEP_PATTERN}" = "AlmaLinux8" ]; then
         installation_docker_on_alamalinux8
@@ -682,11 +699,13 @@ installation_podman_on_rhel8() {
     # info "Enable the extras repository"
     # sudo subscription-manager repos --enable=rhel-8-for-x86_64-appstream-rpms --enable=rhel-8-for-x86_64-baseos-rpms
 
-    info "Enable container-tools module"
-    sudo dnf module enable -y container-tools:rhel8
+    if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+        info "Enable container-tools module"
+        sudo dnf module enable -y container-tools:rhel8
 
-    info "Install container-tools module"
-    sudo dnf module install -y container-tools:rhel8
+        info "Install container-tools module"
+        sudo dnf module install -y container-tools:rhel8
+    fi
 
     # info "Update packages"
     # sudo dnf update -y
@@ -700,18 +719,42 @@ installation_podman_on_rhel8() {
     fi
 
     info "Install docker-compose command"
-    sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VER}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    if [ -z "${PROXY}" ]; then
+        sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VER}/docker-compose-${OS_TYPE}-${ARCH}" -o /usr/local/bin/docker-compose
+    else
+        sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VER}/docker-compose-${OS_TYPE}-${ARCH}" -o /usr/local/bin/docker-compose -x ${https_proxy}
+    fi
     sudo chmod a+x /usr/local/bin/docker-compose
 
     info "Show Podman version"
     podman --version
 
+    CONTAINERS_CONF=${HOME}/.config/containers/containers.conf
     info "Change container netowrk driver"
     mkdir -p ${HOME}/.config/containers/
     cp /usr/share/containers/containers.conf ${HOME}/.config/containers/
-    sed -i.$(date +%Y%m%d-%H%M%S) -e 's|^network_backend = "cni"|network_backend = "netavark"|' ${HOME}/.config/containers/containers.conf
+    sed -i.$(date +%Y%m%d-%H%M%S) -e 's|^network_backend = "cni"|network_backend = "netavark"|' ${CONTAINERS_CONF}
 
-    info "Start and enable Podman sockert service"
+    if [ ! -z "${PROXY}" ]; then
+        if ! (grep -q "^ *http_proxy *=" ${CONTAINERS_CONF}); then
+            sed -i -e '/^#http_proxy = \[\]/a http_proxy = true' ${CONTAINERS_CONF}
+        fi
+        if ! (grep -q "^ *http_proxy *=" ${CONTAINERS_CONF}); then
+            sed -i -e '/^#http_proxy *=.*/a http_proxy = true' ${CONTAINERS_CONF}
+        fi
+        if grep -q "^ *env *=" ${CONTAINERS_CONF}; then
+            if grep "^ *env *=" ${CONTAINERS_CONF} | grep -q -v "http_proxy"; then
+                sed -i -e 's/\(^ *env *=.*\)\]/\1,"http_proxy='${http_proxy//\//\\/}'"]/' ${CONTAINERS_CONF}
+            fi
+            if grep "^ *env *=" ${CONTAINERS_CONF} | grep -q -v "https_proxy"; then
+                sed -i -e 's/\(^ *env *=.*\)\]/\1,"https_proxy='${https_proxy//\//\\/}'"]/' ${CONTAINERS_CONF}
+            fi
+        else
+            sed -i -e '/^#env = \[\]/a env = ["http_proxy='${http_proxy}'","https_proxy='${https_proxy}'"]' ${CONTAINERS_CONF}
+        fi
+    fi
+
+    info "Start and enable Podman socket service"
     systemctl --user enable --now podman.socket
     systemctl --user status podman.socket
     podman unshare chown $(id -u):$(id -g) /run/user/$(id -u)/podman/podman.sock
@@ -752,7 +795,11 @@ installation_docker_on_ubuntu() {
     sudo apt install -y apt-transport-https ca-certificates curl software-properties-common gnupg lsb-release git
 
     info "Add Docker GPG key"
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    if [ -z "${PROXY}" ]; then
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    else
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg -x ${PROXY}
+    fi
 
     info "Add Docker repository"
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
@@ -777,7 +824,7 @@ fetch_exastro() {
     if [ ! -d ${PROJECT_DIR} ]; then
         git clone https://github.com/exastro-suite/exastro-docker-compose.git
     fi
-    if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+    if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
         podman unshare chown $(id -u):$(id -g) "${PROJECT_DIR}/.volumes/storage/"
         sudo chcon -R -h -t container_file_t "${PROJECT_DIR}"
     fi
@@ -924,7 +971,7 @@ setup() {
             break
         done
 
-        if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+        if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
             HOST_DOCKER_GID=1000
             HOST_DOCKER_SOCKET_PATH="/run/user/$(id -ru)/podman/podman.sock"
         else
@@ -1084,7 +1131,7 @@ generate_env() {
 
 ### Installation Exastro
 installation_exastro() {
-    if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+    if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
         DOCKER_COMPOSE=$(command -v podman)" unshare docker-compose"
         installation_exastro_on_rhel8
     else
@@ -1182,7 +1229,7 @@ start_exastro() {
     echo ""
     if echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"; then
         echo "Please wait for a little while. It will take 10 minutes or later.........."
-        if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+        if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
             systemctl --user start exastro
             # pid1=$!
         else
@@ -1380,14 +1427,14 @@ remove_service() {
     info "Stopping and removing Exastro service..."
     cd ${PROJECT_DIR}
  
-    if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+    if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
         DOCKER_COMPOSE=$(command -v podman)" unshare docker-compose"
     else
         DOCKER_COMPOSE=$(command -v docker)" compose"
     fi
 
     ${DOCKER_COMPOSE} down --rmi all
-    if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+    if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
         systemctl --user disable --now exastro
         rm -f ${HOME}/.config/systemd/user/exastro.service
         systemctl --user daemon-reload
@@ -1427,7 +1474,7 @@ remove_exastro_data() {
     info "Deleting Exastro system..."
     cd ${PROJECT_DIR}
 
-    if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+    if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
         DOCKER_COMPOSE=$(command -v podman)" unshare docker-compose"
     else
         DOCKER_COMPOSE=$(command -v docker)" compose"
