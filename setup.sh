@@ -521,6 +521,8 @@ check_system() {
     info "NAME:         ${OS_NAME}"
     info "VERSION_ID:   ${VERSION_ID}"
     info "ARCH:         ${ARCH}"
+
+    set +u
     PROXY=${http_proxy}
     sleep 1
     if [ -z "${PROXY}" ]; then
@@ -528,6 +530,7 @@ check_system() {
     else
         info "PROXY:        ${PROXY}"
     fi
+    set -u
 
     case "${DEP_PATTERN}" in
         RHEL8 )
