@@ -759,7 +759,7 @@ installation_podman_on_rhel8() {
 
     info "Start and enable Podman socket service"
     systemctl --user enable --now podman.socket
-    systemctl --user status podman.socket
+    systemctl --user status podman.socket --no-pager
     podman unshare chown $(id -u):$(id -g) /run/user/$(id -u)/podman/podman.sock
 
     DOCKER_HOST="unix:///run/user/$(id -ru)/podman/podman.sock"
@@ -1122,7 +1122,7 @@ generate_env() {
     sed -i -e "s/^GITLAB_ROOT_PASSWORD=.*/GITLAB_ROOT_PASSWORD=${GITLAB_ROOT_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^GITLAB_ROOT_TOKEN=.*/GITLAB_ROOT_TOKEN=${GITLAB_ROOT_TOKEN}/" ${ENV_FILE}
     if ! "${is_use_oase}"; then
-        sed -i -e "/^# MONGO_HOST=.*/a MONGO_HOST=" ${ENV_FILE}
+        sed -i -e "s/^MONGO_HOST=.*/MONGO_HOST=/" "${ENV_FILE}"
     fi
     sed -i -e "s/^MONGO_INITDB_ROOT_PASSWORD=.*/MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^MONGO_ADMIN_PASSWORD=.*/MONGO_ADMIN_PASSWORD=${MONGO_ADMIN_PASSWORD}/" ${ENV_FILE}
@@ -1152,7 +1152,7 @@ installation_exastro_on_rhel8() {
 Description=Exastro System
 After=podman.socket
 Requires=podman.socket
- 
+
 [Service]
 Type=oneshot
 RemainAfterExit=true
