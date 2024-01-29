@@ -759,7 +759,7 @@ installation_podman_on_rhel8() {
 
     info "Start and enable Podman socket service"
     systemctl --user enable --now podman.socket
-    systemctl --user status podman.socket
+    systemctl --user status podman.socket --no-pager
     podman unshare chown $(id -u):$(id -g) /run/user/$(id -u)/podman/podman.sock
 
     DOCKER_HOST="unix:///run/user/$(id -ru)/podman/podman.sock"
