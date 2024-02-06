@@ -1436,7 +1436,7 @@ remove_service() {
         DOCKER_COMPOSE=$(command -v docker)" compose"
     fi
 
-    ${DOCKER_COMPOSE} down --rmi all
+    ${DOCKER_COMPOSE} --profile=all down --rmi all
     if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
         systemctl --user disable --now exastro
         rm -f ${HOME}/.config/systemd/user/exastro.service
@@ -1483,7 +1483,7 @@ remove_exastro_data() {
         DOCKER_COMPOSE=$(command -v docker)" compose"
     fi
 
-    ${DOCKER_COMPOSE} down -v --rmi all
+    ${DOCKER_COMPOSE} --profile=all down -v --rmi all
     sudo rm -rf ${PROJECT_DIR}/.volumes/storage/*
     sudo rm -rf ${PROJECT_DIR}/.volumes/mariadb/data/*
     sudo rm -rf ${PROJECT_DIR}/.volumes/gitlab/config/*
