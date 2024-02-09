@@ -17,7 +17,9 @@ PROJECT_DIR="${HOME}/exastro-docker-compose"
 COMPOSE_FILE="${PROJECT_DIR}/docker-compose.yml"
 LOG_FILE="${HOME}/exastro-installation.log"
 ENV_FILE="${PROJECT_DIR}/.env"
-COMPOSE_PROFILES="except-gitlab"
+COMPOSE_PROFILES="base"
+is_use_oase=true
+is_use_gitlab=false
 if [ -f ${ENV_FILE} ]; then
     . ${ENV_FILE}
 fi
@@ -63,9 +65,15 @@ get_system_info() {
     OS_TYPE=$(uname)
     OS_NAME=$(awk -F= '$1=="NAME" { print $2; }' /etc/os-release | tr -d '"')
     VERSION_ID=$(awk -F= '$1=="VERSION_ID" { print $2; }' /etc/os-release | tr -d '"')
-    if [ "${OS_NAME}" = "Red Hat Enterprise Linux" ]; then
+    if ( echo "${OS_NAME}" | grep -q -e "Red Hat Enterprise Linux" ); then
+        if [ $(expr "${VERSION_ID}" : "^7\..*") != 0 ]; then
+            DEP_PATTERN="RHEL7"
+        fi
         if [ $(expr "${VERSION_ID}" : "^8\..*") != 0 ]; then
             DEP_PATTERN="RHEL8"
+        fi
+        if [ $(expr "${VERSION_ID}" : "^9\..*") != 0 ]; then
+            DEP_PATTERN="RHEL9"
         fi
     elif [ "${OS_NAME}" = "AlmaLinux" ]; then
         if [ $(expr "${VERSION_ID}" : "^8\..*") != 0 ]; then
@@ -238,6 +246,7 @@ _EOF_
         r )
             if [ -f ${ENV_FILE} ]; then
                 banner
+                check_security
                 installation_exastro
             else
                 error "Exasto system in NOT installed."
@@ -513,8 +522,20 @@ check_system() {
     info "VERSION_ID:   ${VERSION_ID}"
     info "ARCH:         ${ARCH}"
 
+    set +u
+    PROXY=${http_proxy}
+    sleep 1
+    if [ -z "${PROXY}" ]; then
+        info "PROXY:        None"
+    else
+        info "PROXY:        ${PROXY}"
+    fi
+    set -u
+
     case "${DEP_PATTERN}" in
         RHEL8 )
+            ;;
+        RHEL9 )
             ;;
         AlmaLinux8 )
             ;;
@@ -523,16 +544,17 @@ check_system() {
         Ubuntu22 )
             ;;
         * )
-            printf "\r\033[4F\033[K$(date) [INFO]: Checking Operating System......................ng" | tee -a "${LOG_FILE}"
-            printf "\r\033[4E\033[K" | tee -a "${LOG_FILE}"
+            printf "\r\033[5F\033[K$(date) [INFO]: Checking Operating System......................ng" | tee -a "${LOG_FILE}"
+            printf "\r\033[5E\033[K" | tee -a "${LOG_FILE}"
             error "Unsupported OS."
             ;;
     esac
 
     sleep 1
-    printf "\r\033[4F\033[K$(date) [INFO]: Checking Operating System......................ok" | tee -a "${LOG_FILE}"
-    printf "\r\033[4E\033[K" | tee -a "${LOG_FILE}"
+    printf "\r\033[5F\033[K$(date) [INFO]: Checking Operating System......................ok" | tee -a "${LOG_FILE}"
+    printf "\r\033[5E\033[K" | tee -a "${LOG_FILE}"
     echo ""
+
 }
 
 ### Check system requirements
@@ -542,7 +564,7 @@ check_security() {
     if [ "${SELINUX_STATUS}" = "Enforcing" ]; then
         info "SELinux is now Enforcing."
         SELINUX_STATUS="inactive"
-        if [ "${DEP_PATTERN}" != "RHEL8" ]; then
+        if [ "${DEP_PATTERN}" != "RHEL8" ] && [ "${DEP_PATTERN}" != "RHEL9" ]; then
             SELINUX_STATUS="active"
             printf "\r\033[2F\033[K$(date) [INFO]: Checking running security services.............check\n" | tee -a "${LOG_FILE}"
             printf "\r\033[2E\033[K" | tee -a "${LOG_FILE}"
@@ -551,7 +573,7 @@ check_security() {
         SELINUX_STATUS="inactive"
         info "SELinux is not Enforcing."
         SELINUX_STATUS="inactive"
-        if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+        if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
             SELINUX_STATUS="active"
             printf "\r\033[2F\033[K$(date) [INFO]: Checking running security services.............ng\n" | tee -a "${LOG_FILE}"
             printf "\r\033[2E\033[K" | tee -a "${LOG_FILE}"
@@ -625,7 +647,7 @@ check_resource() {
         printf "\r\033[2E\033[K" | tee -a "${LOG_FILE}"
     fi
 
-    if [ "${DEP_PATTERN}" != "RHEL8" ]; then
+    if [ "${DEP_PATTERN}" != "RHEL8" ] && [ "${DEP_PATTERN}" != "RHEL9" ]; then
         # Check free space of /var
         info "'/var' free space (MiB):      $(df -m /var | awk 'NR==2 {print $4}')"
         if [ $(df -m /var | awk 'NR==2 {print $4}') -lt ${REQUIRED_FREE_FOR_CONTAINER_IMAGE} ]; then
@@ -664,7 +686,7 @@ check_resource() {
 ### Installation container engine
 installation_container_engine() {
     info "Installing container engine..."
-    if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+    if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
         installation_podman_on_rhel8
     elif [ "${DEP_PATTERN}" = "AlmaLinux8" ]; then
         installation_docker_on_alamalinux8
@@ -680,11 +702,13 @@ installation_podman_on_rhel8() {
     # info "Enable the extras repository"
     # sudo subscription-manager repos --enable=rhel-8-for-x86_64-appstream-rpms --enable=rhel-8-for-x86_64-baseos-rpms
 
-    info "Enable container-tools module"
-    sudo dnf module enable -y container-tools:rhel8
+    if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+        info "Enable container-tools module"
+        sudo dnf module enable -y container-tools:rhel8
 
-    info "Install container-tools module"
-    sudo dnf module install -y container-tools:rhel8
+        info "Install container-tools module"
+        sudo dnf module install -y container-tools:rhel8
+    fi
 
     # info "Update packages"
     # sudo dnf update -y
@@ -698,20 +722,44 @@ installation_podman_on_rhel8() {
     fi
 
     info "Install docker-compose command"
-    sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VER}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    if [ -z "${PROXY}" ]; then
+        sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VER}/docker-compose-${OS_TYPE}-${ARCH}" -o /usr/local/bin/docker-compose
+    else
+        sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VER}/docker-compose-${OS_TYPE}-${ARCH}" -o /usr/local/bin/docker-compose -x ${https_proxy}
+    fi
     sudo chmod a+x /usr/local/bin/docker-compose
 
     info "Show Podman version"
     podman --version
 
+    CONTAINERS_CONF=${HOME}/.config/containers/containers.conf
     info "Change container netowrk driver"
     mkdir -p ${HOME}/.config/containers/
     cp /usr/share/containers/containers.conf ${HOME}/.config/containers/
-    sed -i.$(date +%Y%m%d-%H%M%S) -e 's|^network_backend = "cni"|network_backend = "netavark"|' ${HOME}/.config/containers/containers.conf
+    sed -i.$(date +%Y%m%d-%H%M%S) -e 's|^network_backend = "cni"|network_backend = "netavark"|' ${CONTAINERS_CONF}
 
-    info "Start and enable Podman sockert service"
+    if [ ! -z "${PROXY}" ]; then
+        if ! (grep -q "^ *http_proxy *=" ${CONTAINERS_CONF}); then
+            sed -i -e '/^#http_proxy = \[\]/a http_proxy = true' ${CONTAINERS_CONF}
+        fi
+        if ! (grep -q "^ *http_proxy *=" ${CONTAINERS_CONF}); then
+            sed -i -e '/^#http_proxy *=.*/a http_proxy = true' ${CONTAINERS_CONF}
+        fi
+        if grep -q "^ *env *=" ${CONTAINERS_CONF}; then
+            if grep "^ *env *=" ${CONTAINERS_CONF} | grep -q -v "http_proxy"; then
+                sed -i -e 's/\(^ *env *=.*\)\]/\1,"http_proxy='${http_proxy//\//\\/}'"]/' ${CONTAINERS_CONF}
+            fi
+            if grep "^ *env *=" ${CONTAINERS_CONF} | grep -q -v "https_proxy"; then
+                sed -i -e 's/\(^ *env *=.*\)\]/\1,"https_proxy='${https_proxy//\//\\/}'"]/' ${CONTAINERS_CONF}
+            fi
+        else
+            sed -i -e '/^#env = \[\]/a env = ["http_proxy='${http_proxy}'","https_proxy='${https_proxy}'"]' ${CONTAINERS_CONF}
+        fi
+    fi
+
+    info "Start and enable Podman socket service"
     systemctl --user enable --now podman.socket
-    systemctl --user status podman.socket
+    systemctl --user status podman.socket --no-pager
     podman unshare chown $(id -u):$(id -g) /run/user/$(id -u)/podman/podman.sock
 
     DOCKER_HOST="unix:///run/user/$(id -ru)/podman/podman.sock"
@@ -750,7 +798,11 @@ installation_docker_on_ubuntu() {
     sudo apt install -y apt-transport-https ca-certificates curl software-properties-common gnupg lsb-release git
 
     info "Add Docker GPG key"
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    if [ -z "${PROXY}" ]; then
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    else
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg -x ${PROXY}
+    fi
 
     info "Add Docker repository"
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
@@ -774,10 +826,10 @@ fetch_exastro() {
     cd ${HOME}
     if [ ! -d ${PROJECT_DIR} ]; then
         git clone https://github.com/exastro-suite/exastro-docker-compose.git
-        if [ "${DEP_PATTERN}" = "RHEL8" ]; then
-            podman unshare chown $(id -u):$(id -g) "${PROJECT_DIR}/.volumes/storage/"
-            sudo chcon -R -h -t container_file_t "${PROJECT_DIR}"
-        fi
+    fi
+    if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
+        podman unshare chown $(id -u):$(id -g) "${PROJECT_DIR}/.volumes/storage/"
+        sudo chcon -R -h -t container_file_t "${PROJECT_DIR}"
     fi
 }
 
@@ -798,7 +850,31 @@ setup() {
             return 0
         fi
     fi
+
     while true; do
+        COMPOSE_PROFILES=base
+
+        read -r -p "Deploy OASE containers? (y/n) [default: y]: " confirm
+        echo ""
+        if echo $confirm | grep -q -e "[nN]" -e "[nN][oO]"; then
+            is_use_oase=false
+        else
+            COMPOSE_PROFILES="${COMPOSE_PROFILES},oase,mongo"
+            is_use_oase=true
+        fi
+
+        read -r -p "Deploy GitLab container? (y/n) [default: n]: " confirm
+        echo ""
+        if echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"; then
+            COMPOSE_PROFILES="${COMPOSE_PROFILES},gitlab"
+            is_use_gitlab=true
+        else
+            is_use_gitlab=false
+        fi
+
+        if "${is_use_oase}" && "${is_use_gitlab}"; then
+            COMPOSE_PROFILES="all"
+        fi
 
         read -r -p "Generate all password and token automatically.? (y/n) [default: y]: " confirm
         echo ""
@@ -820,7 +896,7 @@ setup() {
                 fi
             done
             while true; do
-                read -r -p "Database password: " password1
+                read -r -p "MariaDB password: " password1
                 echo ""
                 if [ "$password1" = "" ]; then
                     echo "Invalid password!!"
@@ -898,7 +974,7 @@ setup() {
             break
         done
 
-        if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+        if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
             HOST_DOCKER_GID=1000
             HOST_DOCKER_SOCKET_PATH="/run/user/$(id -ru)/podman/podman.sock"
         else
@@ -906,12 +982,32 @@ setup() {
             HOST_DOCKER_SOCKET_PATH="/var/run/docker.sock"
         fi
 
+        MONGO_INITDB_ROOT_PASSWORD="None"
+        MONGO_ADMIN_PASSWORD="None"
+        if "${is_use_oase}"; then
+            if [ ${PWD_METHOD} = "manually" ]; then
+                while true; do
+                    read -r -p "MongoDB password: " password1
+                    echo ""
+                    if [ "$password1" = "" ]; then
+                        echo "Invalid password!!"
+                        continue
+                    else
+                        MONGO_INITDB_ROOT_PASSWORD=$password1
+                        MONGO_ADMIN_PASSWORD=$password1
+                        break
+                    fi
+                done
+            else
+                password1=$(generate_password 12)
+                MONGO_INITDB_ROOT_PASSWORD=${password1}
+                MONGO_ADMIN_PASSWORD=${password1}
+            fi
+        fi
+
         GITLAB_ROOT_PASSWORD="None"
         GITLAB_ROOT_TOKEN="None"
-        read -r -p "Deploy GitLab container? (y/n) [default: n]: " confirm
-        echo ""
-        if echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"; then
-            COMPOSE_PROFILES=all
+        if "${is_use_gitlab}"; then
             GITLAB_PORT="40080"
             if [ ${PWD_METHOD} = "manually" ]; then
                 while true; do
@@ -943,24 +1039,24 @@ setup() {
                 GITLAB_ROOT_PASSWORD=$password1
                 GITLAB_ROOT_TOKEN=$password2
             fi
-        else
-            COMPOSE_PROFILES=except-gitlab
         fi
 
         cat <<_EOF_
-    
+
 
 System parametes are bellow.
 
 System administrator password:    ********
-Database password:                ********
+MariaDB password:                 ********
+OASE deployment:                  $(if "${is_use_oase}"; then echo "true"; else echo "false"; fi)
+MongoDB password:                 ********
 Service URL:                      ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${EXTERNAL_URL_PORT}
 Manegement URL:                   ${EXTERNAL_URL_MNG_PROTOCOL}://${EXTERNAL_URL_MNG_HOST}:${EXTERNAL_URL_MNG_PORT}
 Docker GID:                       ${HOST_DOCKER_GID}
 Docker Socket path:               ${HOST_DOCKER_SOCKET_PATH}
-GitLab deployment:                $(if [ ${COMPOSE_PROFILES} = "all" ]; then echo "true"; else echo "false"; fi)
+GitLab deployment:                $(if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then echo "true"; else echo "false"; fi)
 _EOF_
-        if [ "${COMPOSE_PROFILES}" = "all" ]; then
+        if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then
             cat <<_EOF_
 GitLab URL:                       ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${GITLAB_PORT}
 GitLab root password:             ********
@@ -977,14 +1073,17 @@ _EOF_
         read -r -p "Generate .env file by above settings? (y/n) [default: n]: " confirm
         echo ""
         if echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"; then
-            info "Generate settig file [${PWD}/.env]."
+            info "Generate settig file [${ENV_FILE}]."
             info "System administrator password:    ********"
-            info "Database password:                ********"
+            info "MariaDB password:                 ********"
+            if "${is_use_oase}"; then
+                info "MongoDB password:                 ********"
+            fi
             info "Service URL:                      ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${EXTERNAL_URL_PORT}"
             info "Manegement URL:                   ${EXTERNAL_URL_MNG_PROTOCOL}://${EXTERNAL_URL_MNG_HOST}:${EXTERNAL_URL_MNG_PORT}"
             info "Docker GID:                       ${HOST_DOCKER_GID}"
             info "Docker Socket path:               ${HOST_DOCKER_SOCKET_PATH}"
-            if [ "${COMPOSE_PROFILES}" = "all" ]; then
+            if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then
                 info "GitLab URL:                       ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${GITLAB_PORT}"
                 info "GitLab root password:             ********"
                 info "GitLab root token:                ********"
@@ -1022,7 +1121,12 @@ generate_env() {
     sed -i -e "s/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=${COMPOSE_PROFILES}/" ${ENV_FILE}
     sed -i -e "s/^GITLAB_ROOT_PASSWORD=.*/GITLAB_ROOT_PASSWORD=${GITLAB_ROOT_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^GITLAB_ROOT_TOKEN=.*/GITLAB_ROOT_TOKEN=${GITLAB_ROOT_TOKEN}/" ${ENV_FILE}
-    if [ ${COMPOSE_PROFILES} = "all" ]; then
+    if ! "${is_use_oase}"; then
+        sed -i -e "s/^MONGO_HOST=.*/MONGO_HOST=/" "${ENV_FILE}"
+    fi
+    sed -i -e "s/^MONGO_INITDB_ROOT_PASSWORD=.*/MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}/" ${ENV_FILE}
+    sed -i -e "s/^MONGO_ADMIN_PASSWORD=.*/MONGO_ADMIN_PASSWORD=${MONGO_ADMIN_PASSWORD}/" ${ENV_FILE}
+    if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then
         sed -i -e "s/^GITLAB_HOST=.*/GITLAB_HOST=${EXTERNAL_URL_HOST}/" ${ENV_FILE}
         sed -i -e "/^# GITLAB_PORT=.*/a GITLAB_PORT=${GITLAB_PORT}" ${ENV_FILE}
     fi
@@ -1030,7 +1134,7 @@ generate_env() {
 
 ### Installation Exastro
 installation_exastro() {
-    if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+    if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
         DOCKER_COMPOSE=$(command -v podman)" unshare docker-compose"
         installation_exastro_on_rhel8
     else
@@ -1048,7 +1152,7 @@ installation_exastro_on_rhel8() {
 Description=Exastro System
 After=podman.socket
 Requires=podman.socket
- 
+
 [Service]
 Type=oneshot
 RemainAfterExit=true
@@ -1056,14 +1160,15 @@ WorkingDirectory=${PROJECT_DIR}
 ExecStartPre=/usr/bin/podman unshare chown $(id -u):$(id -g) /run/user/$(id -u)/podman/podman.sock
 Environment=DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock
 Environment=PWD=${PROJECT_DIR}
-ExecStart=podman unshare ${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d --wait
-ExecStop=podman unshare ${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} down
+ExecStart=${DOCKER_COMPOSE} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d --wait
+ExecStop=${DOCKER_COMPOSE} -f ${COMPOSE_FILE} --profile all --env-file ${ENV_FILE} stop
  
 [Install]
 WantedBy=default.target
 _EOF_
     systemctl --user daemon-reload
     systemctl --user enable exastro
+    sudo loginctl enable-linger $(id -u -n)
 }
 
 ### Installation job to Crontab
@@ -1101,7 +1206,7 @@ installtion_firewall_rules() {
         sudo firewall-cmd --add-port=${EXTERNAL_URL_PORT}/tcp --zone=public --permanent
         info "Add ${EXTERNAL_URL_MNG_PORT}/tcp for external management port."
         sudo firewall-cmd --add-port=${EXTERNAL_URL_MNG_PORT}/tcp --zone=public --permanent
-        if [ ${COMPOSE_PROFILES} = "all" ]; then
+        if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then
             info "Add ${GITLAB_PORT}/tcp for external GitLab port."
             sudo firewall-cmd --add-port=${GITLAB_PORT}/tcp --zone=public --permanent
         fi
@@ -1112,7 +1217,7 @@ installtion_firewall_rules() {
         sudo ufw allow ${EXTERNAL_URL_PORT}/tcp
         info "Add ${EXTERNAL_URL_MNG_PORT}/tcp for external management port."
         sudo ufw allow ${EXTERNAL_URL_MNG_PORT}/tcp
-        if [ ${COMPOSE_PROFILES} = "all" ]; then
+        if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then
             info "Add ${GITLAB_PORT}/tcp for external GitLab port."
             sudo ufw allow ${GITLAB_PORT}/tcp
         fi
@@ -1127,12 +1232,12 @@ start_exastro() {
     echo ""
     if echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"; then
         echo "Please wait for a little while. It will take 10 minutes or later.........."
-        if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+        if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
             systemctl --user start exastro
             # pid1=$!
         else
             cd ${PROJECT_DIR}
-            sudo -u $(id -u -n) -E ${DOCKER_COMPOSE} --profile ${COMPOSE_PROFILES:-all} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d --wait
+            sudo -u $(id -u -n) -E ${DOCKER_COMPOSE} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d --wait
             # pid1=$!
         fi
     else
@@ -1167,7 +1272,7 @@ Organization page:
   URL:                ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${EXTERNAL_URL_PORT}/{{ Organization ID }}/platform
 
 _EOF_
-    if [ "${COMPOSE_PROFILES}" = "all" ]; then
+    if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then
         cat <<_EOF_
 
 
@@ -1200,10 +1305,6 @@ _EOF_
 fi
 
     cat<<_EOF_
-
-Run creation organization command:
-   bash ${PROJECT_DIR}/create-organization.sh 
-
 
 ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
 ! ! !   C A U T I O N   ! ! !
@@ -1329,14 +1430,14 @@ remove_service() {
     info "Stopping and removing Exastro service..."
     cd ${PROJECT_DIR}
  
-    if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+    if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
         DOCKER_COMPOSE=$(command -v podman)" unshare docker-compose"
     else
         DOCKER_COMPOSE=$(command -v docker)" compose"
     fi
 
-    ${DOCKER_COMPOSE} --profile all down
-    if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+    ${DOCKER_COMPOSE} --profile=all down --rmi all
+    if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
         systemctl --user disable --now exastro
         rm -f ${HOME}/.config/systemd/user/exastro.service
         systemctl --user daemon-reload
@@ -1352,7 +1453,7 @@ remove_firewall_rules() {
         sudo firewall-cmd --remove-port=${EXTERNAL_URL_PORT}/tcp --zone=public --permanent
         info "Remove ${EXTERNAL_URL_MNG_PORT}/tcp for external management port."
         sudo firewall-cmd --remove-port=${EXTERNAL_URL_MNG_PORT}/tcp --zone=public --permanent
-        if [ ${COMPOSE_PROFILES} = "all" ]; then
+        if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then
             info "Remove ${GITLAB_PORT}/tcp for external GitLab port."
             sudo firewall-cmd --remove-port=${GITLAB_PORT}/tcp --zone=public --permanent
         fi
@@ -1363,7 +1464,7 @@ remove_firewall_rules() {
         sudo ufw deny ${EXTERNAL_URL_PORT}/tcp
         info "Remove ${EXTERNAL_URL_MNG_PORT}/tcp for external management port."
         sudo ufw deny ${EXTERNAL_URL_MNG_PORT}/tcp
-        if [ ${COMPOSE_PROFILES} = "all" ]; then
+        if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then
             info "Remove ${GITLAB_PORT}/tcp for external GitLab port."
             sudo ufw deny ${GITLAB_PORT}/tcp
         fi
@@ -1376,18 +1477,19 @@ remove_exastro_data() {
     info "Deleting Exastro system..."
     cd ${PROJECT_DIR}
 
-    if [ "${DEP_PATTERN}" = "RHEL8" ]; then
+    if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
         DOCKER_COMPOSE=$(command -v podman)" unshare docker-compose"
     else
         DOCKER_COMPOSE=$(command -v docker)" compose"
     fi
 
-    ${DOCKER_COMPOSE} --profile all down -v
+    ${DOCKER_COMPOSE} --profile=all down -v --rmi all
     sudo rm -rf ${PROJECT_DIR}/.volumes/storage/*
     sudo rm -rf ${PROJECT_DIR}/.volumes/mariadb/data/*
     sudo rm -rf ${PROJECT_DIR}/.volumes/gitlab/config/*
     sudo rm -rf ${PROJECT_DIR}/.volumes/gitlab/data/*
     sudo rm -rf ${PROJECT_DIR}/.volumes/gitlab/logs/*
+    sudo rm -rf ${PROJECT_DIR}/.volumes/mongo/data/*
     yes | docker system prune
 }
 
