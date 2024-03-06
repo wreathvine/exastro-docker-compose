@@ -101,7 +101,7 @@ Usage:
   setup.sh COMMAND [options]
 
 Commands:
-  install     Installation Exastro system
+  install     Install Exastro system
   remove      Remove Exastro system
 
 _EOF_
@@ -130,7 +130,7 @@ Usage:
   setup.sh COMMAND [options]
 
 Commands:
-  install     Installation Exastro system
+  install     Install Exastro system
   remove      Remove Exastro system
 
 _EOF_
@@ -183,7 +183,7 @@ Usage:
   exastro install [options]
 
 Options:
-  -c, --check                       Check if your system meets the requirements
+  -c, --check                       Check if your system meets the system requirements
   -i, --install-packages            Only install required packages and fetch exastro source files
   -f, --fetch                       Only fetch Exastro resources.
   -e, --setup                       Only generate environment file (.env)
@@ -197,7 +197,7 @@ _EOF_
     done
 
     info "======================================================"
-    info "Start to setup Exastro system."
+    info "Start Exastro system setup."
     get_system_info
     case "$DEPLOY_FLG" in
         a )
@@ -240,7 +240,7 @@ _EOF_
                 banner
                 setup
             else
-                error "Exasto system in NOT installed."
+                error "Exasto system is NOT installed."
             fi
             ;;
         r )
@@ -249,14 +249,14 @@ _EOF_
                 check_security
                 installation_exastro
             else
-                error "Exasto system in NOT installed."
+                error "Exasto system is NOT installed."
             fi
             ;;
         p )
             if [ -f ${ENV_FILE} ]; then
                 prompt
             else
-                error "Exasto system in NOT installed."
+                error "Exasto system is NOT installed."
             fi
             ;;
         * )
@@ -507,13 +507,13 @@ check_system() {
     if [ "${ARCH}" != "x86_64" ] && [ "${ARCH}" != "amd64" ]; then
         printf "\r\033[1F\033[K$(date) [INFO]: Checking Operating System......................ng" | tee -a "${LOG_FILE}"
         printf "\r\033[1E\033[K" | tee -a "${LOG_FILE}"
-        error "Not supported CPU architecture."
+        error "CPU architecture not supported."
     fi
 
     # Check OS type
     OS_TYPE=$(to_lowercase $(uname))
     if [ "${OS_TYPE}" != "linux" ]; then
-        error "Not supported OS."
+        error "OS not supported."
     fi
     OS_TYPE=$(uname)
 
@@ -577,7 +577,7 @@ check_security() {
             SELINUX_STATUS="active"
             printf "\r\033[2F\033[K$(date) [INFO]: Checking running security services.............ng\n" | tee -a "${LOG_FILE}"
             printf "\r\033[2E\033[K" | tee -a "${LOG_FILE}"
-            error "SELinux is must be Enforcing on Rootless Podman."
+            error "SELinux must be Enforcing on Rootless Podman."
         fi
     fi
 
@@ -624,7 +624,7 @@ check_security() {
 check_command() {
     printf "$(date) [INFO]: Checking required commands.....................\n" | tee -a "${LOG_FILE}"
     if command -v sudo >/dev/null; then
-        info "'sudo' command is exist."
+        info "'sudo' command already exist."
     else
         printf "\r\033[1F\033[K$(date) [INFO]: Checking required commands.....................ng\n" | tee -a "${LOG_FILE}"
         printf "\r\033[1E\033[K" | tee -a "${LOG_FILE}"
@@ -813,7 +813,7 @@ installation_docker_on_ubuntu() {
     info "Install Docker and additional tools"
     sudo apt install -y docker-ce docker-ce-cli containerd.io
 
-    info "Start and enable Docker service (should be already started and enabled)"
+    info "Start and enable Docker service (should already be started and enabled)"
     sudo systemctl enable --now docker
 
     info "Add current user to the docker group (optional)"
@@ -837,11 +837,11 @@ fetch_exastro() {
 setup() {
 
     info "Setup Exastro system..."
-    echo "Please regist system settings."
+    echo "Please register system settings."
     echo ""
 
     if [ -f ${ENV_FILE} ]; then
-        info "'.env' file is already exist. [${ENV_FILE}]"
+        info "'.env' file already exists. [${ENV_FILE}]"
         echo ""
         read -r -p "Regenerate .env file? (y/n) [default: n]: " confirm
         echo ""
@@ -876,7 +876,7 @@ setup() {
             COMPOSE_PROFILES="all"
         fi
 
-        read -r -p "Generate all password and token automatically.? (y/n) [default: y]: " confirm
+        read -r -p "Generate all password and token automatically? (y/n) [default: y]: " confirm
         echo ""
         if echo $confirm | grep -q -e "[nN]" -e "[nN][oO]"; then
             PWD_METHOD="manually"
@@ -923,7 +923,7 @@ setup() {
         ENCRYPT_KEY=$(head -c 32 /dev/urandom | base64)
 
         while true; do
-            read -r -p "Service URL? [default: http://127.0.0.1:30080]: " url
+            read -r -p "Input Service URL [default: http://127.0.0.1:30080]: " url
             echo ""
             if $(echo "${url}" | grep -q "http://.*") && $(echo "${url}" | grep -q "https://.*") && [ "${url}" != "" ]  ; then
                 echo "Invalid URL format"
@@ -949,7 +949,7 @@ setup() {
         done
 
         while true; do
-            read -r -p "Management URL? [default: http://127.0.0.1:30081]: " url
+            read -r -p "Input Management URL [default: http://127.0.0.1:30081]: " url
             echo ""
             if $(echo "${url}" | grep -q "http://.*") && $(echo "${url}" | grep -q "https://.*") && [ "${url}" != "" ]  ; then
                 echo "Invalid URL format"
@@ -1044,7 +1044,7 @@ setup() {
         cat <<_EOF_
 
 
-System parametes are bellow.
+The system parameters are as follows.
 
 System administrator password:    ********
 MariaDB password:                 ********
@@ -1070,7 +1070,7 @@ GitLab URL:                       None
 _EOF_
         fi
 
-        read -r -p "Generate .env file by above settings? (y/n) [default: n]: " confirm
+        read -r -p "Generate .env file with these settings? (y/n) [default: n]: " confirm
         echo ""
         if echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"; then
             info "Generate settig file [${ENV_FILE}]."
@@ -1184,16 +1184,16 @@ installation_cronjob() {
     if ! grep -q "Exastro auto generate" $backup_file; then
         crontab -l 2>/dev/null > $output_file || :
         cat << _EOF_ >> $output_file
-######## START Exastro auto generate (DO NOT REMOVE bellow lines.) ########
+######## START Exastro auto generate (DO NOT REMOVE the lines below.) ########
 01 00 * * * cd ${PROJECT_DIR}; ${DOCKER_COMPOSE} --profile batch run ita-by-file-autoclean > /dev/null 2>&1
 02 00 * * * cd ${PROJECT_DIR}; ${DOCKER_COMPOSE} --profile batch run ita-by-execinstance-dataautoclean > /dev/null 2>&1
-######## END Exastro auto generate   (DO NOT REMOVE bellow lines.) ########
+######## END Exastro auto generate   (DO NOT REMOVE the lines below.) ########
 _EOF_
         cat $output_file | crontab -
         rm -f $output_file
-        info "Registed job to crontab."
+        info "Registered job to crontab."
     else
-        info "Already registed job to crontab."
+        info "Already registered job to crontab."
         rm -f $backup_file
     fi
 }
@@ -1231,7 +1231,7 @@ start_exastro() {
     read -r -p "Deploy Exastro containers now? (y/n) [default: n]: " confirm
     echo ""
     if echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"; then
-        echo "Please wait for a little while. It will take 10 minutes or later.........."
+        echo "Please wait. This process might take more than 10 minutes.........."
         if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
             systemctl --user start exastro
             # pid1=$!
@@ -1301,7 +1301,7 @@ _EOF_
         sleep 1
     done
     echo ""
-    echo "GitLab service is has completely started!"
+    echo "GitLab service has completely started!"
 fi
 
     cat<<_EOF_
@@ -1310,7 +1310,7 @@ fi
 ! ! !   C A U T I O N   ! ! !
 ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
 
-Be sure to reboot the you host operating system to ensure proper system operation.
+Be sure to reboot the host operating system to ensure proper system operation.
 
 _EOF_
 }
@@ -1352,7 +1352,7 @@ _EOF_
     get_system_info
     if [ "$REMOVE_FLG" = "" ]; then
         echo ""
-        read -r -p "Really remove all containers? But, not remove presistent data. (y/n) [default: n]: " confirm
+        read -r -p "Are you sure you want to remove all containers and keep all persistent data? (y/n) [default: n]: " confirm
         if echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"; then
             remove_cronjob
             remove_service
@@ -1369,7 +1369,7 @@ _EOF_
         echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
         echo ""
         echo "You will NEVER be able to recovery your data again."
-        read -r -p "Really remove all containers and persistent data? (y/n) [default: n]: " confirm
+        read -r -p "Are you sure you want to remove all containers and persistent data? (y/n) [default: n]: " confirm
         if echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"; then
             remove_cronjob
             remove_service
@@ -1421,7 +1421,7 @@ remove_cronjob() {
 
     # Display the result
     cat $output_file | crontab -
-    info "Remove cron job completed."
+    info "Removal of cron job completed."
     rm -f $output_file
 }
 
@@ -1442,7 +1442,7 @@ remove_service() {
         rm -f ${HOME}/.config/systemd/user/exastro.service
         systemctl --user daemon-reload
     fi
-    info "Remove Exastro service completed."
+    info "Removal of Exastro service completed."
 }
 
 ### Installation Firewall rules
