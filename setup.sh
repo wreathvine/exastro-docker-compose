@@ -704,6 +704,10 @@ installation_podman_on_rhel8() {
 
         info "Install container-tools module"
         sudo dnf module install -y container-tools:rhel8
+
+        info "Install fuse-overlayfs"
+        sudo sudo dnf install -y fuse-overlayfs
+
     fi
 
     # info "Update packages"
@@ -937,9 +941,17 @@ setup() {
             if [ "${EXTERNAL_URL_PORT}" = "" ]; then
                 if [ "${EXTERNAL_URL_PROTOCOL}" = "http" ]; then
                     EXTERNAL_URL_PORT="80"
-                else
+                elif [ "${EXTERNAL_URL_PROTOCOL}" = "https" ]; then
                     EXTERNAL_URL_PORT="443"
+                else
+                  echo "Invalid protocol"
+                  continue
                 fi
+            fi
+            if $(echo "${DEP_PATTERN}" | grep -q "RHEL.*") && [ "${EXTERNAL_URL_PORT}" -le 1024 ]; then
+                echo "Cannot expose privileged port ${EXTERNAL_URL_PORT}"
+                echo "Please specify a port number greater than 1024."
+                continue
             fi
             break
         done
@@ -963,9 +975,17 @@ setup() {
             if [ "${EXTERNAL_URL_MNG_PORT}" = "" ]; then
                 if [ "${EXTERNAL_URL_MNG_PROTOCOL}" = "http" ]; then
                     EXTERNAL_URL_MNG_PORT="80"
-                else
+                elif [ "${EXTERNAL_URL_MNG_PROTOCOL}" = "https" ]; then
                     EXTERNAL_URL_MNG_PORT="443"
+                else
+                  echo "Invalid protocol"
+                  continue
                 fi
+            fi
+            if [ "${EXTERNAL_URL_MNG_PORT}" -le 1024 ]; then
+                echo "Cannot expose privileged port ${EXTERNAL_URL_MNG_PORT}"
+                echo "Please specify a port number greater than 1024."
+                continue
             fi
             break
         done
