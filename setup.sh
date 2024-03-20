@@ -944,7 +944,7 @@ setup() {
                 elif [ "${EXTERNAL_URL_PROTOCOL}" = "https" ]; then
                     EXTERNAL_URL_PORT="443"
                 else
-                  echo "Invalid protocol"
+                  echo "Invalid protocol ${EXTERNAL_URL_PORT}"
                   continue
                 fi
             fi
@@ -978,7 +978,7 @@ setup() {
                 elif [ "${EXTERNAL_URL_MNG_PROTOCOL}" = "https" ]; then
                     EXTERNAL_URL_MNG_PORT="443"
                 else
-                  echo "Invalid protocol"
+                  echo "Invalid protocol ${EXTERNAL_URL_MNG_PROTOCOL}"
                   continue
                 fi
             fi
@@ -1452,7 +1452,7 @@ remove_service() {
         DOCKER_COMPOSE=$(command -v docker)" compose"
     fi
 
-    ${DOCKER_COMPOSE} --profile=all down --rmi all
+    ${DOCKER_COMPOSE} --profile=all down
     if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
         systemctl --user disable --now exastro
         rm -f ${HOME}/.config/systemd/user/exastro.service
@@ -1488,7 +1488,7 @@ remove_firewall_rules() {
     fi
 }
 
-### Remove all containers and data
+### Remove all containers, container images and persistent data
 remove_exastro_data() {
     info "Deleting Exastro system..."
     cd ${PROJECT_DIR}
