@@ -18,6 +18,7 @@ COMPOSE_FILE="${PROJECT_DIR}/docker-compose.yml"
 LOG_FILE="${HOME}/exastro-installation.log"
 ENV_FILE="${PROJECT_DIR}/.env"
 COMPOSE_PROFILES="base"
+EXASTRO_GID=1000
 is_use_oase=true
 is_use_gitlab=false
 if [ -f ${ENV_FILE} ]; then
@@ -561,23 +562,18 @@ check_system() {
 check_security() {
     printf "$(date) [INFO]: Checking running security services.............\n" | tee -a "${LOG_FILE}"
     SELINUX_STATUS=$(sudo getenforce 2>/dev/null || :)
-    if [ "${SELINUX_STATUS}" = "Enforcing" ]; then
-        info "SELinux is now Enforcing."
-        SELINUX_STATUS="inactive"
+    if [ "${SELINUX_STATUS}" = "Permissive" ]; then
+        info "SELinux is now Permissive mdoe."
         if [ "${DEP_PATTERN}" != "RHEL8" ] && [ "${DEP_PATTERN}" != "RHEL9" ]; then
-            SELINUX_STATUS="active"
             printf "\r\033[2F\033[K$(date) [INFO]: Checking running security services.............check\n" | tee -a "${LOG_FILE}"
             printf "\r\033[2E\033[K" | tee -a "${LOG_FILE}"
         fi
     else
-        SELINUX_STATUS="inactive"
-        info "SELinux is not Enforcing."
-        SELINUX_STATUS="inactive"
+        info "SELinux is not Permissive mdoe."
         if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
-            SELINUX_STATUS="active"
             printf "\r\033[2F\033[K$(date) [INFO]: Checking running security services.............ng\n" | tee -a "${LOG_FILE}"
             printf "\r\033[2E\033[K" | tee -a "${LOG_FILE}"
-            error "SELinux must be Enforcing on Rootless Podman."
+            error "In Rootless Podman environment, SELinux only supports Permissive mode."
         fi
     fi
 
@@ -760,7 +756,7 @@ installation_podman_on_rhel8() {
     info "Start and enable Podman socket service"
     systemctl --user enable --now podman.socket
     systemctl --user status podman.socket --no-pager
-    podman unshare chown $(id -u):$(id -g) /run/user/$(id -u)/podman/podman.sock
+    podman unshare chown $(id -u):${EXASTRO_GID} /run/user/$(id -u)/podman/podman.sock
 
     DOCKER_HOST="unix:///run/user/$(id -ru)/podman/podman.sock"
     if grep -q "^export DOCKER_HOST" ${HOME}/.bashrc; then
@@ -828,7 +824,7 @@ fetch_exastro() {
         git clone https://github.com/exastro-suite/exastro-docker-compose.git
     fi
     if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
-        podman unshare chown $(id -u):$(id -g) "${PROJECT_DIR}/.volumes/storage/"
+        podman unshare chown $(id -u):${EXASTRO_GID} "${PROJECT_DIR}/.volumes/storage/"
         sudo chcon -R -h -t container_file_t "${PROJECT_DIR}"
     fi
 }
@@ -1157,7 +1153,7 @@ Requires=podman.socket
 Type=oneshot
 RemainAfterExit=true
 WorkingDirectory=${PROJECT_DIR}
-ExecStartPre=/usr/bin/podman unshare chown $(id -u):$(id -g) /run/user/$(id -u)/podman/podman.sock
+ExecStartPre=/usr/bin/podman unshare chown $(id -u):${EXASTRO_GID} /run/user/$(id -u)/podman/podman.sock
 Environment=DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock
 Environment=PWD=${PROJECT_DIR}
 ExecStart=${DOCKER_COMPOSE} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d --wait
