@@ -235,7 +235,7 @@ http://gitlab.example.com:40080
 | PLATFORM_DB_ADMIN_USER                  | Exastro Platform が利用するデータベースの管理者ユーザ名                     | 可 (外部のデータベース利用時) | app_user                                                                                                |
 | PLATFORM_DB_ADMIN_PASSWORD              | Exastro Platform が利用するデータベースの管理者パスワード                   | **必須**                      | Ch@ngeMeDBAdm                                                                                           |
 | PLATFORM_DB_DATABASE                    | Exastro Platform が利用するデータベース名                                   | 可                            | platform                                                                                                |
-| ITA_VERSION                             | Exastro IT Automation のバージョン                                          | 可                            | 2.3.0      |
+| ITA_VERSION                             | Exastro IT Automation のバージョン                                          | 可                            | 2.4.0      |
 | ITA_DB_VENDOR                           | Exastro IT Automation が利用するデータベースエンジン                        | 可 (外部のデータベース利用時) | **"mariadb"** (デフォルト): MariaDB を利用<br>**"mysql"**: MySQL を利用                                 |
 | ITA_DB_HOST                             | Exastro IT Automation が利用するデータベースのホスト名                      | 可 (外部のデータベース利用時) | mariadb                                                                                                 |
 | ITA_DB_PORT                             | Exastro IT Automation が利用するデータベースのポート番号                    | 可 (外部のデータベース利用時) | 3306                                                                                                    |
