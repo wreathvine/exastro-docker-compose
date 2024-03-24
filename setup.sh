@@ -18,6 +18,8 @@ COMPOSE_FILE="${PROJECT_DIR}/docker-compose.yml"
 LOG_FILE="${HOME}/exastro-installation.log"
 ENV_FILE="${PROJECT_DIR}/.env"
 COMPOSE_PROFILES="base"
+EXASTRO_UNAME=$(id -u -n)
+EXASTRO_UID=$(id -u)
 EXASTRO_GID=1000
 is_use_oase=true
 is_use_gitlab=false
@@ -624,7 +626,7 @@ check_command() {
     else
         printf "\r\033[1F\033[K$(date) [INFO]: Checking required commands.....................ng\n" | tee -a "${LOG_FILE}"
         printf "\r\033[1E\033[K" | tee -a "${LOG_FILE}"
-        error "Required 'sudo' command and $(id -u -n) is appended to sudoers."
+        error "Required 'sudo' command and ${EXASTRO_UNAME} is appended to sudoers."
     fi
     sleep 1
     printf "\r\033[2F\033[K$(date) [INFO]: Checking running security services.............ok\n" | tee -a "${LOG_FILE}"
@@ -704,14 +706,13 @@ installation_podman_on_rhel8() {
 
         info "Install container-tools module"
         sudo dnf module install -y container-tools:rhel8
-
-        info "Install fuse-overlayfs"
-        sudo sudo dnf install -y fuse-overlayfs
-
     fi
 
     # info "Update packages"
     # sudo dnf update -y
+
+    info "Install fuse-overlayfs"
+    sudo sudo dnf install -y fuse-overlayfs
 
     info "Install Podman"
     sudo dnf install -y podman podman-docker git
@@ -760,15 +761,23 @@ installation_podman_on_rhel8() {
     info "Start and enable Podman socket service"
     systemctl --user enable --now podman.socket
     systemctl --user status podman.socket --no-pager
-    podman unshare chown $(id -u):${EXASTRO_GID} /run/user/$(id -u)/podman/podman.sock
+    podman unshare chown ${EXASTRO_UID}:${EXASTRO_GID} /run/user/${EXASTRO_UID}/podman/podman.sock
 
-    DOCKER_HOST="unix:///run/user/$(id -ru)/podman/podman.sock"
+    DOCKER_HOST="unix:///run/user/${EXASTRO_UID}/podman/podman.sock"
     if grep -q "^export DOCKER_HOST" ${HOME}/.bashrc; then
         sed -i -e "s|^export DOCKER_HOST.*|export DOCKER_HOST=${DOCKER_HOST}|" ${HOME}/.bashrc
     else
         echo "export DOCKER_HOST=${DOCKER_HOST}" >> ${HOME}/.bashrc
         echo "alias docker-compose='podman unshare docker-compose'" >> ${HOME}/.bashrc
     fi
+
+    XDG_RUNTIME_DIR="/run/user/${EXASTRO_UID}"
+    if grep -q "^export XDG_RUNTIME_DIR" ${HOME}/.bashrc; then
+        sed -i -e "s|^export XDG_RUNTIME_DIR.*|export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}|" ${HOME}/.bashrc
+    else
+        echo "export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}" >> ${HOME}/.bashrc
+    fi
+
 }
 
 ### Installation Docker on AlmaLinux
@@ -828,7 +837,7 @@ fetch_exastro() {
         git clone https://github.com/exastro-suite/exastro-docker-compose.git
     fi
     if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
-        podman unshare chown $(id -u):${EXASTRO_GID} "${PROJECT_DIR}/.volumes/storage/"
+        podman unshare chown ${EXASTRO_UID}:${EXASTRO_GID} "${PROJECT_DIR}/.volumes/storage/"
         sudo chcon -R -h -t container_file_t "${PROJECT_DIR}"
     fi
 }
@@ -991,8 +1000,8 @@ setup() {
         done
 
         if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
-            HOST_DOCKER_GID=1000
-            HOST_DOCKER_SOCKET_PATH="/run/user/$(id -ru)/podman/podman.sock"
+            HOST_DOCKER_GID=${EXASTRO_GID}
+            HOST_DOCKER_SOCKET_PATH="/run/user/${EXASTRO_UID}/podman/podman.sock"
         else
             HOST_DOCKER_GID=$(grep docker /etc/group|awk -F':' '{print $3}')
             HOST_DOCKER_SOCKET_PATH="/var/run/docker.sock"
@@ -1124,6 +1133,7 @@ generate_env() {
     sed -i -e "s/^KEYCLOAK_DB_PASSWORD=.*/KEYCLOAK_DB_PASSWORD=${KEYCLOAK_DB_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^ITA_DB_ADMIN_PASSWORD=.*/ITA_DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^ITA_DB_PASSWORD=.*/ITA_DB_PASSWORD=${ITA_DB_PASSWORD}/" ${ENV_FILE}
+    sed -i -e "/^# UID=.*/a UID=${EXASTRO_UID}" ${ENV_FILE}
     sed -i -e "s/^PLATFORM_DB_ADMIN_PASSWORD=.*/PLATFORM_DB_ADMIN_PASSWORD=${PLATFORM_DB_ADMIN_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^PLATFORM_DB_PASSWORD=.*/PLATFORM_DB_PASSWORD=${PLATFORM_DB_PASSWORD}/" ${ENV_FILE}
     sed -i -e "/^# EXTERNAL_URL_PROTOCOL=.*/a EXTERNAL_URL_PROTOCOL=${EXTERNAL_URL_PROTOCOL}" ${ENV_FILE}
@@ -1173,8 +1183,8 @@ Requires=podman.socket
 Type=oneshot
 RemainAfterExit=true
 WorkingDirectory=${PROJECT_DIR}
-ExecStartPre=/usr/bin/podman unshare chown $(id -u):${EXASTRO_GID} /run/user/$(id -u)/podman/podman.sock
-Environment=DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock
+ExecStartPre=/usr/bin/podman unshare chown ${EXASTRO_UID}:${EXASTRO_GID} /run/user/${EXASTRO_UID}/podman/podman.sock
+Environment=DOCKER_HOST=unix:///run/user/${EXASTRO_UID}/podman/podman.sock
 Environment=PWD=${PROJECT_DIR}
 ExecStart=${DOCKER_COMPOSE} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d --wait
 ExecStop=${DOCKER_COMPOSE} -f ${COMPOSE_FILE} --profile all --env-file ${ENV_FILE} stop
@@ -1184,7 +1194,7 @@ WantedBy=default.target
 _EOF_
     systemctl --user daemon-reload
     systemctl --user enable exastro
-    sudo loginctl enable-linger $(id -u -n)
+    sudo loginctl enable-linger ${EXASTRO_UNAME}
 }
 
 ### Installation job to Crontab
@@ -1253,7 +1263,7 @@ start_exastro() {
             # pid1=$!
         else
             cd ${PROJECT_DIR}
-            sudo -u $(id -u -n) -E ${DOCKER_COMPOSE} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d --wait
+            sudo -u ${EXASTRO_UNAME} -E ${DOCKER_COMPOSE} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d --wait
             # pid1=$!
         fi
     else
