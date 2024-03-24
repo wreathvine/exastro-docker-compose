@@ -723,12 +723,14 @@ installation_podman_on_rhel8() {
     fi
 
     info "Install docker-compose command"
-    if [ -z "${PROXY}" ]; then
-        sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VER}/docker-compose-${OS_TYPE}-${ARCH}" -o /usr/local/bin/docker-compose
-    else
-        sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VER}/docker-compose-${OS_TYPE}-${ARCH}" -o /usr/local/bin/docker-compose -x ${https_proxy}
+    if [ ! -f "/usr/local/bin/docker-compose" ]; then
+        if [ -z "${PROXY}" ]; then
+            sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VER}/docker-compose-${OS_TYPE}-${ARCH}" -o /usr/local/bin/docker-compose
+        else
+            sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VER}/docker-compose-${OS_TYPE}-${ARCH}" -o /usr/local/bin/docker-compose -x ${https_proxy}
+        fi
+        sudo chmod a+x /usr/local/bin/docker-compose
     fi
-    sudo chmod a+x /usr/local/bin/docker-compose
 
     info "Show Podman version"
     podman --version
