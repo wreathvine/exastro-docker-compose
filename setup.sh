@@ -931,7 +931,9 @@ setup() {
             PLATFORM_DB_ADMIN_PASSWORD=${password1}
             PLATFORM_DB_PASSWORD=$(generate_password 12)
         fi
-        ENCRYPT_KEY=$(head -c 32 /dev/urandom | base64)
+        if [ "${ENCRYPT_KEY}" = 'Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=' ]; then
+            ENCRYPT_KEY=$(head -c 32 /dev/urandom | base64)
+        fi
 
         while true; do
             read -r -p "Input the Exastro service URL [default: (nothing)]: " url
@@ -964,11 +966,6 @@ setup() {
                     continue
                     fi
                 fi
-            fi
-            if $(echo "${DEP_PATTERN}" | grep -q "RHEL.*") && [ "${EXTERNAL_URL_PORT}" -le 1024 ]; then
-                echo "Cannot expose privileged port ${EXTERNAL_URL_PORT}"
-                echo "Please specify a port number greater than 1024."
-                continue
             fi
             break
         done
@@ -1158,6 +1155,7 @@ generate_env() {
     sed -i -e "s/^KEYCLOAK_DB_PASSWORD=.*/KEYCLOAK_DB_PASSWORD=${KEYCLOAK_DB_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^ITA_DB_ADMIN_PASSWORD=.*/ITA_DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^ITA_DB_PASSWORD=.*/ITA_DB_PASSWORD=${ITA_DB_PASSWORD}/" ${ENV_FILE}
+    sed -i -e "s/^ENCRYPT_KEY=.*/ENCRYPT_KEY=${ENCRYPT_KEY}/" ${ENV_FILE}
     # if [ "${EXASTRO_UID}" -ne 1000 ]; then
     #     sed -i -e "/^# UID=.*/a UID=${EXASTRO_UID}" ${ENV_FILE}
     # fi
@@ -1341,7 +1339,7 @@ It may take more than 5 minutes.
 If you are unable to access due to a 503 error, please wait a while and try again.
 
 GitLab page:
-  URL:                http://127.0.0.1:${GITLAB_PORT}
+  URL:                http://<IP address or FQDN>:${GITLAB_PORT}
   Login user:         root
   Initial password:   ${GITLAB_ROOT_PASSWORD}
 
