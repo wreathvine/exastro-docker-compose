@@ -21,6 +21,7 @@ COMPOSE_PROFILES="base"
 EXASTRO_UNAME=$(id -u -n)
 EXASTRO_UID=$(id -u)
 EXASTRO_GID=1000
+ENCRYPT_KEY='Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ='
 is_use_oase=true
 is_use_gitlab_container=false
 if [ -f ${ENV_FILE} ]; then
