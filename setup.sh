@@ -1170,7 +1170,7 @@ generate_env() {
         sed -i -e "/^# EXASTRO_MNG_EXTERNAL_URL=.*/a EXASTRO_MNG_EXTERNAL_URL=${EXASTRO_MNG_EXTERNAL_URL}" ${ENV_FILE}
     fi
     if $(echo "${DEP_PATTERN}" | grep -q "RHEL.*"); then
-        sed -i -e "s/^HOST_DOCKER_SOCKET_PATH=.*/HOST_DOCKER_SOCKET_PATH=${HOST_DOCKER_SOCKET_PATH}/" ${ENV_FILE}
+        sed -i -e "s|^HOST_DOCKER_SOCKET_PATH=.*|HOST_DOCKER_SOCKET_PATH=${HOST_DOCKER_SOCKET_PATH}|" ${ENV_FILE}
     else
         sed -i -e "s/^HOST_DOCKER_GID=.*/HOST_DOCKER_GID=${HOST_DOCKER_GID}/" ${ENV_FILE}
     fi
