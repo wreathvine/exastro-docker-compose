@@ -437,6 +437,9 @@ services:
       DB_PASSWORD: ${PLATFORM_DB_PASSWORD}
     networks:
       - exastro
+    depends_on:
+      mariadb:
+        condition: service_healthy
     profiles:
       - all
       - minimal
