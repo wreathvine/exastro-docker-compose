@@ -1074,16 +1074,22 @@ setup() {
                 GITLAB_ROOT_TOKEN=$password2
             fi
             while true; do
-                read -r -p "Input the external URL of GitLab container [default: https://gitlab.example.com]: " url
+                read -r -p "Input the external URL of GitLab container [default: (nothing)]: " url
                 echo ""
                 if [ "$url" = "" ]; then
-                    GITLAB_EXTERNAL_URL=https://gitlab.example.com
+                    GITLAB_EXTERNAL_URL=""
+                    GITLAB_PROTOCOL="http"
+                    GITLAB_HOST="<IP address or FQDN>"
+                    GITLAB_PORT=40080
                 else
                     if ! $(echo "${url}" | grep -q "http://.*") && ! $(echo "${url}" | grep -q "https://.*")  ; then
                         echo "Invalid URL format"
                         continue
                     fi
                     GITLAB_EXTERNAL_URL=${url}
+                    GITLAB_PROTOCOL=$(echo $url | awk -F[:/] '{print $1}')
+                    GITLAB_HOST=$(echo $url | awk -F[:/] '{print $4}')
+                    GITLAB_PORT=$(echo $url | awk -F[:/] '{print $5}')
                 fi
                 break
             done
@@ -1126,7 +1132,7 @@ _EOF_
             info "Docker GID:                       ${HOST_DOCKER_GID}"
             info "Docker Socket path:               ${HOST_DOCKER_SOCKET_PATH}"
             if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab_container}"; then
-                info "GitLab URL:                       ${GITLAB_EXTERNAL_URL}"
+                info "GitLab URL:                       ${GITLAB_PROTOCOL}://${GITLAB_HOST}:${GITLAB_PORT}"
                 info "GitLab root password:             ********"
                 info "GitLab root token:                ********"
             fi
@@ -1142,7 +1148,11 @@ generate_env() {
     if [ -f ${ENV_FILE} ]; then
         mv -f ${ENV_FILE} ${ENV_FILE}.$(date +%Y%m%d-%H%M%S) 
     fi
-    cp -f ${ENV_FILE}.docker.sample ${ENV_FILE}
+    if $(echo "${DEP_PATTERN}" | grep -q "RHEL.*"); then
+        cp -f ${ENV_FILE}.podman.sample ${ENV_FILE}
+    else
+        cp -f ${ENV_FILE}.docker.sample ${ENV_FILE}
+    fi
     sed -i -e "s/^SYSTEM_ADMIN_PASSWORD=.*/SYSTEM_ADMIN_PASSWORD=${SYSTEM_ADMIN_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^DB_ADMIN_PASSWORD=.*/DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^KEYCLOAK_DB_PASSWORD=.*/KEYCLOAK_DB_PASSWORD=${KEYCLOAK_DB_PASSWORD}/" ${ENV_FILE}
@@ -1163,8 +1173,14 @@ generate_env() {
     else
         EXASTRO_MNG_EXTERNAL_URL="http://<IP address or FQDN>:${EXTERNAL_URL_MNG_PORT}"
     fi
+    if $(echo "${DEP_PATTERN}" | grep -q "RHEL.*"); then
+        sed -i -e "/^# EXASTRO_EXTERNAL_URL=.*/a EXASTRO_EXTERNAL_URL=${EXASTRO_EXTERNAL_URL}" ${ENV_FILE}
+        sed -i -e "/^# EXASTRO_MNG_EXTERNAL_URL=.*/a EXASTRO_MNG_EXTERNAL_URL=${EXASTRO_MNG_EXTERNAL_URL}" ${ENV_FILE}
+    else
+        sed -i -e "/^# HOST_DOCKER_SOCKET_PATH=.*/a HOST_DOCKER_SOCKET_PATH=${HOST_DOCKER_SOCKET_PATH}" ${ENV_FILE}
+    fi
     sed -i -e "s/^HOST_DOCKER_GID=.*/HOST_DOCKER_GID=${HOST_DOCKER_GID}/" ${ENV_FILE}
-    sed -i -e "/^# HOST_DOCKER_SOCKET_PATH=.*/a HOST_DOCKER_SOCKET_PATH=${HOST_DOCKER_SOCKET_PATH}" ${ENV_FILE}
+    if
     sed -i -e "s/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=${COMPOSE_PROFILES}/" ${ENV_FILE}
     sed -i -e "s/^GITLAB_ROOT_PASSWORD=.*/GITLAB_ROOT_PASSWORD=${GITLAB_ROOT_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^GITLAB_ROOT_TOKEN=.*/GITLAB_ROOT_TOKEN=${GITLAB_ROOT_TOKEN}/" ${ENV_FILE}
