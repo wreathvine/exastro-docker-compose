@@ -939,34 +939,19 @@ setup() {
         while true; do
             read -r -p "Input the Exastro service URL [default: (nothing)]: " url
             echo ""
-            if [ "$url" = "" ]; then
-                EXASTRO_EXTERNAL_URL=""
-                EXTERNAL_URL_PROTOCOL="http"
-                EXTERNAL_URL_HOST="<IP address or FQDN>"
-                if $(echo "${DEP_PATTERN}" | grep -q "RHEL.*"); then
-                    EXTERNAL_URL_PORT=30080
-                else
-                    EXTERNAL_URL_PORT=80
-                fi
+            if $(echo "${DEP_PATTERN}" | grep -q "RHEL.*"); then
+                EXTERNAL_URL_PORT=30080
+            else
+                EXTERNAL_URL_PORT=80
+            fi
+            if [ "${url}" = "" ]; then
+                EXASTRO_EXTERNAL_URL="http://<IP address or FQDN>:${EXTERNAL_URL_PORT}"
             else
                 if ! $(echo "${url}" | grep -q "http://.*") && ! $(echo "${url}" | grep -q "https://.*") ; then
                     echo "Invalid URL format"
                     continue
                 fi
                 EXASTRO_EXTERNAL_URL=${url}
-                EXTERNAL_URL_PROTOCOL=$(echo $url | awk -F[:/] '{print $1}')
-                EXTERNAL_URL_HOST=$(echo $url | awk -F[:/] '{print $4}')
-                EXTERNAL_URL_PORT=$(echo $url | awk -F[:/] '{print $5}')
-                if [ "${EXTERNAL_URL_PORT}" = "" ]; then
-                    if [ "${EXTERNAL_URL_PROTOCOL}" = "http" ]; then
-                        EXTERNAL_URL_PORT="80"
-                    elif [ "${EXTERNAL_URL_PROTOCOL}" = "https" ]; then
-                        EXTERNAL_URL_PORT="443"
-                    else
-                    echo "Invalid protocol ${EXTERNAL_URL_PROTOCOL}"
-                    continue
-                    fi
-                fi
             fi
             break
         done
@@ -974,34 +959,19 @@ setup() {
         while true; do
             read -r -p "Input the Exastro management URL [default: (nothing)]: " url
             echo ""
-            if [ "$url" = "" ]; then
-                EXASTRO_MNG_EXTERNAL_URL=""
-                EXTERNAL_URL_MNG_PROTOCOL="http"
-                EXTERNAL_URL_MNG_HOST="<IP address or FQDN>"
-                if $(echo "${DEP_PATTERN}" | grep -q "RHEL.*"); then
-                    EXTERNAL_URL_MNG_PORT=30081
-                else
-                    EXTERNAL_URL_MNG_PORT=81
-                fi
+            if $(echo "${DEP_PATTERN}" | grep -q "RHEL.*"); then
+                EXTERNAL_URL_MNG_PORT=30081
+            else
+                EXTERNAL_URL_MNG_PORT=81
+            fi
+            if [ "${url}" = "" ]; then
+                EXASTRO_MNG_EXTERNAL_URL="http://<IP address or FQDN>:${EXTERNAL_URL_MNG_PORT}"
             else
                 if ! $(echo "${url}" | grep -q "http://.*") && ! $(echo "${url}" | grep -q "https://.*"); then
                     echo "Invalid URL format"
                     continue
                 fi
                 EXASTRO_MNG_EXTERNAL_URL="${url}"
-                EXTERNAL_URL_MNG_PROTOCOL=$(echo $url | awk -F[:/] '{print $1}')
-                EXTERNAL_URL_MNG_HOST=$(echo $url | awk -F[:/] '{print $4}')
-                EXTERNAL_URL_MNG_PORT=$(echo $url | awk -F[:/] '{print $5}')
-                if [ "${EXTERNAL_URL_MNG_PORT}" = "" ]; then
-                    if [ "${EXTERNAL_URL_MNG_PROTOCOL}" = "http" ]; then
-                        EXTERNAL_URL_MNG_PORT="80"
-                    elif [ "${EXTERNAL_URL_MNG_PROTOCOL}" = "https" ]; then
-                        EXTERNAL_URL_MNG_PORT="443"
-                    else
-                    echo "Invalid protocol ${EXTERNAL_URL_MNG_PROTOCOL}"
-                    continue
-                    fi
-                fi
             fi
             break
         done
@@ -1075,19 +1045,13 @@ setup() {
                 read -r -p "Input the external URL of GitLab container [default: (nothing)]: " url
                 echo ""
                 if [ "$url" = "" ]; then
-                    GITLAB_EXTERNAL_URL=""
-                    GITLAB_PROTOCOL="http"
-                    GITLAB_HOST="<IP address or FQDN>"
-                    GITLAB_PORT=40080
+                    GITLAB_EXTERNAL_URL="http://<IP address or FQDN>:${GITLAB_PORT}"
                 else
                     if ! $(echo "${url}" | grep -q "http://.*") && ! $(echo "${url}" | grep -q "https://.*")  ; then
                         echo "Invalid URL format"
                         continue
                     fi
                     GITLAB_EXTERNAL_URL=${url}
-                    GITLAB_PROTOCOL=$(echo $url | awk -F[:/] '{print $1}')
-                    GITLAB_HOST=$(echo $url | awk -F[:/] '{print $4}')
-                    GITLAB_PORT=$(echo $url | awk -F[:/] '{print $5}')
                 fi
                 break
             done
@@ -1102,8 +1066,8 @@ System administrator password:    ********
 MariaDB password:                 ********
 OASE deployment:                  $(if "${is_use_oase}"; then echo "true"; else echo "false"; fi)
 MongoDB password:                 ********
-Service URL:                      ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${EXTERNAL_URL_PORT}
-Manegement URL:                   ${EXTERNAL_URL_MNG_PROTOCOL}://${EXTERNAL_URL_MNG_HOST}:${EXTERNAL_URL_MNG_PORT}
+Service URL:                      ${EXASTRO_EXTERNAL_URL}
+Manegement URL:                   ${EXASTRO_MNG_EXTERNAL_URL}
 Docker GID:                       ${HOST_DOCKER_GID}
 Docker Socket path:               ${HOST_DOCKER_SOCKET_PATH}
 GitLab deployment:                $(if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab_container}"; then echo "true"; else echo "false"; fi)
@@ -1125,12 +1089,12 @@ _EOF_
             if "${is_use_oase}"; then
                 info "MongoDB password:                 ********"
             fi
-            info "Service URL:                      ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${EXTERNAL_URL_PORT}"
-            info "Manegement URL:                   ${EXTERNAL_URL_MNG_PROTOCOL}://${EXTERNAL_URL_MNG_HOST}:${EXTERNAL_URL_MNG_PORT}"
+            info "Service URL:                      ${EXASTRO_EXTERNAL_URL}"
+            info "Manegement URL:                   ${EXASTRO_MNG_EXTERNAL_URL}"
             info "Docker GID:                       ${HOST_DOCKER_GID}"
             info "Docker Socket path:               ${HOST_DOCKER_SOCKET_PATH}"
             if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab_container}"; then
-                info "GitLab URL:                       ${GITLAB_PROTOCOL}://${GITLAB_HOST}:${GITLAB_PORT}"
+                info "GitLab URL:                       ${GITLAB_EXTERNAL_URL}"
                 info "GitLab root password:             ********"
                 info "GitLab root token:                ********"
             fi
@@ -1320,12 +1284,12 @@ prompt() {
 
 
 System manager page:
-  URL:                ${EXTERNAL_URL_MNG_PROTOCOL}://${EXTERNAL_URL_MNG_HOST}:${EXTERNAL_URL_MNG_PORT}/
+  URL:                ${EXASTRO_MNG_EXTERNAL_URL}/
   Login user:         admin
   Initial password:   ${SYSTEM_ADMIN_PASSWORD}
 
 Organization page:
-  URL:                ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${EXTERNAL_URL_PORT}/{{ Organization ID }}/platform
+  URL:                ${EXASTRO_EXTERNAL_URL}/{{ Organization ID }}/platform
 
 _EOF_
     if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab_container}"; then
