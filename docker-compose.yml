@@ -134,7 +134,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   keycloak:
-    image: docker.io/exastro/keycloak:${PLATFORM_VERSION:-1.7.0}
+    image: docker.io/exastro/keycloak:${PLATFORM_VERSION:-1.8.0}
     container_name: keycloak
     hostname: keycloak
     restart: always
@@ -174,7 +174,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   platform-auth:
-    image: docker.io/exastro/exastro-platform-auth:${PLATFORM_VERSION:-1.7.0}
+    image: docker.io/exastro/exastro-platform-auth:${PLATFORM_VERSION:-1.8.0}
     container_name: platform-auth
     hostname: platform-auth
     restart: always
@@ -224,9 +224,15 @@ services:
       DB_ADMIN_PASSWORD: ${PLATFORM_DB_ADMIN_PASSWORD}
       DB_USER: ${PLATFORM_DB_USER:-app_user}
       DB_PASSWORD: ${PLATFORM_DB_PASSWORD}
+      AUDIT_LOG_ENABLED: ${AUDIT_LOG_ENABLED:-True}
+      AUDIT_LOG_PATH: ${AUDIT_LOG_PATH:-exastro-audit.log}
+      AUDIT_LOG_FILE_MAX_BYTE: ${AUDIT_LOG_FILE_MAX_BYTE:-100000000}
+      AUDIT_LOG_BACKUP_COUNT: ${AUDIT_LOG_BACKUP_COUNT:-30}
     ports:
       - "0.0.0.0:${EXTERNAL_URL_PORT:-80}:8000"
       - "0.0.0.0:${EXTERNAL_URL_MNG_PORT:-81}:8001"
+    volumes:
+      - vol-exastro-log:/var/log/exastro
     networks:
       - exastro
     depends_on:
@@ -245,7 +251,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   platform-web:
-    image: docker.io/exastro/exastro-platform-web:${PLATFORM_VERSION:-1.7.0}
+    image: docker.io/exastro/exastro-platform-web:${PLATFORM_VERSION:-1.8.0}
     container_name: platform-web
     hostname: platform-web
     restart: always
@@ -300,7 +306,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   platform-api:
-    image: docker.io/exastro/exastro-platform-api:${PLATFORM_VERSION:-1.7.0}
+    image: docker.io/exastro/exastro-platform-api:${PLATFORM_VERSION:-1.8.0}
     container_name: platform-api
     hostname: platform-api
     restart: always
@@ -360,7 +366,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   platform-job:
-    image: docker.io/exastro/exastro-platform-job:${PLATFORM_VERSION:-1.7.0}
+    image: docker.io/exastro/exastro-platform-job:${PLATFORM_VERSION:-1.8.0}
     container_name: platform-job
     hostname: platform-job
     restart: always
@@ -376,6 +382,34 @@ services:
       DB_DATABASE: ${PLATFORM_DB_DATABASE:-platform}
       DB_USER: ${PLATFORM_DB_USER:-app_user}
       DB_PASSWORD: ${PLATFORM_DB_PASSWORD}
+      API_KEYCLOAK_PROTOCOL: ${API_KEYCLOAK_PROTOCOL:-http}
+      API_KEYCLOAK_HOST: ${API_KEYCLOAK_HOST:-keycloak}
+      API_KEYCLOAK_PORT: ${API_KEYCLOAK_PORT:-8080}
+      # SUB_PROCESS_TERMINATE_REQUEST_SECONDS: ${SUB_PROCESS_TERMINATE_REQUEST_SECONDS:-7200}
+      # SUB_PROCESS_ACCEPTABLE: ${SUB_PROCESS_ACCEPTABLE:-2}
+      # SUB_PROCESS_MAX_JOBS: ${SUB_PROCESS_MAX_JOBS:-10}
+      # SUB_PROCESS_WATCH_INTERVAL_SECONDS: ${SUB_PROCESS_WATCH_INTERVAL_SECONDS:-1.0}
+      # SUB_PROCESS_DB_RECONNECT_INTERVAL_SECONDS: ${SUB_PROCESS_DB_RECONNECT_INTERVAL_SECONDS:-60}
+      # SUB_PROCESS_DB_HEALTH_CHECK_INTERVAL_SECONDS: ${SUB_PROCESS_DB_HEALTH_CHECK_INTERVAL_SECONDS:-5}
+      # SUB_PROCESS_MAX_CANCEL_TIMEOUT: ${SUB_PROCESS_MAX_CANCEL_TIMEOUT:-10}
+      # JOB_STATUS_WATCH_INTERVAL_SECONDS: ${JOB_STATUS_WATCH_INTERVAL_SECONDS:-1.0}
+      # JOB_CANCEL_TIMEOUT_SECONDS: ${JOB_CANCEL_TIMEOUT_SECONDS:-5.0}
+      # KEYCLOAK_TOKEN_REFRESH_INTERVAL_SECONDS: ${KEYCLOAK_TOKEN_REFRESH_INTERVAL_SECONDS:-30}
+      # JOB_NOTIFICATION_TIMEOUT_SECONDS: ${JOB_NOTIFICATION_TIMEOUT_SECONDS:-20}
+      # JOB_NOTIFICATION_TEAMS_CONNECTION_TIMEOUT: ${JOB_NOTIFICATION_TEAMS_CONNECTION_TIMEOUT:-3.0}
+      # JOB_NOTIFICATION_TEAMS_READ_TIMEOUT: ${JOB_NOTIFICATION_TEAMS_READ_TIMEOUT:-10.0}
+      # JOB_NOTIFICATION_SMTP_TIMEOUT: ${JOB_NOTIFICATION_SMTP_TIMEOUT:10.0}
+      # JOB_NOTIFICATION_SMTPS_SSL_VERIFY_ENABLED: ${JOB_NOTIFICATION_SMTPS_SSL_VERIFY_ENABLED:-TRUE}
+      # JOB_USER_IMPORT_TIMEOUT_SECONDS: ${JOB_USER_IMPORT_TIMEOUT_SECONDS:-3600}
+      # JOB_USER_IMPORT_MAX_JOB_PER_PROCESS: ${JOB_USER_IMPORT_MAX_JOB_PER_PROCESS:-2}
+      # JOB_USER_IMPORT_MAX_ROWS_ALLOWD: ${JOB_USER_IMPORT_MAX_ROWS_ALLOWD:-20000}
+      # JOB_USER_IMPORT_MAX_COLS_ALLOWD: ${JOB_USER_IMPORT_MAX_COLS_ALLOWD:-20}
+      # JOB_USER_IMPORT_WAIT_MILLISECONDS: ${JOB_USER_IMPORT_WAIT_MILLISECONDS:-10}
+      # JOB_USER_IMPORT_UPDATE_COUNT_INTERVAL: ${JOB_USER_IMPORT_UPDATE_COUNT_INTERVAL:-100}
+      # JOB_USER_IMPORT_XL_BUFFERED_ROWS: ${JOB_USER_IMPORT_XL_BUFFERED_ROWS:-100}
+      # JOB_FORCE_UPDATE_STATUS_INTERVAL_SECONDS: ${JOB_FORCE_UPDATE_STATUS_INTERVAL_SECONDS:-180}
+      # JOB_FORCE_UPDATE_STATUS_PROGRASS_SECONDS: ${JOB_FORCE_UPDATE_STATUS_PROGRASS_SECONDS:-600}
+      # JOB_FORCE_UPDATE_STATUS_TIMEOUT_SECONDS: ${JOB_FORCE_UPDATE_STATUS_TIMEOUT_SECONDS:-60}
     networks:
       - exastro
     profiles:
@@ -392,7 +426,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   platform-migration-1:
-    image: docker.io/exastro/exastro-platform-migration:${PLATFORM_VERSION:-1.7.0}
+    image: docker.io/exastro/exastro-platform-migration:${PLATFORM_VERSION:-1.8.0}
     container_name: platform-migration-1
     hostname: platform-migration-1
     restart: on-failure
@@ -453,7 +487,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   platform-migration-2:
-    image: docker.io/exastro/exastro-platform-migration:${PLATFORM_VERSION:-1.7.0}
+    image: docker.io/exastro/exastro-platform-migration:${PLATFORM_VERSION:-1.8.0}
     container_name: platform-migration-2
     hostname: platform-migration-2
     restart: on-failure
@@ -517,7 +551,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   ita-api-organization:
-    image: docker.io/exastro/exastro-it-automation-api-organization:${ITA_VERSION:-2.3.0}
+    image: docker.io/exastro/exastro-it-automation-api-organization:${ITA_VERSION:-2.4.0}
     container_name: ita-api-organization
     hostname: ita-api-organization
     restart: always
@@ -563,7 +597,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   ita-api-admin:
-    image: docker.io/exastro/exastro-it-automation-api-admin:${ITA_VERSION:-2.3.0}
+    image: docker.io/exastro/exastro-it-automation-api-admin:${ITA_VERSION:-2.4.0}
     container_name: ita-api-admin
     hostname: ita-api-admin
     restart: always
@@ -615,7 +649,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   ita-api-oase-receiver:
-    image: docker.io/exastro/exastro-it-automation-api-oase-receiver:${ITA_VERSION:-2.3.0}
+    image: docker.io/exastro/exastro-it-automation-api-oase-receiver:${ITA_VERSION:-2.4.0}
     container_name: ita-api-oase-receiver
     hostname: ita-api-oase-receiver
     restart: always
@@ -659,7 +693,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   ita-web-server:
-    image: docker.io/exastro/exastro-it-automation-web-server:${ITA_VERSION:-2.3.0}
+    image: docker.io/exastro/exastro-it-automation-web-server:${ITA_VERSION:-2.4.0}
     container_name: ita-web-server
     hostname: ita-web-server
     restart: always
@@ -697,7 +731,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   ita-by-ansible-execute:
-    image: docker.io/exastro/exastro-it-automation-by-ansible-execute-onpremises:${ITA_VERSION:-2.3.0}
+    image: docker.io/exastro/exastro-it-automation-by-ansible-execute-onpremises:${ITA_VERSION:-2.4.0}
     container_name: ita-by-ansible-execute
     hostname: ita-by-ansible-execute
     restart: always
@@ -709,7 +743,7 @@ services:
       ENCRYPT_KEY: ${ENCRYPT_KEY}
       EXECUTE_INTERVAL: ${INTERFACE_EXECUTE_INTERVAL:-3}
       ANSIBLE_AGENT_IMAGE: ${ANSIBLE_AGENT_IMAGE:-docker.io/exastro/exastro-it-automation-by-ansible-agent}
-      ANSIBLE_AGENT_IMAGE_TAG: ${ANSIBLE_AGENT_IMAGE_TAG:-2.3.0}
+      ANSIBLE_AGENT_IMAGE_TAG: ${ANSIBLE_AGENT_IMAGE_TAG:-2.4.0}
       DOCKER_BUILDKIT: 0
       UID: ${UID:-1000}
       HOST_DOCKER_GID: ${HOST_DOCKER_GID:-1000}
@@ -759,7 +793,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   ita-by-ansible-legacy-role-vars-listup:
-    image: docker.io/exastro/exastro-it-automation-by-ansible-legacy-role-vars-listup:${ITA_VERSION:-2.3.0}
+    image: docker.io/exastro/exastro-it-automation-by-ansible-legacy-role-vars-listup:${ITA_VERSION:-2.4.0}
     container_name: ita-by-ansible-legacy-role-vars-listup
     hostname: ita-by-ansible-legacy-role-vars-listup
     restart: always
@@ -802,7 +836,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   ita-by-ansible-legacy-vars-listup:
-    image: docker.io/exastro/exastro-it-automation-by-ansible-legacy-vars-listup:${ITA_VERSION:-2.3.0}
+    image: docker.io/exastro/exastro-it-automation-by-ansible-legacy-vars-listup:${ITA_VERSION:-2.4.0}
     container_name: ita-by-ansible-legacy-vars-listup
     hostname: ita-by-ansible-legacy-vars-listup
     restart: always
@@ -845,7 +879,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   ita-by-ansible-pioneer-vars-listup:
-    image: docker.io/exastro/exastro-it-automation-by-ansible-pioneer-vars-listup:${ITA_VERSION:-2.3.0}
+    image: docker.io/exastro/exastro-it-automation-by-ansible-pioneer-vars-listup:${ITA_VERSION:-2.4.0}
     container_name: ita-by-ansible-pioneer-vars-listup
     hostname: ita-by-ansible-pioneer-vars-listup
     restart: always
@@ -888,7 +922,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   ita-by-ansible-towermaster-sync:
-    image: docker.io/exastro/exastro-it-automation-by-ansible-towermaster-sync:${ITA_VERSION:-2.3.0}
+    image: docker.io/exastro/exastro-it-automation-by-ansible-towermaster-sync:${ITA_VERSION:-2.4.0}
     container_name: ita-by-ansible-towermaster-sync
     hostname: ita-by-ansible-towermaster-sync
     restart: always
@@ -931,7 +965,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   ita-by-collector:
-    image: docker.io/exastro/exastro-it-automation-by-collector:${ITA_VERSION:-2.3.0}
+    image: docker.io/exastro/exastro-it-automation-by-collector:${ITA_VERSION:-2.4.0}
     container_name: ita-by-collector
     hostname: ita-by-collector
     restart: always
@@ -974,7 +1008,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   ita-by-conductor-synchronize:
-    image: docker.io/exastro/exastro-it-automation-by-conductor-synchronize:${ITA_VERSION:-2.3.0}
+    image: docker.io/exastro/exastro-it-automation-by-conductor-synchronize:${ITA_VERSION:-2.4.0}
     container_name: ita-by-conductor-synchronize
     hostname: ita-by-conductor-synchronize
     restart: always
@@ -1017,7 +1051,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   ita-by-conductor-regularly:
-    image: docker.io/exastro/exastro-it-automation-by-conductor-regularly:${ITA_VERSION:-2.3.0}
+    image: docker.io/exastro/exastro-it-automation-by-conductor-regularly:${ITA_VERSION:-2.4.0}
     container_name: ita-by-conductor-regularly
     hostname: ita-by-conductor-regularly
     restart: always
@@ -1060,7 +1094,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   ita-by-menu-create:
-    image: docker.io/exastro/exastro-it-automation-by-menu-create:${ITA_VERSION:-2.3.0}
+    image: docker.io/exastro/exastro-it-automation-by-menu-create:${ITA_VERSION:-2.4.0}
     container_name: ita-by-menu-create
     hostname: ita-by-menu-create
     restart: always
@@ -1103,7 +1137,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   ita-by-menu-export-import:
-    image: docker.io/exastro/exastro-it-automation-by-menu-export-import:${ITA_VERSION:-2.3.0}
+    image: docker.io/exastro/exastro-it-automation-by-menu-export-import:${ITA_VERSION:-2.4.0}
     container_name: ita-by-menu-export-import
     hostname: ita-by-menu-export-import
     restart: always
@@ -1146,7 +1180,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   ita-by-excel-export-import:
-    image: docker.io/exastro/exastro-it-automation-by-excel-export-import:${ITA_VERSION:-2.3.0}
+    image: docker.io/exastro/exastro-it-automation-by-excel-export-import:${ITA_VERSION:-2.4.0}
     container_name: ita-by-excel-export-import
     hostname: ita-by-excel-export-import
     restart: always
@@ -1189,7 +1223,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   ita-by-terraform-cloud-ep-execute:
-    image: docker.io/exastro/exastro-it-automation-by-terraform-cloud-ep-execute:${ITA_VERSION:-2.3.0}
+    image: docker.io/exastro/exastro-it-automation-by-terraform-cloud-ep-execute:${ITA_VERSION:-2.4.0}
     container_name: ita-by-terraform-cloud-ep-execute
     hostname: ita-by-terraform-cloud-ep-execute
     restart: always
@@ -1232,7 +1266,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   ita-by-terraform-cloud-ep-vars-listup:
-    image: docker.io/exastro/exastro-it-automation-by-terraform-cloud-ep-vars-listup:${ITA_VERSION:-2.3.0}
+    image: docker.io/exastro/exastro-it-automation-by-terraform-cloud-ep-vars-listup:${ITA_VERSION:-2.4.0}
     container_name: ita-by-terraform-cloud-ep-vars-listup
     hostname: ita-by-terraform-cloud-ep-vars-listup
     restart: always
@@ -1275,7 +1309,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   ita-by-terraform-cli-execute:
-    image: docker.io/exastro/exastro-it-automation-by-terraform-cli-execute:${ITA_VERSION:-2.3.0}
+    image: docker.io/exastro/exastro-it-automation-by-terraform-cli-execute:${ITA_VERSION:-2.4.0}
     container_name: ita-by-terraform-cli-execute
     hostname: ita-by-terraform-cli-execute
     restart: always
@@ -1318,7 +1352,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   ita-by-terraform-cli-vars-listup:
-    image: docker.io/exastro/exastro-it-automation-by-terraform-cli-vars-listup:${ITA_VERSION:-2.3.0}
+    image: docker.io/exastro/exastro-it-automation-by-terraform-cli-vars-listup:${ITA_VERSION:-2.4.0}
     container_name: ita-by-terraform-cli-vars-listup
     hostname: ita-by-terraform-cli-vars-listup
     restart: always
@@ -1361,7 +1395,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   ita-by-hostgroup-split:
-    image: docker.io/exastro/exastro-it-automation-by-hostgroup-split:${ITA_VERSION:-2.3.0}
+    image: docker.io/exastro/exastro-it-automation-by-hostgroup-split:${ITA_VERSION:-2.4.0}
     container_name: ita-by-hostgroup-split
     hostname: ita-by-hostgroup-split
     restart: always
@@ -1404,7 +1438,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   ita-by-cicd-for-iac:
-    image: docker.io/exastro/exastro-it-automation-by-cicd-for-iac:${ITA_VERSION:-2.3.0}
+    image: docker.io/exastro/exastro-it-automation-by-cicd-for-iac:${ITA_VERSION:-2.4.0}
     container_name: ita-by-cicd-for-iac
     hostname: ita-by-cicd-for-iac
     restart: always
@@ -1447,7 +1481,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   ita-by-oase-conclusion:
-    image: docker.io/exastro/exastro-it-automation-by-oase-conclusion:${ITA_VERSION:-2.3.0}
+    image: docker.io/exastro/exastro-it-automation-by-oase-conclusion:${ITA_VERSION:-2.4.0}
     container_name: ita-by-oase-conclusion
     hostname: ita-by-oase-conclusion
     restart: always
@@ -1492,7 +1526,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   ita-by-execinstance-dataautoclean:
-    image: docker.io/exastro/exastro-it-automation-by-execinstance-dataautoclean:${ITA_VERSION:-2.3.0}
+    image: docker.io/exastro/exastro-it-automation-by-execinstance-dataautoclean:${ITA_VERSION:-2.4.0}
     container_name: ita-by-execinstance-dataautoclean
     hostname: ita-by-execinstance-dataautoclean
     restart: "no"
@@ -1528,7 +1562,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   ita-by-file-autoclean:
-    image: docker.io/exastro/exastro-it-automation-by-file-autoclean:${ITA_VERSION:-2.3.0}
+    image: docker.io/exastro/exastro-it-automation-by-file-autoclean:${ITA_VERSION:-2.4.0}
     container_name: ita-by-file-autoclean
     hostname: ita-by-file-autoclean
     restart: "no"
@@ -1564,7 +1598,7 @@ services:
         max-file: '${LOGGING_MAX_FILE:-10}'
 
   ita-migration:
-    image: docker.io/exastro/exastro-it-automation-migration:${ITA_VERSION:-2.3.0}
+    image: docker.io/exastro/exastro-it-automation-migration:${ITA_VERSION:-2.4.0}
     container_name: ita-migration
     hostname: ita-migration
     restart: on-failure
@@ -1656,7 +1690,12 @@ volumes:
       type: 'none'
       o: 'bind'
       device: ${PWD}/.volumes/mongo/data
-
+  vol-exastro-log:
+    driver: local
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: ${PWD}/.volumes/exastro/log
 networks:
   exastro:
     name: "exastro_${NETWORK_ID}"

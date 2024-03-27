@@ -114,7 +114,7 @@ docker-compose up -d  --wait
 | TZ                                  | OASE エージェント システムで使用するタイムゾーン              | 可                     | Asia/Tokyo                     |
 | DEFAULT_LANGUAGE                    | OASE エージェント システムで使用する規定の言語     　         | 可                     | ja                             |
 | LANGUAGE                            | OASE エージェント システムで使用する言語                     | 可                     | en                             |
-| ITA_VERSION                         | OASE エージェント のバージョン                              | 可                     | 2.3.0                                     |
+| ITA_VERSION                         | OASE エージェント のバージョン                              | 可                     | 2.4.0                                     |
 | UID                                 | OASE エージェント の実行ユーザ                              | 不要                   | **1000** (デフォルト): Docker 利用の場合<br>**0**: Podman 利用の場合     |
 | HOST_DOCKER_GID                     | ホスト上の Docker のグループID                             | 不要                    | **999**: Docker 利用の場合<br>**0**: Podman 利用の場合           |
 | AGENT_NAME                          | 起動する OASEエージェントの名前                             | 可                     | ita-oase-agent-01                         |
