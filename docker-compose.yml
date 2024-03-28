@@ -50,14 +50,11 @@ services:
     hostname: gitlab
     restart: always
     healthcheck:
-      test: curl -f http://localhost:40080/-/readiness
+      test: curl -f http://127.0.0.1:40080/-/readiness
       interval: 3s
       retries: 200
     environment:
       TZ: ${TZ:-Asia/Tokyo}
-      GITLAB_PROTOCOL: ${GITLAB_PROTOCOL:-http}
-      GITLAB_HOST: ${GITLAB_HOST:-localhost}
-      GITLAB_PORT: ${GITLAB_PORT:-40080}
       # Running GitLab in a memory-constrained environment
       # https://docs.gitlab.com/omnibus/settings/memory_constrained_envs.html
       GITLAB_OMNIBUS_CONFIG: |
@@ -67,7 +64,7 @@ services:
         postgresql['effective_cache_size'] = "128MB"
         postgresql['checkpoint_segments'] = 16
         postgresql['checkpoint_timeout'] = "10min"
-        external_url '${GITLAB_PROTOCOL:-http}://${GITLAB_HOST:-localhost}:${GITLAB_PORT:-40080}'
+        external_url '${GITLAB_EXTERNAL_URL:-http://gitlab:40080}'
         nginx['listen_port'] = 40080
         gitlab_rails['initial_root_password'] = "${GITLAB_ROOT_PASSWORD}"
         gitlab_rails['registry_enabled'] = false;
@@ -79,13 +76,13 @@ services:
         # sidekiq['max_concurrency'] = 10
         # gitaly['env'] = {'MALLOC_CONF' => 'dirty_decay_ms:1000,muzzy_decay_ms:1000', 'GITALY_COMMAND_SPAWN_MAX_PARALLEL' => '2'}
       GITLAB_POST_RECONFIGURE_SCRIPT: |
-        while ! curl -sfI -o /dev/null http://localhost:40080/-/readiness;
+        while ! curl -sfI -o /dev/null http://127.0.0.1:40080/-/readiness;
         do
         echo "GitLab service is not ready."
         sleep 1
         done
         echo "GitLab service started normally"
-        curl -Ssf -H "PRIVATE-TOKEN: ${GITLAB_ROOT_TOKEN}" "http://localhost:40080/api/v4/version" || (
+        curl -Ssf -H "PRIVATE-TOKEN: ${GITLAB_ROOT_TOKEN}" "http://127.0.0.1:40080/api/v4/version" || (
           gitlab-rails runner "token = User.find_by_username('root').personal_access_tokens.create(scopes: [:api, :write_repository, :sudo], name: 'exastro system token'); token.set_token('${GITLAB_ROOT_TOKEN}'); token.save!"
         )
         echo "GitLab post reconfigure script ended."
@@ -142,7 +139,7 @@ services:
     hostname: keycloak
     restart: always
     healthcheck:
-      test: curl http://localhost:8080/auth/health
+      test: curl -f http://127.0.0.1:8080/auth/health
       interval: 3s
       retries: 200
     environment:
@@ -182,8 +179,8 @@ services:
     hostname: platform-auth
     restart: always
     environment:
-      EXTERNAL_URL: ${EXTERNAL_URL_PROTOCOL:-http}://${EXTERNAL_URL_HOST:-localhost}:${EXTERNAL_URL_PORT:-80}
-      EXTERNAL_URL_MNG: ${EXTERNAL_URL_MNG_PROTOCOL:-http}://${EXTERNAL_URL_MNG_HOST:-127.0.0.1}:${EXTERNAL_URL_MNG_PORT:-81}
+      EXTERNAL_URL: ${EXASTRO_EXTERNAL_URL:-}
+      EXTERNAL_URL_MNG: ${EXASTRO_MNG_EXTERNAL_URL:-}
       TZ: ${TZ:-Asia/Tokyo}
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
@@ -314,7 +311,7 @@ services:
     hostname: platform-api
     restart: always
     healthcheck:
-      test: curl http://localhost:8000
+      test: curl -f http://127.0.0.1:8000/internal-api/health-check/liveness
       interval: 3s
       retries: 200
     environment:
@@ -474,6 +471,9 @@ services:
       DB_PASSWORD: ${PLATFORM_DB_PASSWORD}
     networks:
       - exastro
+    depends_on:
+      mariadb:
+        condition: service_healthy
     profiles:
       - all
       - minimal
@@ -741,7 +741,7 @@ services:
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
       ENCRYPT_KEY: ${ENCRYPT_KEY}
-      EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-3}
+      EXECUTE_INTERVAL: ${INTERFACE_EXECUTE_INTERVAL:-3}
       ANSIBLE_AGENT_IMAGE: ${ANSIBLE_AGENT_IMAGE:-docker.io/exastro/exastro-it-automation-by-ansible-agent}
       ANSIBLE_AGENT_IMAGE_TAG: ${ANSIBLE_AGENT_IMAGE_TAG:-2.4.0}
       DOCKER_BUILDKIT: 0
@@ -1018,7 +1018,7 @@ services:
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
       ENCRYPT_KEY: ${ENCRYPT_KEY}
-      EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-3}
+      EXECUTE_INTERVAL: ${INTERFACE_EXECUTE_INTERVAL:-3}
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
       PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
@@ -1233,7 +1233,7 @@ services:
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
       ENCRYPT_KEY: ${ENCRYPT_KEY}
-      EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-3}
+      EXECUTE_INTERVAL: ${INTERFACE_EXECUTE_INTERVAL:-3}
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
       PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
@@ -1319,7 +1319,7 @@ services:
       DEFAULT_LANGUAGE: ${DEFAULT_LANGUAGE:-ja}
       LANGUAGE: ${LANGUAGE:-en}
       ENCRYPT_KEY: ${ENCRYPT_KEY}
-      EXECUTE_INTERVAL: ${EXECUTE_INTERVAL:-3}
+      EXECUTE_INTERVAL: ${INTERFACE_EXECUTE_INTERVAL:-3}
       CONTAINER_BASE: docker
       STORAGEPATH: /storage/
       PLATFORM_API_HOST: ${PLATFORM_API_HOST:-platform-api}
