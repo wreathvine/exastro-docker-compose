@@ -1129,7 +1129,7 @@ generate_env() {
     sed -i -e "s/^KEYCLOAK_DB_PASSWORD=.*/KEYCLOAK_DB_PASSWORD=${KEYCLOAK_DB_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^ITA_DB_ADMIN_PASSWORD=.*/ITA_DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^ITA_DB_PASSWORD=.*/ITA_DB_PASSWORD=${ITA_DB_PASSWORD}/" ${ENV_FILE}
-    sed -i -e "|^ENCRYPT_KEY=.*|ENCRYPT_KEY=${ENCRYPT_KEY}|" ${ENV_FILE}
+    sed -i -e "s|^ENCRYPT_KEY=.*|ENCRYPT_KEY=${ENCRYPT_KEY}|" ${ENV_FILE}
     # if [ "${EXASTRO_UID}" -ne 1000 ]; then
     #     sed -i -e "/^# UID=.*/a UID=${EXASTRO_UID}" ${ENV_FILE}
     # fi
