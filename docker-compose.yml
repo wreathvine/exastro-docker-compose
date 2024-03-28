@@ -139,7 +139,7 @@ services:
     hostname: keycloak
     restart: always
     healthcheck:
-      test: curl http://127.0.0.1:8080/auth/health
+      test: curl -f http://127.0.0.1:8080/auth/health
       interval: 3s
       retries: 200
     environment:
@@ -311,7 +311,7 @@ services:
     hostname: platform-api
     restart: always
     healthcheck:
-      test: curl http://127.0.0.1:8000
+      test: curl -f http://127.0.0.1:8000/internal-api/health-check/liveness
       interval: 3s
       retries: 200
     environment:
