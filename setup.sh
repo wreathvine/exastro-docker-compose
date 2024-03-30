@@ -78,6 +78,9 @@ get_system_info() {
             DEP_PATTERN="RHEL7"
         fi
         if [ $(expr "${VERSION_ID}" : "^8\..*") != 0 ]; then
+            if [ $(expr "${VERSION_ID}" : "^8\.2$") != 0 ]; then
+                error "Not supported OS."
+            fi
             DEP_PATTERN="RHEL8"
         fi
         if [ $(expr "${VERSION_ID}" : "^9\..*") != 0 ]; then
@@ -949,10 +952,10 @@ setup() {
                 EXTERNAL_URL_PORT=80
             fi
             if [ "${url}" = "" ]; then
-                is_set_exastro_external_url=false
+is_set_exastro_external_url=false
                 EXASTRO_EXTERNAL_URL="http://<IP address or FQDN>:${EXTERNAL_URL_PORT}"
             else
-                is_set_exastro_external_url=true
+is_set_exastro_external_url=true
                 if ! $(echo "${url}" | grep -q "http://.*") && ! $(echo "${url}" | grep -q "https://.*") ; then
                     echo "Invalid URL format"
                     continue
@@ -971,10 +974,10 @@ setup() {
                 EXTERNAL_URL_MNG_PORT=81
             fi
             if [ "${url}" = "" ]; then
-                is_set_exastro_mng_external_url=false
+is_set_exastro_mng_external_url=false
                 EXASTRO_MNG_EXTERNAL_URL="http://<IP address or FQDN>:${EXTERNAL_URL_MNG_PORT}"
             else
-                is_set_exastro_mng_external_url=true
+is_set_exastro_mng_external_url=true
                 if ! $(echo "${url}" | grep -q "http://.*") && ! $(echo "${url}" | grep -q "https://.*"); then
                     echo "Invalid URL format"
                     continue
@@ -1053,10 +1056,10 @@ setup() {
                 read -r -p "Input the external URL of GitLab container [default: (nothing)]: " url
                 echo ""
                 if [ "$url" = "" ]; then
-                    is_set_gitlab_external_url=false
+is_set_gitlab_external_url=false
                     GITLAB_EXTERNAL_URL="http://<IP address or FQDN>:${GITLAB_PORT}"
                 else
-                    is_set_gitlab_external_url=true
+is_set_gitlab_external_url=true
                     if ! $(echo "${url}" | grep -q "http://.*") && ! $(echo "${url}" | grep -q "https://.*")  ; then
                         echo "Invalid URL format"
                         continue
@@ -1159,9 +1162,9 @@ generate_env() {
         sed -i -e "s/^GITLAB_HOST=.*/GITLAB_HOST=gitlab/" ${ENV_FILE}
         sed -i -e "/^# GITLAB_PORT=.*/a GITLAB_PORT=${GITLAB_PORT}" ${ENV_FILE}
     fi
-    if "${is_set_gitlab_external_url}"; then 
-        sed -i -e "/^# GITLAB_EXTERNAL_URL=.*/a GITLAB_EXTERNAL_URL=${GITLAB_EXTERNAL_URL}" ${ENV_FILE}
-    fi
+if "${is_set_gitlab_external_url}"; then 
+    sed -i -e "/^# GITLAB_EXTERNAL_URL=.*/a GITLAB_EXTERNAL_URL=${GITLAB_EXTERNAL_URL}" ${ENV_FILE}
+fi
 }
 
 ### Installation Exastro
@@ -1195,7 +1198,7 @@ Environment=PWD=${PROJECT_DIR}
 ExecStart=${DOCKER_COMPOSE} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d --wait
 ExecStop=${DOCKER_COMPOSE} -f ${COMPOSE_FILE} --profile all --env-file ${ENV_FILE} stop
 TimeoutSec=${SERVICE_TIMEOUT_SEC}
-
+ 
 [Install]
 WantedBy=default.target
 _EOF_
