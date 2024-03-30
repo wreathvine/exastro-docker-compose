@@ -22,6 +22,7 @@ EXASTRO_UNAME=$(id -u -n)
 EXASTRO_UID=$(id -u)
 EXASTRO_GID=1000
 ENCRYPT_KEY='Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ='
+SERVICE_TIMEOUT_SEC=1800
 is_use_oase=true
 is_use_gitlab_container=false
 is_set_exastro_external_url=false
@@ -1193,7 +1194,8 @@ Environment=DOCKER_HOST=unix:///run/user/${EXASTRO_UID}/podman/podman.sock
 Environment=PWD=${PROJECT_DIR}
 ExecStart=${DOCKER_COMPOSE} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d --wait
 ExecStop=${DOCKER_COMPOSE} -f ${COMPOSE_FILE} --profile all --env-file ${ENV_FILE} stop
- 
+TimeoutSec=${SERVICE_TIMEOUT_SEC}
+
 [Install]
 WantedBy=default.target
 _EOF_
