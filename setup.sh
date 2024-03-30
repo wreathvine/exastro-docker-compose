@@ -78,6 +78,9 @@ get_system_info() {
             DEP_PATTERN="RHEL7"
         fi
         if [ $(expr "${VERSION_ID}" : "^8\..*") != 0 ]; then
+            if [ $(expr "${VERSION_ID}" : "^8\.2$") != 0 ]; then
+                error "Not supported OS. Required Red Hat Enterprise Linux release 8.3 or later."
+            fi
             DEP_PATTERN="RHEL8"
         fi
         if [ $(expr "${VERSION_ID}" : "^9\..*") != 0 ]; then
