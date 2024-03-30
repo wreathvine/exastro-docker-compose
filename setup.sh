@@ -22,8 +22,12 @@ EXASTRO_UNAME=$(id -u -n)
 EXASTRO_UID=$(id -u)
 EXASTRO_GID=1000
 ENCRYPT_KEY='Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ='
+SERVICE_TIMEOUT_SEC=1800
 is_use_oase=true
 is_use_gitlab_container=false
+is_set_exastro_external_url=false
+is_set_exastro_mng_external_url=false
+is_set_gitlab_external_url=false
 if [ -f ${ENV_FILE} ]; then
     . ${ENV_FILE}
 fi
@@ -945,8 +949,10 @@ setup() {
                 EXTERNAL_URL_PORT=80
             fi
             if [ "${url}" = "" ]; then
+                is_set_exastro_external_url=false
                 EXASTRO_EXTERNAL_URL="http://<IP address or FQDN>:${EXTERNAL_URL_PORT}"
             else
+                is_set_exastro_external_url=true
                 if ! $(echo "${url}" | grep -q "http://.*") && ! $(echo "${url}" | grep -q "https://.*") ; then
                     echo "Invalid URL format"
                     continue
@@ -965,8 +971,10 @@ setup() {
                 EXTERNAL_URL_MNG_PORT=81
             fi
             if [ "${url}" = "" ]; then
+                is_set_exastro_mng_external_url=false
                 EXASTRO_MNG_EXTERNAL_URL="http://<IP address or FQDN>:${EXTERNAL_URL_MNG_PORT}"
             else
+                is_set_exastro_mng_external_url=true
                 if ! $(echo "${url}" | grep -q "http://.*") && ! $(echo "${url}" | grep -q "https://.*"); then
                     echo "Invalid URL format"
                     continue
@@ -1045,8 +1053,10 @@ setup() {
                 read -r -p "Input the external URL of GitLab container [default: (nothing)]: " url
                 echo ""
                 if [ "$url" = "" ]; then
+                    is_set_gitlab_external_url=false
                     GITLAB_EXTERNAL_URL="http://<IP address or FQDN>:${GITLAB_PORT}"
                 else
+                    is_set_gitlab_external_url=true
                     if ! $(echo "${url}" | grep -q "http://.*") && ! $(echo "${url}" | grep -q "https://.*")  ; then
                         echo "Invalid URL format"
                         continue
@@ -1120,16 +1130,16 @@ generate_env() {
     sed -i -e "s/^KEYCLOAK_DB_PASSWORD=.*/KEYCLOAK_DB_PASSWORD=${KEYCLOAK_DB_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^ITA_DB_ADMIN_PASSWORD=.*/ITA_DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^ITA_DB_PASSWORD=.*/ITA_DB_PASSWORD=${ITA_DB_PASSWORD}/" ${ENV_FILE}
-    sed -i -e "s/^ENCRYPT_KEY=.*/ENCRYPT_KEY=${ENCRYPT_KEY}/" ${ENV_FILE}
+    sed -i -e "s|^ENCRYPT_KEY=.*|ENCRYPT_KEY=${ENCRYPT_KEY}|" ${ENV_FILE}
     # if [ "${EXASTRO_UID}" -ne 1000 ]; then
     #     sed -i -e "/^# UID=.*/a UID=${EXASTRO_UID}" ${ENV_FILE}
     # fi
     sed -i -e "s/^PLATFORM_DB_ADMIN_PASSWORD=.*/PLATFORM_DB_ADMIN_PASSWORD=${PLATFORM_DB_ADMIN_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^PLATFORM_DB_PASSWORD=.*/PLATFORM_DB_PASSWORD=${PLATFORM_DB_PASSWORD}/" ${ENV_FILE}
-    if [ "${EXASTRO_EXTERNAL_URL}" != "" ]; then
+    if "${is_set_exastro_external_url}"; then
         sed -i -e "/^# EXASTRO_EXTERNAL_URL=.*/a EXASTRO_EXTERNAL_URL=${EXASTRO_EXTERNAL_URL}" ${ENV_FILE}
     fi
-    if [ "${EXASTRO_MNG_EXTERNAL_URL}" != "" ]; then
+    if "${is_set_exastro_mng_external_url}"; then
         sed -i -e "/^# EXASTRO_MNG_EXTERNAL_URL=.*/a EXASTRO_MNG_EXTERNAL_URL=${EXASTRO_MNG_EXTERNAL_URL}" ${ENV_FILE}
     fi
     if $(echo "${DEP_PATTERN}" | grep -q "RHEL.*"); then
@@ -1149,7 +1159,9 @@ generate_env() {
         sed -i -e "s/^GITLAB_HOST=.*/GITLAB_HOST=gitlab/" ${ENV_FILE}
         sed -i -e "/^# GITLAB_PORT=.*/a GITLAB_PORT=${GITLAB_PORT}" ${ENV_FILE}
     fi
-    sed -i -e "/^# GITLAB_EXTERNAL_URL=.*/a GITLAB_EXTERNAL_URL=${GITLAB_EXTERNAL_URL}" ${ENV_FILE}
+    if "${is_set_gitlab_external_url}"; then 
+        sed -i -e "/^# GITLAB_EXTERNAL_URL=.*/a GITLAB_EXTERNAL_URL=${GITLAB_EXTERNAL_URL}" ${ENV_FILE}
+    fi
 }
 
 ### Installation Exastro
@@ -1182,7 +1194,8 @@ Environment=DOCKER_HOST=unix:///run/user/${EXASTRO_UID}/podman/podman.sock
 Environment=PWD=${PROJECT_DIR}
 ExecStart=${DOCKER_COMPOSE} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d --wait
 ExecStop=${DOCKER_COMPOSE} -f ${COMPOSE_FILE} --profile all --env-file ${ENV_FILE} stop
- 
+TimeoutSec=${SERVICE_TIMEOUT_SEC}
+
 [Install]
 WantedBy=default.target
 _EOF_
