@@ -1093,10 +1093,11 @@ Service URL:                      ${EXASTRO_EXTERNAL_URL}
 Manegement URL:                   ${EXASTRO_MNG_EXTERNAL_URL}
 Docker GID:                       ${HOST_DOCKER_GID}
 Docker Socket path:               ${HOST_DOCKER_SOCKET_PATH}
-GitLab deployment:                $(if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab_container}"; then echo "true"; else echo "false"; fi)
+GitLab deployment:                $(if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab_container}"; then echo "Yes"; else echo "No"; fi)
 _EOF_
         if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab_container}"; then
             cat <<_EOF_
+GitLab URL:                       ${GITLAB_EXTERNAL_URL}
 GitLab root password:             ********
 GitLab root token:                ********
 
