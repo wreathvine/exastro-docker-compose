@@ -865,7 +865,7 @@ setup() {
         read -r -p "Regenerate .env file? (y/n) [default: n]: " confirm
         echo ""
         if ! (echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"); then
-
+            info "Cancelled."
             return 0
         fi
     fi
@@ -944,46 +944,50 @@ setup() {
         fi
 
         while true; do
-            read -r -p "Input the Exastro service URL [default: (nothing)]: " url
-            echo ""
+            read -r -p "Input the Exastro service URL: " url
             if $(echo "${DEP_PATTERN}" | grep -q "RHEL.*"); then
                 EXTERNAL_URL_PORT=30080
             else
                 EXTERNAL_URL_PORT=80
             fi
             if [ "${url}" = "" ]; then
-                is_set_exastro_external_url=false
-                EXASTRO_EXTERNAL_URL="http://<IP address or FQDN>:${EXTERNAL_URL_PORT}"
+                echo "Exastro service URL is required."
+                echo ""
+                continue 
             else
                 is_set_exastro_external_url=true
                 if ! $(echo "${url}" | grep -q "http://.*") && ! $(echo "${url}" | grep -q "https://.*") ; then
                     echo "Invalid URL format"
+                    echo ""
                     continue
                 fi
                 EXASTRO_EXTERNAL_URL=${url}
             fi
+            echo ""
             break
         done
 
         while true; do
-            read -r -p "Input the Exastro management URL [default: (nothing)]: " url
-            echo ""
+            read -r -p "Input the Exastro management URL: " url
             if $(echo "${DEP_PATTERN}" | grep -q "RHEL.*"); then
                 EXTERNAL_URL_MNG_PORT=30081
             else
                 EXTERNAL_URL_MNG_PORT=81
             fi
             if [ "${url}" = "" ]; then
-                is_set_exastro_mng_external_url=false
-                EXASTRO_MNG_EXTERNAL_URL="http://<IP address or FQDN>:${EXTERNAL_URL_MNG_PORT}"
+                echo "Exastro management service URL is required."
+                echo ""
+                continue 
             else
                 is_set_exastro_mng_external_url=true
                 if ! $(echo "${url}" | grep -q "http://.*") && ! $(echo "${url}" | grep -q "https://.*"); then
                     echo "Invalid URL format"
+                    echo ""
                     continue
                 fi
                 EXASTRO_MNG_EXTERNAL_URL="${url}"
             fi
+            echo ""
             break
         done
 
