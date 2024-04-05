@@ -720,7 +720,7 @@ installation_podman_on_rhel8() {
     # sudo dnf update -y
 
     info "Install fuse-overlayfs"
-    sudo sudo dnf install -y fuse-overlayfs
+    sudo dnf install -y fuse-overlayfs
 
     info "Install Podman"
     sudo dnf install -y podman podman-docker git
