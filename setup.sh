@@ -1163,6 +1163,7 @@ generate_env() {
     sed -i -e "s/^MONGO_INITDB_ROOT_PASSWORD=.*/MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^MONGO_ADMIN_PASSWORD=.*/MONGO_ADMIN_PASSWORD=${MONGO_ADMIN_PASSWORD}/" ${ENV_FILE}
     if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab_container}"; then
+        sed -i -e "/^# GITLAB_PROTOCOL=.*/a GITLAB_PROTOCOL=http" ${ENV_FILE}
         sed -i -e "s/^GITLAB_HOST=.*/GITLAB_HOST=gitlab/" ${ENV_FILE}
         sed -i -e "/^# GITLAB_PORT=.*/a GITLAB_PORT=${GITLAB_PORT}" ${ENV_FILE}
     fi
@@ -1299,6 +1300,13 @@ start_exastro() {
 
 ### Display Exastro system information
 prompt() {
+    . ${ENV_FILE}
+    if [ "${GITLAB_EXTERNAL_URL:+defined}" ];
+    then
+        GITLAB_URL="${GITLAB_EXTERNAL_URL}"
+    else
+        GITLAB_URL="${GITLAB_PROTOCOL}://<IP address or FQDN>:${GITLAB_PORT}"
+    fi
     banner
     cat<<_EOF_
 
@@ -1312,7 +1320,7 @@ Organization page:
   URL:                ${EXASTRO_EXTERNAL_URL}/{{ Organization ID }}/platform
 
 _EOF_
-    if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab_container}"; then
+    if [ ${COMPOSE_PROFILES} = "all" ] || [ "${GITLAB_HOST:+defined}" ]; then
         cat <<_EOF_
 
 
@@ -1324,18 +1332,18 @@ It may take more than 5 minutes.
 If you are unable to access due to a 503 error, please wait a while and try again.
 
 GitLab page:
-  URL:                http://<IP address or FQDN>:${GITLAB_PORT}
+  URL:                ${GITLAB_URL}
   Login user:         root
   Initial password:   ${GITLAB_ROOT_PASSWORD}
 
 _EOF_
     printf "GitLab service is not ready."
-    while ! curl -sfI -o /dev/null http://127.0.0.1:${GITLAB_PORT}/-/readiness;
+    while ! curl -sfI -o /dev/null ${GITLAB_PROTOCOL}://${GITLAB_HOST}:${GITLAB_PORT}/-/readiness;
     do
         printf "."
         sleep 1
     done
-    while ! curl -sfI -o /dev/null -H "PRIVATE-TOKEN: ${GITLAB_ROOT_TOKEN:-}" http://127.0.0.1:${GITLAB_PORT}/api/v4/version;
+    while ! curl -sfI -o /dev/null -H "PRIVATE-TOKEN: ${GITLAB_ROOT_TOKEN:-}" ${GITLAB_PROTOCOL}://${GITLAB_HOST}:${GITLAB_PORT}/api/v4/version;
     do
         printf "."
         sleep 1
