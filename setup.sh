@@ -573,13 +573,13 @@ check_security() {
     printf "$(date) [INFO]: Checking running security services.............\n" | tee -a "${LOG_FILE}"
     SELINUX_STATUS=$(sudo getenforce 2>/dev/null || :)
     if [ "${SELINUX_STATUS}" = "Permissive" ]; then
-        info "SELinux is now Permissive mdoe."
+        info "SELinux is now Permissive mode."
         if [ "${DEP_PATTERN}" != "RHEL8" ] && [ "${DEP_PATTERN}" != "RHEL9" ]; then
             printf "\r\033[2F\033[K$(date) [INFO]: Checking running security services.............check\n" | tee -a "${LOG_FILE}"
             printf "\r\033[2E\033[K" | tee -a "${LOG_FILE}"
         fi
     else
-        info "SELinux is not Permissive mdoe."
+        info "SELinux is not Permissive mode."
         if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
             printf "\r\033[2F\033[K$(date) [INFO]: Checking running security services.............ng\n" | tee -a "${LOG_FILE}"
             printf "\r\033[2E\033[K" | tee -a "${LOG_FILE}"
