@@ -895,49 +895,51 @@ setup() {
             COMPOSE_PROFILES="all"
         fi
 
-        read -r -p "Generate all password and token automatically? (y/n) [default: y]: " confirm
-        echo ""
-        if echo $confirm | grep -q -e "[nN]" -e "[nN][oO]"; then
-            PWD_METHOD="manually"
-        else
-            PWD_METHOD="auto"
-        fi
+        if [ ! -f ${ENV_FILE} ]; then
+            read -r -p "Generate all password and token automatically? (y/n) [default: y]: " confirm
+            echo ""
+            if echo $confirm | grep -q -e "[nN]" -e "[nN][oO]"; then
+                PWD_METHOD="manually"
+            else
+                PWD_METHOD="auto"
+            fi
 
-        if [ "${PWD_METHOD}" = "manually" ]; then
-            while true; do
-                read -r -p "Exastro system admin password: " password1
-                echo ""
-                if [ "$password1" = "" ]; then
-                    echo "Invalid password!!"
-                else
-                    SYSTEM_ADMIN_PASSWORD=$password1
-                    break
-                fi
-            done
-            while true; do
-                read -r -p "MariaDB password: " password1
-                echo ""
-                if [ "$password1" = "" ]; then
-                    echo "Invalid password!!"
-                else
-                    DB_ADMIN_PASSWORD=$password1
-                    KEYCLOAK_DB_PASSWORD=$password1
-                    ITA_DB_ADMIN_PASSWORD=$password1
-                    ITA_DB_PASSWORD=$password1
-                    PLATFORM_DB_ADMIN_PASSWORD=$password1
-                    PLATFORM_DB_PASSWORD=$password1
-                    break
-                fi
-            done
-        else
-            password1=$(generate_password 12)
-            SYSTEM_ADMIN_PASSWORD=$(generate_password 12)
-            DB_ADMIN_PASSWORD=${password1}
-            KEYCLOAK_DB_PASSWORD=$(generate_password 12)
-            ITA_DB_ADMIN_PASSWORD=${password1}
-            ITA_DB_PASSWORD=$(generate_password 12)
-            PLATFORM_DB_ADMIN_PASSWORD=${password1}
-            PLATFORM_DB_PASSWORD=$(generate_password 12)
+            if [ "${PWD_METHOD}" = "manually" ]; then
+                while true; do
+                    read -r -p "Exastro system admin password: " password1
+                    echo ""
+                    if [ "$password1" = "" ]; then
+                        echo "Invalid password!!"
+                    else
+                        SYSTEM_ADMIN_PASSWORD=$password1
+                        break
+                    fi
+                done
+                while true; do
+                    read -r -p "MariaDB password: " password1
+                    echo ""
+                    if [ "$password1" = "" ]; then
+                        echo "Invalid password!!"
+                    else
+                        DB_ADMIN_PASSWORD=$password1
+                        KEYCLOAK_DB_PASSWORD=$password1
+                        ITA_DB_ADMIN_PASSWORD=$password1
+                        ITA_DB_PASSWORD=$password1
+                        PLATFORM_DB_ADMIN_PASSWORD=$password1
+                        PLATFORM_DB_PASSWORD=$password1
+                        break
+                    fi
+                done
+            else
+                password1=$(generate_password 12)
+                SYSTEM_ADMIN_PASSWORD=$(generate_password 12)
+                DB_ADMIN_PASSWORD=${password1}
+                KEYCLOAK_DB_PASSWORD=$(generate_password 12)
+                ITA_DB_ADMIN_PASSWORD=${password1}
+                ITA_DB_PASSWORD=$(generate_password 12)
+                PLATFORM_DB_ADMIN_PASSWORD=${password1}
+                PLATFORM_DB_PASSWORD=$(generate_password 12)
+            fi
         fi
         if [ "${ENCRYPT_KEY}" = 'Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=' ]; then
             ENCRYPT_KEY=$(head -c 32 /dev/urandom | base64)
@@ -999,62 +1001,66 @@ setup() {
             HOST_DOCKER_SOCKET_PATH="/var/run/docker.sock"
         fi
 
-        MONGO_INITDB_ROOT_PASSWORD="None"
-        MONGO_ADMIN_PASSWORD="None"
         if "${is_use_oase}"; then
-            if [ ${PWD_METHOD} = "manually" ]; then
-                while true; do
-                    read -r -p "MongoDB password: " password1
-                    echo ""
-                    if [ "$password1" = "" ]; then
-                        echo "Invalid password!!"
-                        continue
-                    else
-                        MONGO_INITDB_ROOT_PASSWORD=$password1
-                        MONGO_ADMIN_PASSWORD=$password1
-                        break
-                    fi
-                done
-            else
-                password1=$(generate_password 12)
-                MONGO_INITDB_ROOT_PASSWORD=${password1}
-                MONGO_ADMIN_PASSWORD=${password1}
+            if [ ! -f ${ENV_FILE} ]; then
+                MONGO_INITDB_ROOT_PASSWORD="None"
+                MONGO_ADMIN_PASSWORD="None"
+                if [ ${PWD_METHOD} = "manually" ]; then
+                    while true; do
+                        read -r -p "MongoDB password: " password1
+                        echo ""
+                        if [ "$password1" = "" ]; then
+                            echo "Invalid password!!"
+                            continue
+                        else
+                            MONGO_INITDB_ROOT_PASSWORD=$password1
+                            MONGO_ADMIN_PASSWORD=$password1
+                            break
+                        fi
+                    done
+                else
+                    password1=$(generate_password 12)
+                    MONGO_INITDB_ROOT_PASSWORD=${password1}
+                    MONGO_ADMIN_PASSWORD=${password1}
+                fi
             fi
         fi
 
-        GITLAB_ROOT_PASSWORD="None"
-        GITLAB_ROOT_TOKEN="None"
         if "${is_use_gitlab_container}"; then
-            GITLAB_PORT="40080"
-            if [ ${PWD_METHOD} = "manually" ]; then
-                while true; do
-                    read -r -p "GitLab root password: " password1
-                    echo ""
-                    if [ "$password1" = "" ]; then
-                        echo "Invalid password!!"
-                        continue
-                    else
-                        GITLAB_ROOT_PASSWORD=$password1
-                        break
-                    fi
-                done
+            if [ ! -f ${ENV_FILE} ]; then
+                GITLAB_ROOT_PASSWORD="None"
+                GITLAB_ROOT_TOKEN="None"
+                GITLAB_PORT="40080"
+                if [ ${PWD_METHOD} = "manually" ]; then
+                    while true; do
+                        read -r -p "GitLab root password: " password1
+                        echo ""
+                        if [ "$password1" = "" ]; then
+                            echo "Invalid password!!"
+                            continue
+                        else
+                            GITLAB_ROOT_PASSWORD=$password1
+                            break
+                        fi
+                    done
 
-                while true; do
-                    read -r -p "GitLab root token (e.g. root-access-token): " password1
-                    echo ""
-                    if [ "$password1" = "" ]; then
-                        echo "Invalid password!!"
-                        continue
-                    else
-                        GITLAB_ROOT_TOKEN=$password1
-                        break
-                    fi
-                done
-            else
-                password1=$(generate_password 12)
-                password2=$(generate_password 20)
-                GITLAB_ROOT_PASSWORD=$password1
-                GITLAB_ROOT_TOKEN=$password2
+                    while true; do
+                        read -r -p "GitLab root token (e.g. root-access-token): " password1
+                        echo ""
+                        if [ "$password1" = "" ]; then
+                            echo "Invalid password!!"
+                            continue
+                        else
+                            GITLAB_ROOT_TOKEN=$password1
+                            break
+                        fi
+                    done
+                else
+                    password1=$(generate_password 12)
+                    password2=$(generate_password 20)
+                    GITLAB_ROOT_PASSWORD=$password1
+                    GITLAB_ROOT_TOKEN=$password2
+                fi
             fi
             while true; do
                 read -r -p "Input the external URL of GitLab container [default: (nothing)]: " url
