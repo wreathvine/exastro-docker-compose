@@ -573,13 +573,13 @@ check_security() {
     printf "$(date) [INFO]: Checking running security services.............\n" | tee -a "${LOG_FILE}"
     SELINUX_STATUS=$(sudo getenforce 2>/dev/null || :)
     if [ "${SELINUX_STATUS}" = "Permissive" ]; then
-        info "SELinux is now Permissive mdoe."
+        info "SELinux is now Permissive mode."
         if [ "${DEP_PATTERN}" != "RHEL8" ] && [ "${DEP_PATTERN}" != "RHEL9" ]; then
             printf "\r\033[2F\033[K$(date) [INFO]: Checking running security services.............check\n" | tee -a "${LOG_FILE}"
             printf "\r\033[2E\033[K" | tee -a "${LOG_FILE}"
         fi
     else
-        info "SELinux is not Permissive mdoe."
+        info "SELinux is not Permissive mode."
         if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
             printf "\r\033[2F\033[K$(date) [INFO]: Checking running security services.............ng\n" | tee -a "${LOG_FILE}"
             printf "\r\033[2E\033[K" | tee -a "${LOG_FILE}"
@@ -720,7 +720,7 @@ installation_podman_on_rhel8() {
     # sudo dnf update -y
 
     info "Install fuse-overlayfs"
-    sudo sudo dnf install -y fuse-overlayfs
+    sudo dnf install -y fuse-overlayfs
 
     info "Install Podman"
     sudo dnf install -y podman podman-docker git
@@ -865,7 +865,7 @@ setup() {
         read -r -p "Regenerate .env file? (y/n) [default: n]: " confirm
         echo ""
         if ! (echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"); then
-
+            info "Cancelled."
             return 0
         fi
     fi
@@ -895,95 +895,101 @@ setup() {
             COMPOSE_PROFILES="all"
         fi
 
-        read -r -p "Generate all password and token automatically? (y/n) [default: y]: " confirm
-        echo ""
-        if echo $confirm | grep -q -e "[nN]" -e "[nN][oO]"; then
-            PWD_METHOD="manually"
-        else
-            PWD_METHOD="auto"
-        fi
+        if [ ! -f ${ENV_FILE} ]; then
+            read -r -p "Generate all password and token automatically? (y/n) [default: y]: " confirm
+            echo ""
+            if echo $confirm | grep -q -e "[nN]" -e "[nN][oO]"; then
+                PWD_METHOD="manually"
+            else
+                PWD_METHOD="auto"
+            fi
 
-        if [ "${PWD_METHOD}" = "manually" ]; then
-            while true; do
-                read -r -p "Exastro system admin password: " password1
-                echo ""
-                if [ "$password1" = "" ]; then
-                    echo "Invalid password!!"
-                else
-                    SYSTEM_ADMIN_PASSWORD=$password1
-                    break
-                fi
-            done
-            while true; do
-                read -r -p "MariaDB password: " password1
-                echo ""
-                if [ "$password1" = "" ]; then
-                    echo "Invalid password!!"
-                else
-                    DB_ADMIN_PASSWORD=$password1
-                    KEYCLOAK_DB_PASSWORD=$password1
-                    ITA_DB_ADMIN_PASSWORD=$password1
-                    ITA_DB_PASSWORD=$password1
-                    PLATFORM_DB_ADMIN_PASSWORD=$password1
-                    PLATFORM_DB_PASSWORD=$password1
-                    break
-                fi
-            done
-        else
-            password1=$(generate_password 12)
-            SYSTEM_ADMIN_PASSWORD=$(generate_password 12)
-            DB_ADMIN_PASSWORD=${password1}
-            KEYCLOAK_DB_PASSWORD=$(generate_password 12)
-            ITA_DB_ADMIN_PASSWORD=${password1}
-            ITA_DB_PASSWORD=$(generate_password 12)
-            PLATFORM_DB_ADMIN_PASSWORD=${password1}
-            PLATFORM_DB_PASSWORD=$(generate_password 12)
+            if [ "${PWD_METHOD}" = "manually" ]; then
+                while true; do
+                    read -r -p "Exastro system admin password: " password1
+                    echo ""
+                    if [ "$password1" = "" ]; then
+                        echo "Invalid password!!"
+                    else
+                        SYSTEM_ADMIN_PASSWORD=$password1
+                        break
+                    fi
+                done
+                while true; do
+                    read -r -p "MariaDB password: " password1
+                    echo ""
+                    if [ "$password1" = "" ]; then
+                        echo "Invalid password!!"
+                    else
+                        DB_ADMIN_PASSWORD=$password1
+                        KEYCLOAK_DB_PASSWORD=$password1
+                        ITA_DB_ADMIN_PASSWORD=$password1
+                        ITA_DB_PASSWORD=$password1
+                        PLATFORM_DB_ADMIN_PASSWORD=$password1
+                        PLATFORM_DB_PASSWORD=$password1
+                        break
+                    fi
+                done
+            else
+                password1=$(generate_password 12)
+                SYSTEM_ADMIN_PASSWORD=$(generate_password 12)
+                DB_ADMIN_PASSWORD=${password1}
+                KEYCLOAK_DB_PASSWORD=$(generate_password 12)
+                ITA_DB_ADMIN_PASSWORD=${password1}
+                ITA_DB_PASSWORD=$(generate_password 12)
+                PLATFORM_DB_ADMIN_PASSWORD=${password1}
+                PLATFORM_DB_PASSWORD=$(generate_password 12)
+            fi
         fi
         if [ "${ENCRYPT_KEY}" = 'Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=' ]; then
             ENCRYPT_KEY=$(head -c 32 /dev/urandom | base64)
         fi
 
         while true; do
-            read -r -p "Input the Exastro service URL [default: (nothing)]: " url
-            echo ""
+            read -r -p "Input the Exastro service URL: " url
             if $(echo "${DEP_PATTERN}" | grep -q "RHEL.*"); then
                 EXTERNAL_URL_PORT=30080
             else
                 EXTERNAL_URL_PORT=80
             fi
             if [ "${url}" = "" ]; then
-                is_set_exastro_external_url=false
-                EXASTRO_EXTERNAL_URL="http://<IP address or FQDN>:${EXTERNAL_URL_PORT}"
+                echo "Exastro service URL is required."
+                echo ""
+                continue 
             else
                 is_set_exastro_external_url=true
                 if ! $(echo "${url}" | grep -q "http://.*") && ! $(echo "${url}" | grep -q "https://.*") ; then
                     echo "Invalid URL format"
+                    echo ""
                     continue
                 fi
                 EXASTRO_EXTERNAL_URL=${url}
             fi
+            echo ""
             break
         done
 
         while true; do
-            read -r -p "Input the Exastro management URL [default: (nothing)]: " url
-            echo ""
+            read -r -p "Input the Exastro management URL: " url
             if $(echo "${DEP_PATTERN}" | grep -q "RHEL.*"); then
                 EXTERNAL_URL_MNG_PORT=30081
             else
                 EXTERNAL_URL_MNG_PORT=81
             fi
             if [ "${url}" = "" ]; then
-                is_set_exastro_mng_external_url=false
-                EXASTRO_MNG_EXTERNAL_URL="http://<IP address or FQDN>:${EXTERNAL_URL_MNG_PORT}"
+                echo "Exastro management service URL is required."
+                echo ""
+                continue 
             else
                 is_set_exastro_mng_external_url=true
                 if ! $(echo "${url}" | grep -q "http://.*") && ! $(echo "${url}" | grep -q "https://.*"); then
                     echo "Invalid URL format"
+                    echo ""
                     continue
                 fi
                 EXASTRO_MNG_EXTERNAL_URL="${url}"
             fi
+            echo ""
             break
         done
 
@@ -995,62 +1001,66 @@ setup() {
             HOST_DOCKER_SOCKET_PATH="/var/run/docker.sock"
         fi
 
-        MONGO_INITDB_ROOT_PASSWORD="None"
-        MONGO_ADMIN_PASSWORD="None"
         if "${is_use_oase}"; then
-            if [ ${PWD_METHOD} = "manually" ]; then
-                while true; do
-                    read -r -p "MongoDB password: " password1
-                    echo ""
-                    if [ "$password1" = "" ]; then
-                        echo "Invalid password!!"
-                        continue
-                    else
-                        MONGO_INITDB_ROOT_PASSWORD=$password1
-                        MONGO_ADMIN_PASSWORD=$password1
-                        break
-                    fi
-                done
-            else
-                password1=$(generate_password 12)
-                MONGO_INITDB_ROOT_PASSWORD=${password1}
-                MONGO_ADMIN_PASSWORD=${password1}
+            if [ ! -f ${ENV_FILE} ]; then
+                MONGO_INITDB_ROOT_PASSWORD="None"
+                MONGO_ADMIN_PASSWORD="None"
+                if [ ${PWD_METHOD} = "manually" ]; then
+                    while true; do
+                        read -r -p "MongoDB password: " password1
+                        echo ""
+                        if [ "$password1" = "" ]; then
+                            echo "Invalid password!!"
+                            continue
+                        else
+                            MONGO_INITDB_ROOT_PASSWORD=$password1
+                            MONGO_ADMIN_PASSWORD=$password1
+                            break
+                        fi
+                    done
+                else
+                    password1=$(generate_password 12)
+                    MONGO_INITDB_ROOT_PASSWORD=${password1}
+                    MONGO_ADMIN_PASSWORD=${password1}
+                fi
             fi
         fi
 
-        GITLAB_ROOT_PASSWORD="None"
-        GITLAB_ROOT_TOKEN="None"
         if "${is_use_gitlab_container}"; then
-            GITLAB_PORT="40080"
-            if [ ${PWD_METHOD} = "manually" ]; then
-                while true; do
-                    read -r -p "GitLab root password: " password1
-                    echo ""
-                    if [ "$password1" = "" ]; then
-                        echo "Invalid password!!"
-                        continue
-                    else
-                        GITLAB_ROOT_PASSWORD=$password1
-                        break
-                    fi
-                done
+            if [ ! -f ${ENV_FILE} ]; then
+                GITLAB_ROOT_PASSWORD="None"
+                GITLAB_ROOT_TOKEN="None"
+                GITLAB_PORT="40080"
+                if [ ${PWD_METHOD} = "manually" ]; then
+                    while true; do
+                        read -r -p "GitLab root password: " password1
+                        echo ""
+                        if [ "$password1" = "" ]; then
+                            echo "Invalid password!!"
+                            continue
+                        else
+                            GITLAB_ROOT_PASSWORD=$password1
+                            break
+                        fi
+                    done
 
-                while true; do
-                    read -r -p "GitLab root token (e.g. root-access-token): " password1
-                    echo ""
-                    if [ "$password1" = "" ]; then
-                        echo "Invalid password!!"
-                        continue
-                    else
-                        GITLAB_ROOT_TOKEN=$password1
-                        break
-                    fi
-                done
-            else
-                password1=$(generate_password 12)
-                password2=$(generate_password 20)
-                GITLAB_ROOT_PASSWORD=$password1
-                GITLAB_ROOT_TOKEN=$password2
+                    while true; do
+                        read -r -p "GitLab root token (e.g. root-access-token): " password1
+                        echo ""
+                        if [ "$password1" = "" ]; then
+                            echo "Invalid password!!"
+                            continue
+                        else
+                            GITLAB_ROOT_TOKEN=$password1
+                            break
+                        fi
+                    done
+                else
+                    password1=$(generate_password 12)
+                    password2=$(generate_password 20)
+                    GITLAB_ROOT_PASSWORD=$password1
+                    GITLAB_ROOT_TOKEN=$password2
+                fi
             fi
             while true; do
                 read -r -p "Input the external URL of GitLab container [default: (nothing)]: " url
@@ -1083,10 +1093,11 @@ Service URL:                      ${EXASTRO_EXTERNAL_URL}
 Manegement URL:                   ${EXASTRO_MNG_EXTERNAL_URL}
 Docker GID:                       ${HOST_DOCKER_GID}
 Docker Socket path:               ${HOST_DOCKER_SOCKET_PATH}
-GitLab deployment:                $(if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab_container}"; then echo "true"; else echo "false"; fi)
+GitLab deployment:                $(if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab_container}"; then echo "Yes"; else echo "No"; fi)
 _EOF_
         if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab_container}"; then
             cat <<_EOF_
+GitLab URL:                       ${GITLAB_EXTERNAL_URL}
 GitLab root password:             ********
 GitLab root token:                ********
 
@@ -1159,6 +1170,7 @@ generate_env() {
     sed -i -e "s/^MONGO_INITDB_ROOT_PASSWORD=.*/MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^MONGO_ADMIN_PASSWORD=.*/MONGO_ADMIN_PASSWORD=${MONGO_ADMIN_PASSWORD}/" ${ENV_FILE}
     if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab_container}"; then
+        sed -i -e "/^# GITLAB_PROTOCOL=.*/a GITLAB_PROTOCOL=http" ${ENV_FILE}
         sed -i -e "s/^GITLAB_HOST=.*/GITLAB_HOST=gitlab/" ${ENV_FILE}
         sed -i -e "/^# GITLAB_PORT=.*/a GITLAB_PORT=${GITLAB_PORT}" ${ENV_FILE}
     fi
@@ -1295,6 +1307,13 @@ start_exastro() {
 
 ### Display Exastro system information
 prompt() {
+    . ${ENV_FILE}
+    if [ "${GITLAB_EXTERNAL_URL:+defined}" ];
+    then
+        GITLAB_URL="${GITLAB_EXTERNAL_URL}"
+    else
+        GITLAB_URL="${GITLAB_PROTOCOL}://<IP address or FQDN>:${GITLAB_PORT}"
+    fi
     banner
     cat<<_EOF_
 
@@ -1308,7 +1327,7 @@ Organization page:
   URL:                ${EXASTRO_EXTERNAL_URL}/{{ Organization ID }}/platform
 
 _EOF_
-    if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab_container}"; then
+    if [ ${COMPOSE_PROFILES} = "all" ] || [ "${GITLAB_HOST:+defined}" ]; then
         cat <<_EOF_
 
 
@@ -1320,18 +1339,18 @@ It may take more than 5 minutes.
 If you are unable to access due to a 503 error, please wait a while and try again.
 
 GitLab page:
-  URL:                http://<IP address or FQDN>:${GITLAB_PORT}
+  URL:                ${GITLAB_URL}
   Login user:         root
   Initial password:   ${GITLAB_ROOT_PASSWORD}
 
 _EOF_
     printf "GitLab service is not ready."
-    while ! curl -sfI -o /dev/null http://127.0.0.1:${GITLAB_PORT}/-/readiness;
+    while ! curl -sfI -o /dev/null ${GITLAB_PROTOCOL}://${GITLAB_HOST}:${GITLAB_PORT}/-/readiness;
     do
         printf "."
         sleep 1
     done
-    while ! curl -sfI -o /dev/null -H "PRIVATE-TOKEN: ${GITLAB_ROOT_TOKEN:-}" http://127.0.0.1:${GITLAB_PORT}/api/v4/version;
+    while ! curl -sfI -o /dev/null -H "PRIVATE-TOKEN: ${GITLAB_ROOT_TOKEN:-}" ${GITLAB_PROTOCOL}://${GITLAB_HOST}:${GITLAB_PORT}/api/v4/version;
     do
         printf "."
         sleep 1
