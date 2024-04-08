@@ -5,7 +5,7 @@ services:
       - organization_id={{ organization_id }}
       - workspace_id={{ workspace_id }}
       - execution_no={{ execution_no }}
-    image: "my-exastro-it-automation-by-ansible-execute-onpremise"
+    image: "my-exastro-it-automation-by-ansible-agent"
     build:
       context: ./work/
       args:
