@@ -23,6 +23,12 @@ EXASTRO_UID=$(id -u)
 EXASTRO_GID=1000
 ENCRYPT_KEY='Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ='
 SERVICE_TIMEOUT_SEC=1800
+GITLAB_ROOT_PASSWORD='Ch@ngeMeGL'
+GITLAB_ROOT_TOKEN='change-this-token'
+MONGO_INITDB_ROOT_PASSWORD=Ch@ngeMeDBAdm
+MONGO_HOST=mongo
+MONGO_ADMIN_PASSWORD=Ch@ngeMeDBAdm
+
 is_use_oase=true
 is_use_gitlab_container=false
 is_set_exastro_external_url=false
@@ -1075,6 +1081,9 @@ setup() {
                         continue
                     fi
                     GITLAB_EXTERNAL_URL=${url}
+                    GITLAB_PROTOCOL=$(echo $url | awk -F[:/] '{print $1}')
+                    GITLAB_HOST=$(echo $url | awk -F[:/] '{print $4}')
+                    GITLAB_PORT=$(echo $url | awk -F[:/] '{print $5}')
                 fi
                 break
             done
@@ -1170,8 +1179,8 @@ generate_env() {
     sed -i -e "s/^MONGO_INITDB_ROOT_PASSWORD=.*/MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^MONGO_ADMIN_PASSWORD=.*/MONGO_ADMIN_PASSWORD=${MONGO_ADMIN_PASSWORD}/" ${ENV_FILE}
     if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab_container}"; then
-        sed -i -e "/^# GITLAB_PROTOCOL=.*/a GITLAB_PROTOCOL=http" ${ENV_FILE}
-        sed -i -e "s/^GITLAB_HOST=.*/GITLAB_HOST=gitlab/" ${ENV_FILE}
+        sed -i -e "/^# GITLAB_PROTOCOL=.*/a GITLAB_PROTOCOL==${MONGO_ADMIN_PASSWORD}/" ${ENV_FILE}
+        sed -i -e "s/^GITLAB_HOST=.*/GITLAB_HOST=${GITLAB_HOST}/" ${ENV_FILE}
         sed -i -e "/^# GITLAB_PORT=.*/a GITLAB_PORT=${GITLAB_PORT}" ${ENV_FILE}
     fi
     if "${is_set_gitlab_external_url}"; then 
