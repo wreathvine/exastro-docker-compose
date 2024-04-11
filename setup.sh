@@ -1179,7 +1179,7 @@ generate_env() {
     sed -i -e "s/^MONGO_INITDB_ROOT_PASSWORD=.*/MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^MONGO_ADMIN_PASSWORD=.*/MONGO_ADMIN_PASSWORD=${MONGO_ADMIN_PASSWORD}/" ${ENV_FILE}
     if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab_container}"; then
-        sed -i -e "/^# GITLAB_PROTOCOL=.*/a GITLAB_PROTOCOL==${MONGO_ADMIN_PASSWORD}/" ${ENV_FILE}
+        sed -i -e "/^# GITLAB_PROTOCOL=.*/a GITLAB_PROTOCOL==${GITLAB_PROTOCOL}/" ${ENV_FILE}
         sed -i -e "s/^GITLAB_HOST=.*/GITLAB_HOST=${GITLAB_HOST}/" ${ENV_FILE}
         sed -i -e "/^# GITLAB_PORT=.*/a GITLAB_PORT=${GITLAB_PORT}" ${ENV_FILE}
     fi
