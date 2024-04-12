@@ -5,7 +5,7 @@ services:
       - organization_id={{ organization_id }}
       - workspace_id={{ workspace_id }}
       - execution_no={{ execution_no }}
-    # image: "{{ ansible_agent_image }}"
+    image: "my-exastro-it-automation-by-ansible-agent"
     build:
       context: ./work/
       args:
@@ -29,12 +29,6 @@ services:
         source: {{ host_mount_path_conductor }}
         target: {{ container_mount_path_conductor }}
     environment:
-      HTTP_PROXY: "${HTTP_PROXY}"
-      http_proxy: "${http_proxy}"
-      HTTPS_PROXY: "${HTTPS_PROXY}"
-      https_proxy: "${https_proxy}"
-      NO_PROXY: localhost,127.0.0.1,ita-api-organization,ita-api-admin,ita-web-server,platform-api,platform-auth
-      no_proxy: localhost,127.0.0.1,ita-api-organization,ita-api-admin,ita-web-server,platform-api,platform-auth
       EXEC_DIR: {{ container_mount_path_driver }}
       PYTHONPATH: "/usr/local/lib/python3.9/site-packages:/home/app_user/.local/lib/python3.9/site-packages:$PYTHONPATH"
     networks:
