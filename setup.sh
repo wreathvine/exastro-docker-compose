@@ -18,8 +18,22 @@ COMPOSE_FILE="${PROJECT_DIR}/docker-compose.yml"
 LOG_FILE="${HOME}/exastro-installation.log"
 ENV_FILE="${PROJECT_DIR}/.env"
 COMPOSE_PROFILES="base"
+EXASTRO_UNAME=$(id -u -n)
+EXASTRO_UID=$(id -u)
+EXASTRO_GID=1000
+ENCRYPT_KEY='Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ='
+SERVICE_TIMEOUT_SEC=1800
+GITLAB_ROOT_PASSWORD='Ch@ngeMeGL'
+GITLAB_ROOT_TOKEN='change-this-token'
+MONGO_INITDB_ROOT_PASSWORD=Ch@ngeMeDBAdm
+MONGO_HOST=mongo
+MONGO_ADMIN_PASSWORD=Ch@ngeMeDBAdm
+
 is_use_oase=true
-is_use_gitlab=false
+is_use_gitlab_container=false
+is_set_exastro_external_url=false
+is_set_exastro_mng_external_url=false
+is_set_gitlab_external_url=false
 if [ -f ${ENV_FILE} ]; then
     . ${ENV_FILE}
 fi
@@ -70,6 +84,9 @@ get_system_info() {
             DEP_PATTERN="RHEL7"
         fi
         if [ $(expr "${VERSION_ID}" : "^8\..*") != 0 ]; then
+            if [ $(expr "${VERSION_ID}" : "^8\.[0-2]$") != 0 ]; then
+                error "Not supported OS. Required Red Hat Enterprise Linux release 8.3 or later."
+            fi
             DEP_PATTERN="RHEL8"
         fi
         if [ $(expr "${VERSION_ID}" : "^9\..*") != 0 ]; then
@@ -561,23 +578,18 @@ check_system() {
 check_security() {
     printf "$(date) [INFO]: Checking running security services.............\n" | tee -a "${LOG_FILE}"
     SELINUX_STATUS=$(sudo getenforce 2>/dev/null || :)
-    if [ "${SELINUX_STATUS}" = "Enforcing" ]; then
-        info "SELinux is now Enforcing."
-        SELINUX_STATUS="inactive"
+    if [ "${SELINUX_STATUS}" = "Permissive" ]; then
+        info "SELinux is now Permissive mode."
         if [ "${DEP_PATTERN}" != "RHEL8" ] && [ "${DEP_PATTERN}" != "RHEL9" ]; then
-            SELINUX_STATUS="active"
             printf "\r\033[2F\033[K$(date) [INFO]: Checking running security services.............check\n" | tee -a "${LOG_FILE}"
             printf "\r\033[2E\033[K" | tee -a "${LOG_FILE}"
         fi
     else
-        SELINUX_STATUS="inactive"
-        info "SELinux is not Enforcing."
-        SELINUX_STATUS="inactive"
+        info "SELinux is not Permissive mode."
         if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
-            SELINUX_STATUS="active"
             printf "\r\033[2F\033[K$(date) [INFO]: Checking running security services.............ng\n" | tee -a "${LOG_FILE}"
             printf "\r\033[2E\033[K" | tee -a "${LOG_FILE}"
-            error "SELinux must be Enforcing on Rootless Podman."
+            error "In Rootless Podman environment, SELinux only supports Permissive mode."
         fi
     fi
 
@@ -628,7 +640,7 @@ check_command() {
     else
         printf "\r\033[1F\033[K$(date) [INFO]: Checking required commands.....................ng\n" | tee -a "${LOG_FILE}"
         printf "\r\033[1E\033[K" | tee -a "${LOG_FILE}"
-        error "Required 'sudo' command and $(id -u -n) is appended to sudoers."
+        error "Required 'sudo' command and ${EXASTRO_UNAME} is appended to sudoers."
     fi
     sleep 1
     printf "\r\033[2F\033[K$(date) [INFO]: Checking running security services.............ok\n" | tee -a "${LOG_FILE}"
@@ -713,6 +725,9 @@ installation_podman_on_rhel8() {
     # info "Update packages"
     # sudo dnf update -y
 
+    info "Install fuse-overlayfs"
+    sudo dnf install -y fuse-overlayfs
+
     info "Install Podman"
     sudo dnf install -y podman podman-docker git
 
@@ -722,12 +737,14 @@ installation_podman_on_rhel8() {
     fi
 
     info "Install docker-compose command"
-    if [ -z "${PROXY}" ]; then
-        sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VER}/docker-compose-${OS_TYPE}-${ARCH}" -o /usr/local/bin/docker-compose
-    else
-        sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VER}/docker-compose-${OS_TYPE}-${ARCH}" -o /usr/local/bin/docker-compose -x ${https_proxy}
+    if [ ! -f "/usr/local/bin/docker-compose" ]; then
+        if [ -z "${PROXY}" ]; then
+            sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VER}/docker-compose-${OS_TYPE}-${ARCH}" -o /usr/local/bin/docker-compose
+        else
+            sudo curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VER}/docker-compose-${OS_TYPE}-${ARCH}" -o /usr/local/bin/docker-compose -x ${https_proxy}
+        fi
+        sudo chmod a+x /usr/local/bin/docker-compose
     fi
-    sudo chmod a+x /usr/local/bin/docker-compose
 
     info "Show Podman version"
     podman --version
@@ -760,15 +777,23 @@ installation_podman_on_rhel8() {
     info "Start and enable Podman socket service"
     systemctl --user enable --now podman.socket
     systemctl --user status podman.socket --no-pager
-    podman unshare chown $(id -u):$(id -g) /run/user/$(id -u)/podman/podman.sock
+    podman unshare chown ${EXASTRO_UID}:${EXASTRO_GID} /run/user/${EXASTRO_UID}/podman/podman.sock
 
-    DOCKER_HOST="unix:///run/user/$(id -ru)/podman/podman.sock"
+    DOCKER_HOST="unix:///run/user/${EXASTRO_UID}/podman/podman.sock"
     if grep -q "^export DOCKER_HOST" ${HOME}/.bashrc; then
         sed -i -e "s|^export DOCKER_HOST.*|export DOCKER_HOST=${DOCKER_HOST}|" ${HOME}/.bashrc
     else
         echo "export DOCKER_HOST=${DOCKER_HOST}" >> ${HOME}/.bashrc
         echo "alias docker-compose='podman unshare docker-compose'" >> ${HOME}/.bashrc
     fi
+
+    XDG_RUNTIME_DIR="/run/user/${EXASTRO_UID}"
+    if grep -q "^export XDG_RUNTIME_DIR" ${HOME}/.bashrc; then
+        sed -i -e "s|^export XDG_RUNTIME_DIR.*|export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}|" ${HOME}/.bashrc
+    else
+        echo "export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}" >> ${HOME}/.bashrc
+    fi
+
 }
 
 ### Installation Docker on AlmaLinux
@@ -828,7 +853,7 @@ fetch_exastro() {
         git clone https://github.com/exastro-suite/exastro-docker-compose.git
     fi
     if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
-        podman unshare chown $(id -u):$(id -g) "${PROJECT_DIR}/.volumes/storage/"
+        podman unshare chown ${EXASTRO_UID}:${EXASTRO_GID} "${PROJECT_DIR}/.volumes/storage/"
         sudo chcon -R -h -t container_file_t "${PROJECT_DIR}"
     fi
 }
@@ -846,7 +871,7 @@ setup() {
         read -r -p "Regenerate .env file? (y/n) [default: n]: " confirm
         echo ""
         if ! (echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"); then
-
+            info "Cancelled."
             return 0
         fi
     fi
@@ -867,178 +892,201 @@ setup() {
         echo ""
         if echo $confirm | grep -q -e "[yY]" -e "[yY][eE][sS]"; then
             COMPOSE_PROFILES="${COMPOSE_PROFILES},gitlab"
-            is_use_gitlab=true
+            is_use_gitlab_container=true
         else
-            is_use_gitlab=false
+            is_use_gitlab_container=false
         fi
 
-        if "${is_use_oase}" && "${is_use_gitlab}"; then
+        if "${is_use_oase}" && "${is_use_gitlab_container}"; then
             COMPOSE_PROFILES="all"
         fi
 
-        read -r -p "Generate all password and token automatically? (y/n) [default: y]: " confirm
-        echo ""
-        if echo $confirm | grep -q -e "[nN]" -e "[nN][oO]"; then
-            PWD_METHOD="manually"
-        else
-            PWD_METHOD="auto"
-        fi
+        if [ ! -f ${ENV_FILE} ]; then
+            read -r -p "Generate all password and token automatically? (y/n) [default: y]: " confirm
+            echo ""
+            if echo $confirm | grep -q -e "[nN]" -e "[nN][oO]"; then
+                PWD_METHOD="manually"
+            else
+                PWD_METHOD="auto"
+            fi
 
-        if [ "${PWD_METHOD}" = "manually" ]; then
-            while true; do
-                read -r -p "Exastro system admin password: " password1
-                echo ""
-                if [ "$password1" = "" ]; then
-                    echo "Invalid password!!"
-                else
-                    SYSTEM_ADMIN_PASSWORD=$password1
-                    break
-                fi
-            done
-            while true; do
-                read -r -p "MariaDB password: " password1
-                echo ""
-                if [ "$password1" = "" ]; then
-                    echo "Invalid password!!"
-                else
-                    DB_ADMIN_PASSWORD=$password1
-                    KEYCLOAK_DB_PASSWORD=$password1
-                    ITA_DB_ADMIN_PASSWORD=$password1
-                    ITA_DB_PASSWORD=$password1
-                    PLATFORM_DB_ADMIN_PASSWORD=$password1
-                    PLATFORM_DB_PASSWORD=$password1
-                    break
-                fi
-            done
-        else
-            password1=$(generate_password 12)
-            SYSTEM_ADMIN_PASSWORD=$(generate_password 12)
-            DB_ADMIN_PASSWORD=${password1}
-            KEYCLOAK_DB_PASSWORD=$(generate_password 12)
-            ITA_DB_ADMIN_PASSWORD=${password1}
-            ITA_DB_PASSWORD=$(generate_password 12)
-            PLATFORM_DB_ADMIN_PASSWORD=${password1}
-            PLATFORM_DB_PASSWORD=$(generate_password 12)
+            if [ "${PWD_METHOD}" = "manually" ]; then
+                while true; do
+                    read -r -p "Exastro system admin password: " password1
+                    echo ""
+                    if [ "$password1" = "" ]; then
+                        echo "Invalid password!!"
+                    else
+                        SYSTEM_ADMIN_PASSWORD=$password1
+                        break
+                    fi
+                done
+                while true; do
+                    read -r -p "MariaDB password: " password1
+                    echo ""
+                    if [ "$password1" = "" ]; then
+                        echo "Invalid password!!"
+                    else
+                        DB_ADMIN_PASSWORD=$password1
+                        KEYCLOAK_DB_PASSWORD=$password1
+                        ITA_DB_ADMIN_PASSWORD=$password1
+                        ITA_DB_PASSWORD=$password1
+                        PLATFORM_DB_ADMIN_PASSWORD=$password1
+                        PLATFORM_DB_PASSWORD=$password1
+                        break
+                    fi
+                done
+            else
+                password1=$(generate_password 12)
+                SYSTEM_ADMIN_PASSWORD=$(generate_password 12)
+                DB_ADMIN_PASSWORD=${password1}
+                KEYCLOAK_DB_PASSWORD=$(generate_password 12)
+                ITA_DB_ADMIN_PASSWORD=${password1}
+                ITA_DB_PASSWORD=$(generate_password 12)
+                PLATFORM_DB_ADMIN_PASSWORD=${password1}
+                PLATFORM_DB_PASSWORD=$(generate_password 12)
+            fi
         fi
-        ENCRYPT_KEY=$(head -c 32 /dev/urandom | base64)
+        if [ "${ENCRYPT_KEY}" = 'Q2hhbmdlTWUxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ=' ]; then
+            ENCRYPT_KEY=$(head -c 32 /dev/urandom | base64)
+        fi
 
         while true; do
-            read -r -p "Input Service URL [default: http://127.0.0.1:30080]: " url
-            echo ""
-            if $(echo "${url}" | grep -q "http://.*") && $(echo "${url}" | grep -q "https://.*") && [ "${url}" != "" ]  ; then
-                echo "Invalid URL format"
-                continue
-            fi
-            if [ "$url" = "" ]; then
-                EXTERNAL_URL_PROTOCOL=http
-                EXTERNAL_URL_HOST=127.0.0.1
+            read -r -p "Input the Exastro service URL: " url
+            if $(echo "${DEP_PATTERN}" | grep -q "RHEL.*"); then
                 EXTERNAL_URL_PORT=30080
             else
-                EXTERNAL_URL_PROTOCOL=$(echo $url | awk -F[:/] '{print $1}')
-                EXTERNAL_URL_HOST=$(echo $url | awk -F[:/] '{print $4}')
-                EXTERNAL_URL_PORT=$(echo $url | awk -F[:/] '{print $5}')
+                EXTERNAL_URL_PORT=80
             fi
-            if [ "${EXTERNAL_URL_PORT}" = "" ]; then
-                if [ "${EXTERNAL_URL_PROTOCOL}" = "http" ]; then
-                    EXTERNAL_URL_PORT="80"
-                else
-                    EXTERNAL_URL_PORT="443"
+            if [ "${url}" = "" ]; then
+                echo "Exastro service URL is required."
+                echo ""
+                continue 
+            else
+                is_set_exastro_external_url=true
+                if ! $(echo "${url}" | grep -q "http://.*") && ! $(echo "${url}" | grep -q "https://.*") ; then
+                    echo "Invalid URL format"
+                    echo ""
+                    continue
                 fi
+                EXASTRO_EXTERNAL_URL=${url}
             fi
+            echo ""
             break
         done
 
         while true; do
-            read -r -p "Input Management URL [default: http://127.0.0.1:30081]: " url
-            echo ""
-            if $(echo "${url}" | grep -q "http://.*") && $(echo "${url}" | grep -q "https://.*") && [ "${url}" != "" ]  ; then
-                echo "Invalid URL format"
-                continue
-            fi
-            if [ "$url" = "" ]; then
-                EXTERNAL_URL_MNG_PROTOCOL=http
-                EXTERNAL_URL_MNG_HOST=127.0.0.1
+            read -r -p "Input the Exastro management URL: " url
+            if $(echo "${DEP_PATTERN}" | grep -q "RHEL.*"); then
                 EXTERNAL_URL_MNG_PORT=30081
             else
-                EXTERNAL_URL_MNG_PROTOCOL=$(echo $url | awk -F[:/] '{print $1}')
-                EXTERNAL_URL_MNG_HOST=$(echo $url | awk -F[:/] '{print $4}')
-                EXTERNAL_URL_MNG_PORT=$(echo $url | awk -F[:/] '{print $5}')
+                EXTERNAL_URL_MNG_PORT=81
             fi
-            if [ "${EXTERNAL_URL_MNG_PORT}" = "" ]; then
-                if [ "${EXTERNAL_URL_MNG_PROTOCOL}" = "http" ]; then
-                    EXTERNAL_URL_MNG_PORT="80"
-                else
-                    EXTERNAL_URL_MNG_PORT="443"
+            if [ "${url}" = "" ]; then
+                echo "Exastro management service URL is required."
+                echo ""
+                continue 
+            else
+                is_set_exastro_mng_external_url=true
+                if ! $(echo "${url}" | grep -q "http://.*") && ! $(echo "${url}" | grep -q "https://.*"); then
+                    echo "Invalid URL format"
+                    echo ""
+                    continue
                 fi
+                EXASTRO_MNG_EXTERNAL_URL="${url}"
             fi
+            echo ""
             break
         done
 
         if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
-            HOST_DOCKER_GID=1000
-            HOST_DOCKER_SOCKET_PATH="/run/user/$(id -ru)/podman/podman.sock"
+            HOST_DOCKER_GID=${EXASTRO_GID}
+            HOST_DOCKER_SOCKET_PATH="/run/user/${EXASTRO_UID}/podman/podman.sock"
         else
             HOST_DOCKER_GID=$(grep docker /etc/group|awk -F':' '{print $3}')
             HOST_DOCKER_SOCKET_PATH="/var/run/docker.sock"
         fi
 
-        MONGO_INITDB_ROOT_PASSWORD="None"
-        MONGO_ADMIN_PASSWORD="None"
         if "${is_use_oase}"; then
-            if [ ${PWD_METHOD} = "manually" ]; then
-                while true; do
-                    read -r -p "MongoDB password: " password1
-                    echo ""
-                    if [ "$password1" = "" ]; then
-                        echo "Invalid password!!"
-                        continue
-                    else
-                        MONGO_INITDB_ROOT_PASSWORD=$password1
-                        MONGO_ADMIN_PASSWORD=$password1
-                        break
-                    fi
-                done
-            else
-                password1=$(generate_password 12)
-                MONGO_INITDB_ROOT_PASSWORD=${password1}
-                MONGO_ADMIN_PASSWORD=${password1}
+            if [ ! -f ${ENV_FILE} ]; then
+                MONGO_INITDB_ROOT_PASSWORD="None"
+                MONGO_ADMIN_PASSWORD="None"
+                if [ ${PWD_METHOD} = "manually" ]; then
+                    while true; do
+                        read -r -p "MongoDB password: " password1
+                        echo ""
+                        if [ "$password1" = "" ]; then
+                            echo "Invalid password!!"
+                            continue
+                        else
+                            MONGO_INITDB_ROOT_PASSWORD=$password1
+                            MONGO_ADMIN_PASSWORD=$password1
+                            break
+                        fi
+                    done
+                else
+                    password1=$(generate_password 12)
+                    MONGO_INITDB_ROOT_PASSWORD=${password1}
+                    MONGO_ADMIN_PASSWORD=${password1}
+                fi
             fi
         fi
 
-        GITLAB_ROOT_PASSWORD="None"
-        GITLAB_ROOT_TOKEN="None"
-        if "${is_use_gitlab}"; then
-            GITLAB_PORT="40080"
-            if [ ${PWD_METHOD} = "manually" ]; then
-                while true; do
-                    read -r -p "GitLab root password: " password1
-                    echo ""
-                    if [ "$password1" = "" ]; then
-                        echo "Invalid password!!"
-                        continue
-                    else
-                        GITLAB_ROOT_PASSWORD=$password1
-                        break
-                    fi
-                done
+        if "${is_use_gitlab_container}"; then
+            if [ ! -f ${ENV_FILE} ]; then
+                GITLAB_ROOT_PASSWORD="None"
+                GITLAB_ROOT_TOKEN="None"
+                GITLAB_PORT="40080"
+                if [ ${PWD_METHOD} = "manually" ]; then
+                    while true; do
+                        read -r -p "GitLab root password: " password1
+                        echo ""
+                        if [ "$password1" = "" ]; then
+                            echo "Invalid password!!"
+                            continue
+                        else
+                            GITLAB_ROOT_PASSWORD=$password1
+                            break
+                        fi
+                    done
 
-                while true; do
-                    read -r -p "GitLab root token (e.g. root-access-token): " password1
-                    echo ""
-                    if [ "$password1" = "" ]; then
-                        echo "Invalid password!!"
-                        continue
-                    else
-                        GITLAB_ROOT_TOKEN=$password1
-                        break
-                    fi
-                done
-            else
-                password1=$(generate_password 12)
-                password2=$(generate_password 20)
-                GITLAB_ROOT_PASSWORD=$password1
-                GITLAB_ROOT_TOKEN=$password2
+                    while true; do
+                        read -r -p "GitLab root token (e.g. root-access-token): " password1
+                        echo ""
+                        if [ "$password1" = "" ]; then
+                            echo "Invalid password!!"
+                            continue
+                        else
+                            GITLAB_ROOT_TOKEN=$password1
+                            break
+                        fi
+                    done
+                else
+                    password1=$(generate_password 12)
+                    password2=$(generate_password 20)
+                    GITLAB_ROOT_PASSWORD=$password1
+                    GITLAB_ROOT_TOKEN=$password2
+                fi
             fi
+            while true; do
+                read -r -p "Input the external URL of GitLab container [default: (nothing)]: " url
+                echo ""
+                if [ "$url" = "" ]; then
+                    is_set_gitlab_external_url=false
+                    GITLAB_EXTERNAL_URL="http://<IP address or FQDN>:${GITLAB_PORT}"
+                else
+                    is_set_gitlab_external_url=true
+                    if ! $(echo "${url}" | grep -q "http://.*") && ! $(echo "${url}" | grep -q "https://.*")  ; then
+                        echo "Invalid URL format"
+                        continue
+                    fi
+                    GITLAB_EXTERNAL_URL=${url}
+                    GITLAB_PROTOCOL=$(echo $url | awk -F[:/] '{print $1}')
+                    GITLAB_HOST=$(echo $url | awk -F[:/] '{print $4}')
+                    GITLAB_PORT=$(echo $url | awk -F[:/] '{print $5}')
+                fi
+                break
+            done
         fi
 
         cat <<_EOF_
@@ -1050,22 +1098,17 @@ System administrator password:    ********
 MariaDB password:                 ********
 OASE deployment:                  $(if "${is_use_oase}"; then echo "true"; else echo "false"; fi)
 MongoDB password:                 ********
-Service URL:                      ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${EXTERNAL_URL_PORT}
-Manegement URL:                   ${EXTERNAL_URL_MNG_PROTOCOL}://${EXTERNAL_URL_MNG_HOST}:${EXTERNAL_URL_MNG_PORT}
+Service URL:                      ${EXASTRO_EXTERNAL_URL}
+Manegement URL:                   ${EXASTRO_MNG_EXTERNAL_URL}
 Docker GID:                       ${HOST_DOCKER_GID}
 Docker Socket path:               ${HOST_DOCKER_SOCKET_PATH}
-GitLab deployment:                $(if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then echo "true"; else echo "false"; fi)
+GitLab deployment:                $(if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab_container}"; then echo "Yes"; else echo "No"; fi)
 _EOF_
-        if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then
+        if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab_container}"; then
             cat <<_EOF_
-GitLab URL:                       ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${GITLAB_PORT}
+GitLab URL:                       ${GITLAB_EXTERNAL_URL}
 GitLab root password:             ********
 GitLab root token:                ********
-
-_EOF_
-        else
-            cat <<_EOF_
-GitLab URL:                       None
 
 _EOF_
         fi
@@ -1079,16 +1122,14 @@ _EOF_
             if "${is_use_oase}"; then
                 info "MongoDB password:                 ********"
             fi
-            info "Service URL:                      ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${EXTERNAL_URL_PORT}"
-            info "Manegement URL:                   ${EXTERNAL_URL_MNG_PROTOCOL}://${EXTERNAL_URL_MNG_HOST}:${EXTERNAL_URL_MNG_PORT}"
+            info "Service URL:                      ${EXASTRO_EXTERNAL_URL}"
+            info "Manegement URL:                   ${EXASTRO_MNG_EXTERNAL_URL}"
             info "Docker GID:                       ${HOST_DOCKER_GID}"
             info "Docker Socket path:               ${HOST_DOCKER_SOCKET_PATH}"
-            if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then
-                info "GitLab URL:                       ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${GITLAB_PORT}"
+            if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab_container}"; then
+                info "GitLab URL:                       ${GITLAB_EXTERNAL_URL}"
                 info "GitLab root password:             ********"
                 info "GitLab root token:                ********"
-            else
-                info "GitLab URL:                       None"
             fi
             
             generate_env
@@ -1102,22 +1143,33 @@ generate_env() {
     if [ -f ${ENV_FILE} ]; then
         mv -f ${ENV_FILE} ${ENV_FILE}.$(date +%Y%m%d-%H%M%S) 
     fi
-    cp -f ${ENV_FILE}.docker.sample ${ENV_FILE}
+    if $(echo "${DEP_PATTERN}" | grep -q "RHEL.*"); then
+        cp -f ${ENV_FILE}.podman.sample ${ENV_FILE}
+    else
+        cp -f ${ENV_FILE}.docker.sample ${ENV_FILE}
+    fi
     sed -i -e "s/^SYSTEM_ADMIN_PASSWORD=.*/SYSTEM_ADMIN_PASSWORD=${SYSTEM_ADMIN_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^DB_ADMIN_PASSWORD=.*/DB_ADMIN_PASSWORD=${DB_ADMIN_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^KEYCLOAK_DB_PASSWORD=.*/KEYCLOAK_DB_PASSWORD=${KEYCLOAK_DB_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^ITA_DB_ADMIN_PASSWORD=.*/ITA_DB_ADMIN_PASSWORD=${ITA_DB_ADMIN_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^ITA_DB_PASSWORD=.*/ITA_DB_PASSWORD=${ITA_DB_PASSWORD}/" ${ENV_FILE}
+    sed -i -e "s|^ENCRYPT_KEY=.*|ENCRYPT_KEY=${ENCRYPT_KEY}|" ${ENV_FILE}
+    # if [ "${EXASTRO_UID}" -ne 1000 ]; then
+    #     sed -i -e "/^# UID=.*/a UID=${EXASTRO_UID}" ${ENV_FILE}
+    # fi
     sed -i -e "s/^PLATFORM_DB_ADMIN_PASSWORD=.*/PLATFORM_DB_ADMIN_PASSWORD=${PLATFORM_DB_ADMIN_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^PLATFORM_DB_PASSWORD=.*/PLATFORM_DB_PASSWORD=${PLATFORM_DB_PASSWORD}/" ${ENV_FILE}
-    sed -i -e "/^# EXTERNAL_URL_PROTOCOL=.*/a EXTERNAL_URL_PROTOCOL=${EXTERNAL_URL_PROTOCOL}" ${ENV_FILE}
-    sed -i -e "/^# EXTERNAL_URL_HOST=.*/a EXTERNAL_URL_HOST=${EXTERNAL_URL_HOST}" ${ENV_FILE}
-    sed -i -e "/^# EXTERNAL_URL_PORT=.*/a EXTERNAL_URL_PORT=${EXTERNAL_URL_PORT}" ${ENV_FILE}
-    sed -i -e "/^# EXTERNAL_URL_MNG_PROTOCOL=.*/a EXTERNAL_URL_MNG_PROTOCOL=${EXTERNAL_URL_MNG_PROTOCOL}" ${ENV_FILE}
-    sed -i -e "/^# EXTERNAL_URL_MNG_HOST=.*/a EXTERNAL_URL_MNG_HOST=${EXTERNAL_URL_MNG_HOST}" ${ENV_FILE}
-    sed -i -e "/^# EXTERNAL_URL_MNG_PORT=.*/a EXTERNAL_URL_MNG_PORT=${EXTERNAL_URL_MNG_PORT}" ${ENV_FILE}
-    sed -i -e "s/^HOST_DOCKER_GID=.*/HOST_DOCKER_GID=${HOST_DOCKER_GID}/" ${ENV_FILE}
-    sed -i -e "/^# HOST_DOCKER_SOCKET_PATH=.*/a HOST_DOCKER_SOCKET_PATH=${HOST_DOCKER_SOCKET_PATH}" ${ENV_FILE}
+    if "${is_set_exastro_external_url}"; then
+        sed -i -e "/^# EXASTRO_EXTERNAL_URL=.*/a EXASTRO_EXTERNAL_URL=${EXASTRO_EXTERNAL_URL}" ${ENV_FILE}
+    fi
+    if "${is_set_exastro_mng_external_url}"; then
+        sed -i -e "/^# EXASTRO_MNG_EXTERNAL_URL=.*/a EXASTRO_MNG_EXTERNAL_URL=${EXASTRO_MNG_EXTERNAL_URL}" ${ENV_FILE}
+    fi
+    if $(echo "${DEP_PATTERN}" | grep -q "RHEL.*"); then
+        sed -i -e "s|^HOST_DOCKER_SOCKET_PATH=.*|HOST_DOCKER_SOCKET_PATH=${HOST_DOCKER_SOCKET_PATH}|" ${ENV_FILE}
+    else
+        sed -i -e "s/^HOST_DOCKER_GID=.*/HOST_DOCKER_GID=${HOST_DOCKER_GID}/" ${ENV_FILE}
+    fi
     sed -i -e "s/^COMPOSE_PROFILES=.*/COMPOSE_PROFILES=${COMPOSE_PROFILES}/" ${ENV_FILE}
     sed -i -e "s/^GITLAB_ROOT_PASSWORD=.*/GITLAB_ROOT_PASSWORD=${GITLAB_ROOT_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^GITLAB_ROOT_TOKEN=.*/GITLAB_ROOT_TOKEN=${GITLAB_ROOT_TOKEN}/" ${ENV_FILE}
@@ -1126,9 +1178,13 @@ generate_env() {
     fi
     sed -i -e "s/^MONGO_INITDB_ROOT_PASSWORD=.*/MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}/" ${ENV_FILE}
     sed -i -e "s/^MONGO_ADMIN_PASSWORD=.*/MONGO_ADMIN_PASSWORD=${MONGO_ADMIN_PASSWORD}/" ${ENV_FILE}
-    if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then
-        sed -i -e "s/^GITLAB_HOST=.*/GITLAB_HOST=${EXTERNAL_URL_HOST}/" ${ENV_FILE}
+    if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab_container}"; then
+        sed -i -e "/^# GITLAB_PROTOCOL=.*/a GITLAB_PROTOCOL=${GITLAB_PROTOCOL}" ${ENV_FILE}
+        sed -i -e "s/^GITLAB_HOST=.*/GITLAB_HOST=${GITLAB_HOST}/" ${ENV_FILE}
         sed -i -e "/^# GITLAB_PORT=.*/a GITLAB_PORT=${GITLAB_PORT}" ${ENV_FILE}
+    fi
+    if "${is_set_gitlab_external_url}"; then 
+        sed -i -e "/^# GITLAB_EXTERNAL_URL=.*/a GITLAB_EXTERNAL_URL=${GITLAB_EXTERNAL_URL}" ${ENV_FILE}
     fi
 }
 
@@ -1157,18 +1213,19 @@ Requires=podman.socket
 Type=oneshot
 RemainAfterExit=true
 WorkingDirectory=${PROJECT_DIR}
-ExecStartPre=/usr/bin/podman unshare chown $(id -u):$(id -g) /run/user/$(id -u)/podman/podman.sock
-Environment=DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock
+ExecStartPre=/usr/bin/podman unshare chown ${EXASTRO_UID}:${EXASTRO_GID} /run/user/${EXASTRO_UID}/podman/podman.sock
+Environment=DOCKER_HOST=unix:///run/user/${EXASTRO_UID}/podman/podman.sock
 Environment=PWD=${PROJECT_DIR}
 ExecStart=${DOCKER_COMPOSE} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d --wait
 ExecStop=${DOCKER_COMPOSE} -f ${COMPOSE_FILE} --profile all --env-file ${ENV_FILE} stop
- 
+TimeoutSec=${SERVICE_TIMEOUT_SEC}
+
 [Install]
 WantedBy=default.target
 _EOF_
     systemctl --user daemon-reload
     systemctl --user enable exastro
-    sudo loginctl enable-linger $(id -u -n)
+    sudo loginctl enable-linger ${EXASTRO_UNAME}
 }
 
 ### Installation job to Crontab
@@ -1206,7 +1263,7 @@ installtion_firewall_rules() {
         sudo firewall-cmd --add-port=${EXTERNAL_URL_PORT}/tcp --zone=public --permanent
         info "Add ${EXTERNAL_URL_MNG_PORT}/tcp for external management port."
         sudo firewall-cmd --add-port=${EXTERNAL_URL_MNG_PORT}/tcp --zone=public --permanent
-        if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then
+        if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab_container}"; then
             info "Add ${GITLAB_PORT}/tcp for external GitLab port."
             sudo firewall-cmd --add-port=${GITLAB_PORT}/tcp --zone=public --permanent
         fi
@@ -1217,7 +1274,7 @@ installtion_firewall_rules() {
         sudo ufw allow ${EXTERNAL_URL_PORT}/tcp
         info "Add ${EXTERNAL_URL_MNG_PORT}/tcp for external management port."
         sudo ufw allow ${EXTERNAL_URL_MNG_PORT}/tcp
-        if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then
+        if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab_container}"; then
             info "Add ${GITLAB_PORT}/tcp for external GitLab port."
             sudo ufw allow ${GITLAB_PORT}/tcp
         fi
@@ -1237,7 +1294,7 @@ start_exastro() {
             # pid1=$!
         else
             cd ${PROJECT_DIR}
-            sudo -u $(id -u -n) -E ${DOCKER_COMPOSE} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d --wait
+            sudo -u ${EXASTRO_UNAME} -E ${DOCKER_COMPOSE} -f ${COMPOSE_FILE} --env-file ${ENV_FILE} up -d --wait
             # pid1=$!
         fi
     else
@@ -1259,20 +1316,27 @@ start_exastro() {
 
 ### Display Exastro system information
 prompt() {
+    . ${ENV_FILE}
+    if [ "${GITLAB_EXTERNAL_URL:+defined}" ];
+    then
+        GITLAB_URL="${GITLAB_EXTERNAL_URL}"
+    else
+        GITLAB_URL="${GITLAB_PROTOCOL}://<IP address or FQDN>:${GITLAB_PORT}"
+    fi
     banner
     cat<<_EOF_
 
 
 System manager page:
-  URL:                ${EXTERNAL_URL_MNG_PROTOCOL}://${EXTERNAL_URL_MNG_HOST}:${EXTERNAL_URL_MNG_PORT}/
+  URL:                ${EXASTRO_MNG_EXTERNAL_URL}/
   Login user:         admin
   Initial password:   ${SYSTEM_ADMIN_PASSWORD}
 
 Organization page:
-  URL:                ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${EXTERNAL_URL_PORT}/{{ Organization ID }}/platform
+  URL:                ${EXASTRO_EXTERNAL_URL}/{{ Organization ID }}/platform
 
 _EOF_
-    if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then
+    if [ ${COMPOSE_PROFILES} = "all" ] || [ "${GITLAB_HOST:+defined}" ]; then
         cat <<_EOF_
 
 
@@ -1284,18 +1348,18 @@ It may take more than 5 minutes.
 If you are unable to access due to a 503 error, please wait a while and try again.
 
 GitLab page:
-  URL:                ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${GITLAB_PORT}
+  URL:                ${GITLAB_URL}
   Login user:         root
   Initial password:   ${GITLAB_ROOT_PASSWORD}
 
 _EOF_
     printf "GitLab service is not ready."
-    while ! curl -sfI -o /dev/null ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${GITLAB_PORT}/-/readiness;
+    while ! curl -sfI -o /dev/null ${GITLAB_PROTOCOL}://${GITLAB_HOST}:${GITLAB_PORT}/-/readiness;
     do
         printf "."
         sleep 1
     done
-    while ! curl -sfI -o /dev/null -H "PRIVATE-TOKEN: ${GITLAB_ROOT_TOKEN:-}" ${EXTERNAL_URL_PROTOCOL}://${EXTERNAL_URL_HOST}:${GITLAB_PORT}/api/v4/version;
+    while ! curl -sfI -o /dev/null -H "PRIVATE-TOKEN: ${GITLAB_ROOT_TOKEN:-}" ${GITLAB_PROTOCOL}://${GITLAB_HOST}:${GITLAB_PORT}/api/v4/version;
     do
         printf "."
         sleep 1
@@ -1436,7 +1500,7 @@ remove_service() {
         DOCKER_COMPOSE=$(command -v docker)" compose"
     fi
 
-    ${DOCKER_COMPOSE} --profile=all down --rmi all
+    ${DOCKER_COMPOSE} --profile=all down
     if [ "${DEP_PATTERN}" = "RHEL8" ] || [ "${DEP_PATTERN}" = "RHEL9" ]; then
         systemctl --user disable --now exastro
         rm -f ${HOME}/.config/systemd/user/exastro.service
@@ -1453,7 +1517,7 @@ remove_firewall_rules() {
         sudo firewall-cmd --remove-port=${EXTERNAL_URL_PORT}/tcp --zone=public --permanent
         info "Remove ${EXTERNAL_URL_MNG_PORT}/tcp for external management port."
         sudo firewall-cmd --remove-port=${EXTERNAL_URL_MNG_PORT}/tcp --zone=public --permanent
-        if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then
+        if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab_container}"; then
             info "Remove ${GITLAB_PORT}/tcp for external GitLab port."
             sudo firewall-cmd --remove-port=${GITLAB_PORT}/tcp --zone=public --permanent
         fi
@@ -1464,7 +1528,7 @@ remove_firewall_rules() {
         sudo ufw deny ${EXTERNAL_URL_PORT}/tcp
         info "Remove ${EXTERNAL_URL_MNG_PORT}/tcp for external management port."
         sudo ufw deny ${EXTERNAL_URL_MNG_PORT}/tcp
-        if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab}"; then
+        if [ ${COMPOSE_PROFILES} = "all" ] || "${is_use_gitlab_container}"; then
             info "Remove ${GITLAB_PORT}/tcp for external GitLab port."
             sudo ufw deny ${GITLAB_PORT}/tcp
         fi
@@ -1472,7 +1536,7 @@ remove_firewall_rules() {
     fi
 }
 
-### Remove all containers and data
+### Remove all containers, container images and persistent data
 remove_exastro_data() {
     info "Deleting Exastro system..."
     cd ${PROJECT_DIR}
