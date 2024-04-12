@@ -107,26 +107,28 @@ docker-compose --profile all up -d  --wait
 | プロファイル名                 | 対象となるコンテナ                                 | スケーリング                 |
 | ------------------------------ | -------------------------------------------------- | ---------------------------- |
 | *all*                          | すべてのコンテナ(batchを除く)                      |                              |
-| *except-gitlab* （デフォルト） | GitLab 以外のすべてのコンテナ(batchを除く)         |                              |
-| *common*                       | MariaDB、GitLab、Keycloak コンテナ                 | 不可 (対応予定)              |
+| *minimal*                      | Exastro IT Automation、Exastro Platform、Keycloak コンテナ(batchを除く) |                    |
+| *base*                         | Exastro IT Automation、Exastro Platform、Keycloak、MariaDB コンテナ(batchを除く)  |               |
+| *keycloak*                     | Keycloak コンテナ                                  | 不可 (対応予定)              |
 | *mariadb*                      | MariaDB コンテナ                                   | 不可 (対応予定)              |
 | *gitlab*                       | GitLab コンテナ                                    | 不可 (対応予定)              |
-| *keycloak*                     | Keycloak コンテナ                                  | 不可 (対応予定)              |
-| *platform*                     | Exastro Platform 関連のコンテナ                    | 可能                         |
-| *ita*                          | Exastro IT Automation 関連のコンテナ(batchを除く)  | 一部可能                     |
-| *web*                          | Web 系のコンテナ                                   | 可能                         |
+| *mongo*                        | MongoDB コンテナ                                   | 不可 (対応予定)              |
 | *migration*                    | インストール・アップグレード用コンテナ             | 不可 (必ず同時に1つのみ起動) |
+| *web*                          | Web 系のコンテナ                                   | 可能                         |
 | *backyard*                     | Backyard 関連のコンテナ                            | 不可 (対応予定)              |
+| *ita*                          | Exastro IT Automation 関連のコンテナ(batchを除く)   | 一部可能                     |
+| *oase*                         | Exastro OASE 関連のコンテナ(MongoDB コンテナを除く)  | 不可 (対応予定)              |
+| *platform*                     | Exastro Platform 関連のコンテナ                    | 可能                         |
 | *batch*                        | バッチ処理関連のコンテナ(Crontabに登録が必要)      | 不可 (不要)                  |
 
-以下の例では、**except-gitlab** プロファイルを指定することで、Gitlabを個別に用意する場合のコンテナの起動方法です。
+以下の例では、**base** プロファイルを指定することで、Exastro IT Automationを利用する上で、最低限必要なコンテナのみを起動する方法をご紹介します。
 
 ```shell
 # docker コマンドを利用する場合(Docker環境)
-docker compose --profile except-gitlab up -d  --wait
+docker compose --profile base up -d  --wait
 
 # docker-compose コマンドを利用する場合(Podman環境)
-docker-compose --profile except-gitlab up -d  --wait
+docker-compose --profile base up -d  --wait
 ```  
 
 ## Crontabの設定例
@@ -149,67 +151,31 @@ ita-by-file-autocleanを毎日00時01分、ita-by-file-autocleanを毎日00時02
 
 | 設定項目                      | 設定値                  |
 | ----------------------------- | ----------------------- |
-| システム管理者                | admin                   |
-| システム管理者パスワード      | password                |
+| システム管理者                 | admin                   |
+| システム管理者パスワード        | password                |
 | Organization ID               | sample-org              |
 | Organization 管理者           | admin                   |
-| Organization 管理者パスワード | password                |
+| Organization 管理者パスワード  | password                |
 | EXTERNAL_URL_PROTOCOL         | http                    |
 | EXTERNAL_URL_HOST             | exastro.example.com     |
-| EXTERNAL_URL_PORT             | 81                      |
+| EXTERNAL_URL_PORT             | 30080                   |
 | EXTERNAL_URL_MNG_PROTOCOL     | http                    |
 | EXTERNAL_URL_MNG_HOST         | exastro-mng.example.com |
-| EXTERNAL_URL_MNG_PORT         | 80                      |
+| EXTERNAL_URL_MNG_PORT         | 30081                   |
 | GITLAB_PROTOCOL               | http                    |
 | GITLAB_HOST                   | gitlab.example.com      |
 | GITLAB_PORT                   | 40080                   |
 
 
 ### Organization 作成
-システム管理者用コンソールから作成可能ですが、以下のスクリプトでも作成可能です。
-
-```shell
-BASE64_BASIC=$(echo -n "admin:password" | base64)
-BASE_URL=http://exastro-mng.example.com:81
-
-
-curl -X 'POST' "${BASE_URL}/api/platform/organizations" -H 'accept: application/json' -H "Authorization: Basic ${BASE64_BASIC}" -H 'Content-Type: application/json' -d '{
-  "id": "sample-org",
-  "name": "Sample organization",
-  "organization_managers": [
-    {
-      "username": "admin",
-      "email": "admin@example.com",
-      "firstName": "admin",
-      "lastName": "admin",
-      "credentials": [
-        {
-          "type": "password",
-          "value": "password",
-          "temporary": true
-        }
-      ],
-      "requiredActions": [
-        "UPDATE_PROFILE"
-      ],
-      "enabled": true
-    }
-  ],
-  "plan": {},
-  "options": {
-    "sslRequired": "None"
-  },
-  "optionsIta": {}
-}'
-```
-  
+システム管理者用コンソールから作成可能です。
 
 ### 各ページのURL  
 #### システム管理者用コンソール  
-http://exastro-mng.example.com:81/
+http://exastro-mng.example.com:30081/
   
 #### Organization ページ  
-http://exastro.example.com:80/sample-org/platform/  
+http://exastro.example.com:30080/sample-org/platform/  
   
 #### Gitlab  
 http://gitlab.example.com:40080  
@@ -269,7 +235,7 @@ http://gitlab.example.com:40080
 | PLATFORM_DB_ADMIN_USER                  | Exastro Platform が利用するデータベースの管理者ユーザ名                     | 可 (外部のデータベース利用時) | app_user                                                                                                |
 | PLATFORM_DB_ADMIN_PASSWORD              | Exastro Platform が利用するデータベースの管理者パスワード                   | **必須**                      | Ch@ngeMeDBAdm                                                                                           |
 | PLATFORM_DB_DATABASE                    | Exastro Platform が利用するデータベース名                                   | 可                            | platform                                                                                                |
-| ITA_VERSION                             | Exastro IT Automation のバージョン                                          | 可                            | 2.1.2                                                                                                   |
+| ITA_VERSION                             | Exastro IT Automation のバージョン                                          | 可                            | 2.3.0      |
 | ITA_DB_VENDOR                           | Exastro IT Automation が利用するデータベースエンジン                        | 可 (外部のデータベース利用時) | **"mariadb"** (デフォルト): MariaDB を利用<br>**"mysql"**: MySQL を利用                                 |
 | ITA_DB_HOST                             | Exastro IT Automation が利用するデータベースのホスト名                      | 可 (外部のデータベース利用時) | mariadb                                                                                                 |
 | ITA_DB_PORT                             | Exastro IT Automation が利用するデータベースのポート番号                    | 可 (外部のデータベース利用時) | 3306                                                                                                    |
@@ -288,3 +254,13 @@ http://gitlab.example.com:40080
 | ORG_ANSIBLE_EXECUTION_LIMIT_DEFAULT     | Exastro システム全体の Movement デフォルト実行数                            | 可                            | 25                                                                                                      |
 | ORG_ANSIBLE_EXECUTION_LIMIT_MAX         | オーガナイゼーションごとの Movement 最大実行数                              | 可                            | 1000                                                                                                    |
 | ORG_ANSIBLE_EXECUTION_LIMIT_DESCRIPTION | Movement 最大実行数の説明文表記                                             | 不要                          | Maximum number of movement executions for organization default                                          |
+| MONGO_VERSION                           | 起動するMongoDBのバージョン                                      | 可                           | 6.0.7            |
+| MONGO_INITDB_ROOT_USERNAME              | 起動するMongoDBコンテナの管理ユーザー名                           | 可                           | adminer          |
+| MONGO_INITDB_ROOT_PASSWORD              | 起動するMongoDBコンテナの管理ユーザーのパスワード                  | **必須**                     | Ch@ngeMeDBAdm    |
+| MONGO_OPTION_SSL                        | Exastro OASE 利用時のMongoDBへのSSL接続の使用                    | 可                           | FALSE            |
+| MONGO_SCHEME                            | Exastro OASE 利用時のMongoDBのスキーム                           | 可                           | mongodb          |
+| MONGO_HOST                              | Exastro OASE 利用時のMongoDBのホスト名                           | 可                           | mongodb          |
+| MONGO_PORT                              | Exastro OASE 利用時のMongoDBのポート番号                         | 可                           | 27017            |
+| MONGO_ADMIN_USER                        | Exastro OASE 利用時のMongoDBコンテナの管理ユーザー名              | 可                           | adminer          |
+| MONGO_ADMIN_PASSWORD                    | Exastro OASE 利用時のMongoDBコンテナの管理ユーザーのパスワード     | **必須**                     | Ch@ngeMeDBAdm    |
+
